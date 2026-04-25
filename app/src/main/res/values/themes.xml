@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <style name="Theme.Swara" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/swara_purple</item>
         <item name="colorPrimaryVariant">@color/swara_night</item>
@@ -15,4 +16,11 @@
         <item name="android:statusBarColor">@color/swara_night</item>
         <item name="android:navigationBarColor">@color/swara_night</item>
     </style>
+
+    <style name="Theme.SwaraLauncher" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/swara_night</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Swara</item>
+    </style>
+
 </resources>

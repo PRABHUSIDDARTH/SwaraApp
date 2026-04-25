@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,7 +15,6 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
-import android.content.Intent;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,7 +26,6 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -58,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             permission = Manifest.permission.READ_EXTERNAL_STORAGE;
         }
-
         if (ContextCompat.checkSelfPermission(this, permission) ==
                 PackageManager.PERMISSION_GRANTED) {
             Log.d("Swara", "Permission already granted");
@@ -71,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
 
     protected List<Song> loadSongs() {
         List<Song> songs = new ArrayList<>();
-
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {
                 MediaStore.Audio.Media._ID,
@@ -81,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
                 MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.DATA
         };
-
         Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
         int titleIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
         int idIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
@@ -89,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
         int albumIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
         int durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
         int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-
         while (cursor.moveToNext()) {
             String title = cursor.getString(titleIndex);
             String artist = cursor.getString(artistIndex);
@@ -97,34 +91,30 @@ public class MainActivity extends AppCompatActivity {
             long duration = cursor.getLong(durationIndex);
             String album = cursor.getString(albumIndex);
             String path = cursor.getString(dataIndex);
-            Song tmp = new Song(id, title, artist, album, duration, path);
-            songs.add(tmp);
+            songs.add(new Song(id, title, artist, album, duration, path));
         }
-
-
         cursor.close();
         Log.d("Swara", "Total songs: " + songs.size());
         return songs;
     }
 
-    private ServiceConnection connection = new ServiceConnection() {
+    private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder musicBinder = (MusicService.MusicBinder) service;
             musicService = musicBinder.getService();
+            isBound = true;
             tvCurrentTitle = findViewById(R.id.tvCurrentTitle);
             tvCurrentArtist = findViewById(R.id.tvCurrentArtist);
-            isBound = true;
-            List<Song> songs = loadSongs();
-            musicService.setQueue(songs, 0);
             recyclerView = findViewById(R.id.recyclerView);
             btnPlayPause = findViewById(R.id.btnPlayPause);
             Button btnNext = findViewById(R.id.btnNext);
             Button btnPrevious = findViewById(R.id.btnPrevious);
+            List<Song> songs = loadSongs();
+            musicService.setQueue(songs, 0);
             recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
             songAdapter = new SongAdapter(songs, song -> {
                 int index = songs.indexOf(song);
-                // only play if different song
                 if (musicService.getCurrentSong() == null ||
                         !musicService.getCurrentSong().getPath().equals(song.getPath())) {
                     musicService.setQueue(songs, index);
@@ -133,8 +123,7 @@ public class MainActivity extends AppCompatActivity {
                 btnPlayPause.setText("Pause");
                 tvCurrentTitle.setText(song.getTitle());
                 tvCurrentArtist.setText(song.getArtist());
-                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-                startActivity(intent);
+                startActivity(new Intent(MainActivity.this, PlayerActivity.class));
             });
             recyclerView.setAdapter(songAdapter);
             if (!musicService.isPlaying() && !musicService.isPaused()) {
@@ -143,14 +132,14 @@ public class MainActivity extends AppCompatActivity {
             btnNext.setOnClickListener(v -> {
                 musicService.playNext();
                 btnPlayPause.setText("Pause");
-                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());   // add here
-                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist()); // add here
+                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());
+                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist());
             });
             btnPrevious.setOnClickListener(v -> {
                 musicService.playPrevious();
                 btnPlayPause.setText("Pause");
-                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());   // add here
-                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist()); // add here
+                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());
+                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist());
             });
             btnPlayPause.setOnClickListener(v -> {
                 if (musicService.isPlaying()) {
@@ -169,20 +158,17 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceDisconnected(ComponentName name) {
             isBound = false;
         }
-
     };
 
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(this, MusicService.class), connection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        // remove unbindService from here completely
     }
 
     @Override
@@ -193,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
             isBound = false;
         }
     }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -201,25 +188,12 @@ public class MainActivity extends AppCompatActivity {
             if (current != null) {
                 tvCurrentTitle.setText(current.getTitle());
                 tvCurrentArtist.setText(current.getArtist());
-                if (musicService.isPlaying()) {
-                    btnPlayPause.setText("Pause");
-                } else {
-                    btnPlayPause.setText("Play");
-                }
+                btnPlayPause.setText(musicService.isPlaying() ? "Pause" : "Play");
             }
-            // move click listeners here too with null check
-            tvCurrentTitle.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-                startActivity(intent);
-            });
-            tvCurrentArtist.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-                startActivity(intent);
-            });
+            tvCurrentTitle.setOnClickListener(v ->
+                    startActivity(new Intent(MainActivity.this, PlayerActivity.class)));
+            tvCurrentArtist.setOnClickListener(v ->
+                    startActivity(new Intent(MainActivity.this, PlayerActivity.class)));
         }
     }
-
 }
-
-
-
