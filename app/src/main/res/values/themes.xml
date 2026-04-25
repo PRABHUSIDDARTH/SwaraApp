@@ -1,9 +1,18 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Swara" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Swara" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/swara_purple</item>
+        <item name="colorPrimaryVariant">@color/swara_night</item>
+        <item name="colorOnPrimary">@color/swara_cream</item>
+        <item name="colorSecondary">@color/swara_gold</item>
+        <item name="colorSecondaryVariant">@color/swara_gold</item>
+        <item name="colorOnSecondary">@color/swara_night</item>
+        <item name="android:colorBackground">@color/swara_night</item>
+        <item name="colorSurface">@color/swara_purple</item>
+        <item name="colorOnSurface">@color/swara_cream</item>
+        <item name="android:textColorPrimary">@color/swara_cream</item>
+        <item name="android:textColorSecondary">@color/swara_lavender</item>
+        <item name="android:statusBarColor">@color/swara_night</item>
+        <item name="android:navigationBarColor">@color/swara_night</item>
     </style>
-
-    <style name="Theme.Swara" parent="Base.Theme.Swara" />
 </resources>

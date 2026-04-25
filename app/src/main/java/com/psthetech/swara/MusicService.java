@@ -10,8 +10,12 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MusicService extends Service {
+    private List<Song> queue = new ArrayList<>();
+    private int currentIndex = 0;
     private boolean isPaused = false;
     private AudioManager audioManager;
     MediaPlayer mediaPlayer;
@@ -53,6 +57,10 @@ public class MusicService extends Service {
             Log.e("Swara", "Error playing song: " + e.getMessage());
         }
     }
+    public void setQueue(List<Song> songs, int startIndex) {
+        this.queue = songs;
+        this.currentIndex = startIndex;
+    }
     public boolean isPlaying() {
         return mediaPlayer != null && mediaPlayer.isPlaying();
     }
@@ -79,6 +87,22 @@ public class MusicService extends Service {
             pauseSong();
         }
     };
+    public void playNext() {
+        if(currentIndex+1<queue.size()){
+            currentIndex+=1;
+            playSong(queue.get(currentIndex));
+        }
+    }
+
+    public void playPrevious() {
+        if(currentIndex-1>=0){
+            currentIndex-=1;
+            playSong(queue.get(currentIndex));
+        }
+    }
+    public Song getCurrentSong() {
+        return queue.isEmpty() ? null : queue.get(currentIndex);
+    }
 
 
 }

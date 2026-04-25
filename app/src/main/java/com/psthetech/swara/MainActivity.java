@@ -14,6 +14,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    private TextView tvCurrentTitle;
+    private TextView tvCurrentArtist;
+    private Button btnPlayPause;
     private RecyclerView recyclerView;
     private SongAdapter songAdapter;
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -106,17 +111,51 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder musicBinder = (MusicService.MusicBinder) service;
             musicService = musicBinder.getService();
+            tvCurrentTitle = findViewById(R.id.tvCurrentTitle);
+            tvCurrentArtist = findViewById(R.id.tvCurrentArtist);
             isBound = true;
             List<Song> songs = loadSongs();
+            musicService.setQueue(songs, 0);
             recyclerView = findViewById(R.id.recyclerView);
+            btnPlayPause = findViewById(R.id.btnPlayPause);
+            Button btnNext = findViewById(R.id.btnNext);
+            Button btnPrevious = findViewById(R.id.btnPrevious);
             recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
             songAdapter = new SongAdapter(songs, song -> {
+                int index = songs.indexOf(song);
+                musicService.setQueue(songs, index);
                 musicService.playSong(song);
+                btnPlayPause.setText("Pause");
+                tvCurrentTitle.setText(song.getTitle());   // add here
+                tvCurrentArtist.setText(song.getArtist()); // add here
             });
             recyclerView.setAdapter(songAdapter);
             if (!musicService.isPlaying() && !musicService.isPaused()) {
                 musicService.playSong(songs.get(0));
             }
+            btnNext.setOnClickListener(v -> {
+                musicService.playNext();
+                btnPlayPause.setText("Pause");
+                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());   // add here
+                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist()); // add here
+            });
+            btnPrevious.setOnClickListener(v -> {
+                musicService.playPrevious();
+                btnPlayPause.setText("Pause");
+                tvCurrentTitle.setText(musicService.getCurrentSong().getTitle());   // add here
+                tvCurrentArtist.setText(musicService.getCurrentSong().getArtist()); // add here
+            });
+            btnPlayPause.setOnClickListener(v -> {
+                if (musicService.isPlaying()) {
+                    musicService.pauseSong();
+                    btnPlayPause.setText("Play");
+                } else {
+                    musicService.resumeSong();
+                    btnPlayPause.setText("Pause");
+                }
+            });
+            tvCurrentTitle.setText(songs.get(0).getTitle());
+            tvCurrentArtist.setText(songs.get(0).getArtist());
         }
 
         @Override

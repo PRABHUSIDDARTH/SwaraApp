@@ -2,21 +2,42 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:background="?attr/selectableItemBackground">
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textStyle="bold"/>
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#1A0E2E">
 
-    <TextView
-        android:id="@+id/artist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:rotationY="-2"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#F0E6C8"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#9B7EC8"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="#3D1F7A"
+            android:layout_marginTop="8dp"/>
+
+    </LinearLayout>
 
 </LinearLayout>
