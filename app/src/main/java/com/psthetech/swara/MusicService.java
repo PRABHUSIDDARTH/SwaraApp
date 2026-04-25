@@ -51,6 +51,12 @@ public class MusicService extends Service {
                     AudioManager.AUDIOFOCUS_GAIN);
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 mediaPlayer.start();
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    if (currentIndex + 1 < queue.size()) {
+                        currentIndex++;
+                        playSong(queue.get(currentIndex));
+                    }
+                });
             }
             Log.d("Swara", "Playing: " + s.getTitle());
         } catch (IOException e) {
@@ -102,6 +108,13 @@ public class MusicService extends Service {
     }
     public Song getCurrentSong() {
         return queue.isEmpty() ? null : queue.get(currentIndex);
+    }
+    public void seekTo(int msec) {
+        if (mediaPlayer != null) mediaPlayer.seekTo(msec);
+    }
+
+    public int getCurrentPosition() {
+        return mediaPlayer != null ? mediaPlayer.getCurrentPosition() : 0;
     }
 
 

@@ -16,6 +16,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
+import android.content.Intent;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -123,11 +124,17 @@ public class MainActivity extends AppCompatActivity {
             recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
             songAdapter = new SongAdapter(songs, song -> {
                 int index = songs.indexOf(song);
-                musicService.setQueue(songs, index);
-                musicService.playSong(song);
+                // only play if different song
+                if (musicService.getCurrentSong() == null ||
+                        !musicService.getCurrentSong().getPath().equals(song.getPath())) {
+                    musicService.setQueue(songs, index);
+                    musicService.playSong(song);
+                }
                 btnPlayPause.setText("Pause");
-                tvCurrentTitle.setText(song.getTitle());   // add here
-                tvCurrentArtist.setText(song.getArtist()); // add here
+                tvCurrentTitle.setText(song.getTitle());
+                tvCurrentArtist.setText(song.getArtist());
+                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                startActivity(intent);
             });
             recyclerView.setAdapter(songAdapter);
             if (!musicService.isPlaying() && !musicService.isPaused()) {
@@ -186,6 +193,32 @@ public class MainActivity extends AppCompatActivity {
             isBound = false;
         }
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isBound && musicService != null && tvCurrentTitle != null) {
+            Song current = musicService.getCurrentSong();
+            if (current != null) {
+                tvCurrentTitle.setText(current.getTitle());
+                tvCurrentArtist.setText(current.getArtist());
+                if (musicService.isPlaying()) {
+                    btnPlayPause.setText("Pause");
+                } else {
+                    btnPlayPause.setText("Play");
+                }
+            }
+            // move click listeners here too with null check
+            tvCurrentTitle.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                startActivity(intent);
+            });
+            tvCurrentArtist.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                startActivity(intent);
+            });
+        }
+    }
+
 }
 
 
