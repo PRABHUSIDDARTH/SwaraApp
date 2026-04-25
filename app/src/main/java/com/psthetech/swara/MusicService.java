@@ -1,4 +1,4 @@
-package com.example.swara;
+package com.psthetech.swara;
 
 import android.app.Service;
 import android.content.Context;

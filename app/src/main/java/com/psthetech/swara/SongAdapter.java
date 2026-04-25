@@ -1,4 +1,4 @@
-package com.example.swara;
+package com.psthetech.swara;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
