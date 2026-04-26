@@ -1,17 +1,20 @@
 <img width="1918" height="952" alt="image" src="https://github.com/user-attachments/assets/b6fd1711-7e4e-4621-9834-d3b6c854216a" />
 
-# Swara 🎵
-Offline Android music player built from scratch in Java.
+🎵 ## Swara
 
-## Features
-- Scans device storage for audio files
-- Background playback via Bound Service
-- AudioFocus handling
-- RecyclerView song list
-- Room Database (favorites)
-- SeekBar
+Offline Android Music Player built from scratch in Java
 
-## Tech Stack
+Swara is a lightweight and efficient offline music player designed for Android. Built completely from scratch, it focuses on smooth playback, clean architecture, and essential music features without unnecessary complexity.
+
+✨ ## Features
+📂 Scans device storage for audio files using MediaStore
+🎧 Background playback powered by Bound Service
+🔊 Audio Focus handling for seamless experience
+📜 RecyclerView-based dynamic song listing
+❤️ Favorites management using Room Database
+⏱️ Interactive SeekBar for playback control
+
+🛠️ ## Tech Stack
 - Java
 - Android Studio
 - MediaStore API
@@ -19,11 +22,13 @@ Offline Android music player built from scratch in Java.
 - Bound Service
 - RecyclerView
 
-## In Progress
+🚧 ## In Progress
+🔔 Media notifications
+🎶 Queue management system
 
-- Media notifications
-- Queue management
 
-
-## Setup
-Clone the repo, open in Android Studio, connect a physical device and run.
+🚀 ## Setup
+Clone the repository
+Open in Android Studio
+Connect a physical device or emulator
+Build & run the app
