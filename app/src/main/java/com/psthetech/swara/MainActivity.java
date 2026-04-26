@@ -10,10 +10,14 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -29,7 +33,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+
+
 public class MainActivity extends AppCompatActivity {
+    private SeekBar mainSeekBar;
+    private Handler handler = new Handler(Looper.getMainLooper());
     private TextView tvCurrentTitle;
     private TextView tvCurrentArtist;
     private Button btnPlayPause;
@@ -126,6 +134,17 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, PlayerActivity.class));
             });
             recyclerView.setAdapter(songAdapter);
+            EditText etSearch = findViewById(R.id.etSearch);
+            etSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    songAdapter.filter(s.toString());
+                }
+                @Override
+                public void afterTextChanged(android.text.Editable s) {}
+            });
             if (!musicService.isPlaying() && !musicService.isPaused()) {
                 musicService.playSong(songs.get(0));
             }
@@ -152,6 +171,30 @@ public class MainActivity extends AppCompatActivity {
             });
             tvCurrentTitle.setText(songs.get(0).getTitle());
             tvCurrentArtist.setText(songs.get(0).getArtist());
+            mainSeekBar = findViewById(R.id.mainSeekBar);
+
+// update seekbar every second
+            Runnable updateSeekBar = new Runnable() {
+                @Override
+                public void run() {
+                    if (isBound && musicService != null && musicService.isPlaying()) {
+                        mainSeekBar.setMax(musicService.getDuration());
+                        mainSeekBar.setProgress(musicService.getCurrentPosition());
+                    }
+                    handler.postDelayed(this, 1000);
+                }
+            };
+            handler.post(updateSeekBar);
+
+// seekbar drag
+            mainSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser) musicService.seekTo(progress);
+                }
+                @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+            });
         }
 
         @Override

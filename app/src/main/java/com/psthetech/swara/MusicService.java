@@ -51,6 +51,9 @@ public class MusicService extends Service {
                     AudioManager.AUDIOFOCUS_GAIN);
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 mediaPlayer.start();
+                if (songChangeListener != null) {
+                    songChangeListener.onSongChanged(s);
+                }
                 mediaPlayer.setOnCompletionListener(mp -> {
                     if (currentIndex + 1 < queue.size()) {
                         currentIndex++;
@@ -115,6 +118,19 @@ public class MusicService extends Service {
 
     public int getCurrentPosition() {
         return mediaPlayer != null ? mediaPlayer.getCurrentPosition() : 0;
+    }
+
+    public interface OnSongChangeListener {
+        void onSongChanged(Song newSong);
+    }
+
+    private OnSongChangeListener songChangeListener;
+
+    public void setSongChangeListener(OnSongChangeListener listener) {
+        this.songChangeListener = listener;
+    }
+    public int getDuration() {
+        return mediaPlayer != null ? mediaPlayer.getDuration() : 0;
     }
 
 

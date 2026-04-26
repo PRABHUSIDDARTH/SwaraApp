@@ -32,4 +32,5 @@ public class Song {
     public String getArtist() {
         return artist;
     }
+    public long getId() { return id; }
 }

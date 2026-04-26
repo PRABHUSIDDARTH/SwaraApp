@@ -99,6 +99,13 @@ public class PlayerActivity extends AppCompatActivity {
                 @Override public void onStartTrackingTouch(SeekBar seekBar) {}
                 @Override public void onStopTrackingTouch(SeekBar seekBar) {}
             });
+            musicService.setSongChangeListener(song -> runOnUiThread(() -> {
+                tvTitle.setText(song.getTitle());
+                tvArtist.setText(song.getArtist());
+                seekBar.setMax((int) song.getDuration());
+                tvTotalTime.setText(formatTime(song.getDuration()));
+                btnPlayPause.setText("⏸");
+            }));
         }
 
         @Override
@@ -135,6 +142,9 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (isBound && musicService != null) {
+            musicService.setSongChangeListener(null);
+        }
         handler.removeCallbacks(updateSeekBar);
         if (isBound) {
             unbindService(connection);

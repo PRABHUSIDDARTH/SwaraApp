@@ -5,6 +5,19 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <EditText
+        android:id="@+id/etSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Search songs..."
+        android:padding="12dp"
+        android:background="#3D1F7A"
+        android:textColor="#F0E6C8"
+        android:textColorHint="#9B7EC8"
+        android:drawablePadding="8dp"
+        android:inputType="text"
+        android:imeOptions="actionSearch"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
@@ -40,6 +53,17 @@
             android:ellipsize="end"/>
 
     </LinearLayout>
+
+    <SeekBar
+        android:id="@+id/mainSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:progressTint="#C9A84C"
+        android:thumbTint="#C9A84C"
+        android:progressBackgroundTint="#3D1F7A"
+        android:background="#3D1F7A"/>
 
 
     <LinearLayout
