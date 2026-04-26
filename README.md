@@ -8,6 +8,8 @@ Offline Android music player built from scratch in Java.
 - Background playback via Bound Service
 - AudioFocus handling
 - RecyclerView song list
+- Room Database (favorites)
+- SeekBar
 
 ## Tech Stack
 - Java
@@ -18,10 +20,10 @@ Offline Android music player built from scratch in Java.
 - RecyclerView
 
 ## In Progress
-- Room Database (favorites)
+
 - Media notifications
 - Queue management
-- SeekBar
+
 
 ## Setup
 Clone the repo, open in Android Studio, connect a physical device and run.
