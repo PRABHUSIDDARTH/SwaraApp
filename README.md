@@ -1,58 +1,57 @@
-<img width="1918" height="952" alt="image" src="https://github.com/user-attachments/assets/b6fd1711-7e4e-4621-9834-d3b6c854216a" />
+# Swara
 
-<h1 align="center">🎵 Swara</h1>
-<h3 align="center">Offline Android Music Player built from scratch in Java</h3>
+## Overview
+Swara is an offline Android music player built in Java. It scans songs available on the device, plays audio smoothly in the foreground/background, and lets users save favorites locally.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Platform-Android-green?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Language-Java-orange?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Status-Active-blue?style=for-the-badge" />
-</p>
+## Features
+- Device song discovery using MediaStore
+- Offline playback with `MediaPlayer`
+- Background playback using a bound music service
+- Song list UI with RecyclerView
+- Favorites storage with Room database
+- Seek controls for playback progress
 
----
+## Tech Stack
+- **Language:** Java
+- **Playback:** Android `MediaPlayer`
+- **Service Layer:** Bound Services
+- **Persistence:** Room Database
+- **UI:** RecyclerView, Material Components
 
-## 🚀 Overview
-Swara is a lightweight and efficient offline music player designed for Android.  
-Built completely from scratch, it focuses on **smooth playback, clean architecture, and essential features** without unnecessary complexity.
+## Architecture Overview
+Swara follows a straightforward Android layered flow: activities handle UI interactions, a bound `MusicService` controls playback state with `MediaPlayer`, and Room persists favorite songs. This keeps playback lifecycle handling separate from UI rendering and local data storage.
 
----
+## Screenshots
+Add screenshots under `docs/screenshots/` and update the links below:
 
-## ✨ Features
-- 📂 Scan and fetch songs using MediaStore API  
-- 🎧 Background playback using Bound Service  
-- 🔊 Audio Focus handling for seamless experience  
-- 📜 RecyclerView-based dynamic song listing  
-- ❤️ Favorites system using Room Database  
-- ⏱️ SeekBar for real-time playback control  
+- ![Home Screen](docs/screenshots/home.png)
+- ![Now Playing](docs/screenshots/now-playing.png)
+- ![Favorites](docs/screenshots/favorites.png)
+- ![Queue](docs/screenshots/queue.png)
 
----
+## Setup and Build
+### Requirements
+- Android Studio (latest stable recommended)
+- Android SDK with:
+  - **minSdk:** 24
+  - **targetSdk / compileSdk:** 36
+- JDK 17 for CI (project source/target compatibility is Java 11)
 
-## 🛠️ Tech Stack
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=java,androidstudio" />
-</p>
+### Run Locally
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/PRABHUSIDDARTH/SwaraApp.git
+   ```
+2. Open the project in Android Studio.
+3. Let Gradle sync complete.
+4. Connect an Android device or start an emulator.
+5. Click **Run** to install and launch the app.
 
-- MediaStore API  
-- MediaPlayer  
-- Bound Service  
-- RecyclerView  
-- Room Database  
-
-
----
-
-## 🚧 In Progress
-- 🔔 Media notifications  
-- 🎶 Queue management system  
-
----
-
-## ⚙️ Setup
+### Command-Line Build
 ```bash
-git clone https://github.com/PRABHUSIDDARTH/SwaraApp
+./gradlew test
+./gradlew assembleDebug
 ```
-Open in Android Studio
 
-Connect a physical device or emulator
-
-Build & run the app
+## License
+This project is licensed under the Apache-2.0 License. See [LICENSE](LICENSE) for details.
