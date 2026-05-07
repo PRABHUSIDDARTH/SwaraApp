@@ -3,6 +3,8 @@ name: Android CI
 on:
   push:
   pull_request:
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -28,3 +30,4 @@ jobs:
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug
+
