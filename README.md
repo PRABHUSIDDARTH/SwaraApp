@@ -22,7 +22,7 @@ Swara is an offline Android music player built in Java. It scans songs available
 Swara follows a straightforward Android layered flow: activities handle UI interactions, a bound `MusicService` controls playback state with `MediaPlayer`, and Room persists favorite songs. This keeps playback lifecycle handling separate from UI rendering and local data storage.
 
 ## Screenshots
-Add screenshots under `docs/screenshots/` and update the links below:
+Add screenshots under `docs/screenshots/` and replace the placeholder filenames below with your actual image files:
 
 - ![Home Screen](docs/screenshots/home.png)
 - ![Now Playing](docs/screenshots/now-playing.png)
