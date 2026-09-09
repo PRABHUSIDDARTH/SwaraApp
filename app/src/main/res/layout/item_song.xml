@@ -1,53 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="@dimen/song_item_height"
     android:orientation="horizontal"
-    android:padding="16dp"
-    android:background="#1A0E2E">
+    android:padding="@dimen/dp_12"
+    android:gravity="center_vertical"
+    android:background="@drawable/ripple_item">
 
+    <!-- Album Artwork Thumbnail -->
+    <ImageView
+        android:id="@+id/ivArtwork"
+        android:layout_width="@dimen/song_item_artwork_size"
+        android:layout_height="@dimen/song_item_artwork_size"
+        android:scaleType="centerCrop"
+        android:background="@color/swara_surface_3"
+        android:src="@drawable/ic_artwork_fallback"
+        android:contentDescription="@string/cd_song_thumbnail"
+        android:importantForAccessibility="no" />
+
+    <!-- Song Info -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:layout_marginStart="@dimen/dp_12"
+        android:layout_marginEnd="@dimen/dp_8">
 
         <TextView
-            android:id="@+id/title"
+            android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="#F0E6C8"
+            android:textSize="@dimen/text_title_md"
+            android:textColor="@color/swara_text_primary"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
-            android:ellipsize="end"/>
+            android:ellipsize="end" />
 
         <TextView
-            android:id="@+id/artist"
+            android:id="@+id/tvSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="#9B7EC8"
-            android:layout_marginTop="2dp"
+            android:textSize="@dimen/text_body_sm"
+            android:textColor="@color/swara_text_secondary"
+            android:layout_marginTop="@dimen/dp_2"
             android:maxLines="1"
-            android:ellipsize="end"/>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="#3D1F7A"
-            android:layout_marginTop="8dp"/>
+            android:ellipsize="end" />
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/btnFavorite"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="♡"
-        android:textSize="20sp"
-        android:textColor="#9B7EC8"
-        android:layout_gravity="center_vertical"
-        android:padding="8dp"/>
+    <!-- Favorite button -->
+    <ImageView
+        android:id="@+id/ivFavorite"
+        android:layout_width="@dimen/btn_min_touch_target"
+        android:layout_height="@dimen/btn_min_touch_target"
+        android:src="@drawable/ic_favorite_border"
+        android:scaleType="center"
+        android:background="@drawable/ripple_circle"
+        android:padding="@dimen/dp_12"
+        android:contentDescription="@string/cd_favorite_empty"
+        android:tint="@color/swara_lavender" />
+
+    <!-- Overflow menu -->
+    <ImageView
+        android:id="@+id/ivMore"
+        android:layout_width="@dimen/btn_min_touch_target"
+        android:layout_height="@dimen/btn_min_touch_target"
+        android:src="@drawable/ic_more_vert"
+        android:scaleType="center"
+        android:background="@drawable/ripple_circle"
+        android:padding="@dimen/dp_12"
+        android:contentDescription="@string/cd_more_options"
+        android:tint="@color/swara_text_dim" />
 
 </LinearLayout>
