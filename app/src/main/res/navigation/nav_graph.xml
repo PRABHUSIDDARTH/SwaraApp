@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.psthetech.swara.ui.home.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/libraryFragment"
+        android:name="com.psthetech.swara.ui.library.LibraryFragment"
+        android:label="Library"
+        tools:layout="@layout/fragment_library">
+        <action
+            android:id="@+id/action_library_to_albumDetail"
+            app:destination="@id/albumDetailFragment" />
+        <action
+            android:id="@+id/action_library_to_artistDetail"
+            app:destination="@id/artistDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/albumDetailFragment"
+        android:name="com.psthetech.swara.ui.library.AlbumDetailFragment"
+        android:label="Album"
+        tools:layout="@layout/fragment_album_detail">
+        <argument
+            android:name="albumId"
+            app:argType="long" />
+        <argument
+            android:name="albumTitle"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/artistDetailFragment"
+        android:name="com.psthetech.swara.ui.library.ArtistDetailFragment"
+        android:label="Artist"
+        tools:layout="@layout/fragment_artist_detail">
+        <argument
+            android:name="artistName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.psthetech.swara.ui.search.SearchFragment"
+        android:label="Search"
+        tools:layout="@layout/fragment_search" />
+
+    <fragment
+        android:id="@+id/favoritesFragment"
+        android:name="com.psthetech.swara.ui.favorites.FavoritesFragment"
+        android:label="Favorites"
+        tools:layout="@layout/fragment_favorites" />
+
+    <fragment
+        android:id="@+id/playlistsFragment"
+        android:name="com.psthetech.swara.ui.playlists.PlaylistsFragment"
+        android:label="Playlists"
+        tools:layout="@layout/fragment_playlists">
+        <action
+            android:id="@+id/action_playlists_to_detail"
+            app:destination="@id/playlistDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/playlistDetailFragment"
+        android:name="com.psthetech.swara.ui.playlists.PlaylistDetailFragment"
+        android:label="Playlist"
+        tools:layout="@layout/fragment_playlist_detail">
+        <argument
+            android:name="playlistId"
+            app:argType="long" />
+        <argument
+            android:name="playlistName"
+            app:argType="string" />
+    </fragment>
+
+    <dialog
+        android:id="@+id/nowPlayingFragment"
+        android:name="com.psthetech.swara.ui.nowplaying.NowPlayingFragment"
+        android:label="Now Playing"
+        tools:layout="@layout/fragment_now_playing" />
+
+    <dialog
+        android:id="@+id/queueFragment"
+        android:name="com.psthetech.swara.ui.queue.QueueFragment"
+        android:label="Queue"
+        tools:layout="@layout/fragment_queue" />
+
+</navigation>
