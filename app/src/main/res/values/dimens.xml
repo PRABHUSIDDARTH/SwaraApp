@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== SPACING ===== -->
+    <dimen name="dp_2">2dp</dimen>
+    <dimen name="dp_4">4dp</dimen>
+    <dimen name="dp_8">8dp</dimen>
+    <dimen name="dp_12">12dp</dimen>
+    <dimen name="dp_16">16dp</dimen>
+    <dimen name="dp_20">20dp</dimen>
+    <dimen name="dp_24">24dp</dimen>
+    <dimen name="dp_32">32dp</dimen>
+    <dimen name="dp_40">40dp</dimen>
+    <dimen name="dp_48">48dp</dimen>
+    <dimen name="dp_64">64dp</dimen>
+
+    <!-- ===== CORNER RADII ===== -->
+    <dimen name="radius_xs">4dp</dimen>
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">16dp</dimen>
+    <dimen name="radius_lg">24dp</dimen>
+    <dimen name="radius_xl">32dp</dimen>
+    <dimen name="radius_full">9999dp</dimen>
+
+    <!-- ===== ELEVATION ===== -->
+    <dimen name="elevation_0">0dp</dimen>
+    <dimen name="elevation_1">2dp</dimen>
+    <dimen name="elevation_2">6dp</dimen>
+    <dimen name="elevation_3">12dp</dimen>
+    <dimen name="elevation_4">24dp</dimen>
+
+    <!-- ===== COMPONENT HEIGHTS ===== -->
+    <dimen name="mini_player_height">72dp</dimen>
+    <dimen name="bottom_nav_height">64dp</dimen>
+    <dimen name="song_item_height">72dp</dimen>
+    <dimen name="album_card_artwork_size">140dp</dimen>
+    <dimen name="artist_card_artwork_size">90dp</dimen>
+    <dimen name="now_playing_artwork_size">280dp</dimen>
+    <dimen name="mini_player_artwork_size">48dp</dimen>
+    <dimen name="song_item_artwork_size">48dp</dimen>
+    <dimen name="home_section_art_size">120dp</dimen>
+
+    <!-- ===== TYPOGRAPHY ===== -->
+    <dimen name="text_display">32sp</dimen>
+    <dimen name="text_headline_lg">26sp</dimen>
+    <dimen name="text_headline_md">22sp</dimen>
+    <dimen name="text_title_lg">18sp</dimen>
+    <dimen name="text_title_md">15sp</dimen>
+    <dimen name="text_body_md">14sp</dimen>
+    <dimen name="text_body_sm">12sp</dimen>
+    <dimen name="text_label_md">11sp</dimen>
+
+    <!-- ===== BORDERS ===== -->
+    <dimen name="border_thin">0.5dp</dimen>
+    <dimen name="border_regular">1dp</dimen>
+    <dimen name="border_thick">2dp</dimen>
+
+    <!-- ===== ICON SIZES ===== -->
+    <dimen name="icon_sm">20dp</dimen>
+    <dimen name="icon_md">24dp</dimen>
+    <dimen name="icon_lg">32dp</dimen>
+    <dimen name="icon_xl">48dp</dimen>
+
+    <!-- ===== BUTTONS ===== -->
+    <dimen name="btn_play_pause_size">64dp</dimen>
+    <dimen name="btn_secondary_size">48dp</dimen>
+    <dimen name="btn_ghost_size">36dp</dimen>
+    <dimen name="btn_min_touch_target">48dp</dimen>
+
+    <!-- ===== MISC ===== -->
+    <dimen name="bottom_sheet_drag_handle_width">32dp</dimen>
+    <dimen name="bottom_sheet_drag_handle_height">4dp</dimen>
+    <dimen name="progress_bar_height">3dp</dimen>
+    <dimen name="mini_player_progress_height">2dp</dimen>
+</resources>
