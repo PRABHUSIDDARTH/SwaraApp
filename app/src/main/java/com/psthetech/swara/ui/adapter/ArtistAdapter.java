@@ -15,6 +15,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Artist;
+import com.psthetech.swara.util.ArtworkHelper;
 
 public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewHolder> {
 
@@ -83,5 +84,11 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
                 }
             });
         }
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull ArtistViewHolder holder) {
+        super.onViewRecycled(holder);
+        ArtworkHelper.clear(holder.itemView.getContext(), holder.artistImage);
     }
 }

@@ -95,4 +95,10 @@ public class QueueAdapter extends ListAdapter<Song, QueueAdapter.QueueViewHolder
             });
         }
     }
+
+    @Override
+    public void onViewRecycled(@NonNull QueueViewHolder holder) {
+        super.onViewRecycled(holder);
+        ArtworkHelper.clear(holder.itemView.getContext(), holder.queueSongArt);
+    }
 }

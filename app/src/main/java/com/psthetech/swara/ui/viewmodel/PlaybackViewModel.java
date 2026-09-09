@@ -63,6 +63,7 @@ public class PlaybackViewModel extends AndroidViewModel {
     // ===== Internal =====
     private ListenableFuture<MediaController> controllerFuture;
     @Nullable private MediaController controller;
+    @Nullable private com.psthetech.swara.data.repository.QueueManager queueManager;
     private final Handler positionHandler = new Handler(Looper.getMainLooper());
     private final List<Song> queueSnapshot = new ArrayList<>(); // mirrors ExoPlayer queue
 
@@ -102,10 +103,16 @@ public class PlaybackViewModel extends AndroidViewModel {
             try {
                 controller = controllerFuture.get();
                 controller.addListener(playerListener);
+
+                queueManager = new com.psthetech.swara.data.repository.QueueManager(
+                        new MediaControllerQueueAdapter(controller),
+                        this::songToMediaItem
+                );
+
                 // Sync initial state in case service was already playing
                 syncStateFromController();
                 Log.d(TAG, "MediaController connected to SwaraPlaybackService");
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (java.util.concurrent.ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Failed to connect MediaController", e);
                 errorMessage.postValue("Failed to connect to playback service");
             }
@@ -198,109 +205,69 @@ public class PlaybackViewModel extends AndroidViewModel {
     };
 
     // ===== Public Playback Commands =====
+    // Delegated to QueueManager
 
-    /**
-     * Play: replace entire queue with the given songs, start at the given index.
-     * This is the authoritative PLAY action — replaces all existing queue state.
-     */
     public void play(List<Song> songs, int startIndex) {
-        if (controller == null || songs == null || songs.isEmpty()) return;
-        List<MediaItem> items = songsToMediaItems(songs);
-        controller.setMediaItems(items, startIndex, 0);
-        controller.prepare();
-        controller.play();
+        if (queueManager != null) queueManager.play(songs, startIndex);
     }
 
-    /**
-     * Play Next: insert immediately after the current item (not append to end).
-     */
     public void playNext(Song song) {
-        if (controller == null) return;
-        int insertIndex = controller.getCurrentMediaItemIndex() + 1;
-        controller.addMediaItem(insertIndex, songToMediaItem(song));
+        if (queueManager != null) queueManager.playNext(song);
     }
 
-    /**
-     * Add to Queue: append to the end of the current queue.
-     */
     public void addToQueue(Song song) {
-        if (controller == null) return;
-        controller.addMediaItem(songToMediaItem(song));
+        if (queueManager != null) queueManager.addToQueue(song);
     }
 
-    /** Add a list of songs to the end of the queue. */
     public void addAllToQueue(List<Song> songs) {
-        if (controller == null || songs == null) return;
-        for (Song song : songs) controller.addMediaItem(songToMediaItem(song));
+        if (queueManager != null) queueManager.addAllToQueue(songs);
     }
 
     public void pause() {
-        if (controller != null) controller.pause();
+        if (queueManager != null) queueManager.pause();
     }
 
     public void resume() {
-        if (controller != null) controller.play();
+        if (queueManager != null) queueManager.resume();
     }
 
     public void seekTo(long positionMs) {
-        if (controller != null) {
-            controller.seekTo(positionMs);
+        if (queueManager != null) {
+            queueManager.seekTo(positionMs);
             currentPositionMs.setValue(positionMs);
         }
     }
 
     public void skipToNext() {
-        if (controller != null) controller.seekToNextMediaItem();
+        if (queueManager != null) queueManager.skipToNext();
     }
 
     public void skipToPrevious() {
-        if (controller == null) return;
-        // If more than 3 seconds played, restart current; otherwise previous
-        if (controller.getCurrentPosition() > 3000) {
-            controller.seekTo(0);
-        } else {
-            controller.seekToPreviousMediaItem();
-        }
+        if (queueManager != null) queueManager.skipToPrevious();
     }
 
     public void toggleShuffle() {
-        if (controller == null) return;
-        boolean current = controller.getShuffleModeEnabled();
-        controller.setShuffleModeEnabled(!current);
+        if (queueManager != null) queueManager.toggleShuffle();
     }
 
     public void cycleRepeatMode() {
-        if (controller == null) return;
-        int current = controller.getRepeatMode();
-        int next;
-        switch (current) {
-            case Player.REPEAT_MODE_OFF: next = Player.REPEAT_MODE_ONE; break;
-            case Player.REPEAT_MODE_ONE: next = Player.REPEAT_MODE_ALL; break;
-            default: next = Player.REPEAT_MODE_OFF; break;
-        }
-        controller.setRepeatMode(next);
+        if (queueManager != null) queueManager.cycleRepeatMode();
     }
 
     public void removeFromQueue(int index) {
-        if (controller != null) controller.removeMediaItem(index);
+        if (queueManager != null) queueManager.removeFromQueue(index);
     }
 
     public void moveQueueItem(int fromIndex, int toIndex) {
-        if (controller != null) controller.moveMediaItem(fromIndex, toIndex);
+        if (queueManager != null) queueManager.moveQueueItem(fromIndex, toIndex);
     }
 
     public void clearQueue() {
-        if (controller != null) {
-            controller.clearMediaItems();
-            controller.stop();
-        }
+        if (queueManager != null) queueManager.clearQueue();
     }
 
     public void skipToQueueItem(int index) {
-        if (controller != null) {
-            controller.seekTo(index, 0);
-            controller.play();
-        }
+        if (queueManager != null) queueManager.skipToQueueItem(index);
     }
 
     // ===== Convenience Aliases for Fragments =====
@@ -373,6 +340,119 @@ public class PlaybackViewModel extends AndroidViewModel {
         List<MediaItem> items = new ArrayList<>();
         for (Song song : songs) items.add(songToMediaItem(song));
         return items;
+    }
+
+    private static class MediaControllerQueueAdapter implements com.psthetech.swara.data.repository.QueueManager.QueueController {
+        private final MediaController controller;
+
+        MediaControllerQueueAdapter(MediaController controller) {
+            this.controller = controller;
+        }
+
+        @Override
+        public void setMediaItems(List<MediaItem> items, int startIndex, long startPositionMs) {
+            controller.setMediaItems(items, startIndex, startPositionMs);
+        }
+
+        @Override
+        public void prepare() {
+            controller.prepare();
+        }
+
+        @Override
+        public void play() {
+            controller.play();
+        }
+
+        @Override
+        public void pause() {
+            controller.pause();
+        }
+
+        @Override
+        public void addMediaItem(MediaItem item) {
+            controller.addMediaItem(item);
+        }
+
+        @Override
+        public void addMediaItem(int index, MediaItem item) {
+            controller.addMediaItem(index, item);
+        }
+
+        @Override
+        public void removeMediaItem(int index) {
+            controller.removeMediaItem(index);
+        }
+
+        @Override
+        public void moveMediaItem(int currentIndex, int newIndex) {
+            controller.moveMediaItem(currentIndex, newIndex);
+        }
+
+        @Override
+        public void clearMediaItems() {
+            controller.clearMediaItems();
+        }
+
+        @Override
+        public void stop() {
+            controller.stop();
+        }
+
+        @Override
+        public void seekTo(long positionMs) {
+            controller.seekTo(positionMs);
+        }
+
+        @Override
+        public void seekTo(int mediaItemIndex, long positionMs) {
+            controller.seekTo(mediaItemIndex, positionMs);
+        }
+
+        @Override
+        public void seekToNextMediaItem() {
+            controller.seekToNextMediaItem();
+        }
+
+        @Override
+        public void seekToPreviousMediaItem() {
+            controller.seekToPreviousMediaItem();
+        }
+
+        @Override
+        public int getCurrentMediaItemIndex() {
+            return controller.getCurrentMediaItemIndex();
+        }
+
+        @Override
+        public long getCurrentPosition() {
+            return controller.getCurrentPosition();
+        }
+
+        @Override
+        public boolean getShuffleModeEnabled() {
+            return controller.getShuffleModeEnabled();
+        }
+
+        @Override
+        public void setShuffleModeEnabled(boolean shuffleModeEnabled) {
+            controller.setShuffleModeEnabled(shuffleModeEnabled);
+        }
+
+        @Override
+        public int getRepeatMode() {
+            return controller.getRepeatMode();
+        }
+
+        @Override
+        public void setRepeatMode(int repeatMode) {
+            controller.setRepeatMode(repeatMode);
+        }
+
+        @Override
+        public boolean hasNextMediaItem() {
+            return controller.hasNextMediaItem();
+        }
     }
 
     private Song mediaItemToSong(MediaItem item) {

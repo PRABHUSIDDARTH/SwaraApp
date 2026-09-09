@@ -90,4 +90,10 @@ public class AlbumAdapter extends ListAdapter<Album, AlbumAdapter.AlbumViewHolde
             });
         }
     }
+
+    @Override
+    public void onViewRecycled(@NonNull AlbumViewHolder holder) {
+        super.onViewRecycled(holder);
+        ArtworkHelper.clear(holder.itemView.getContext(), holder.albumArt);
+    }
 }
