@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/swara_night">
+
+    <!-- Header with Play All / Shuffle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="@dimen/dp_16"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/favorites"
+            android:textSize="@dimen/text_headline_md"
+            android:textColor="@color/swara_text_primary"
+            android:fontFamily="sans-serif-medium" />
+
+        <Button
+            android:id="@+id/btnShuffleFavorites"
+            style="@style/Widget.Swara.Button.Ghost"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="@string/shuffle_play"
+            android:textSize="12sp"
+            android:paddingHorizontal="@dimen/dp_16"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Favorites list -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="144dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+
+        <!-- Empty state -->
+        <LinearLayout
+            android:id="@+id/layoutEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/dp_32"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:src="@drawable/ic_nav_favorites"
+                android:alpha="0.3"
+                android:tint="@color/swara_gold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/favorites_empty_title"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginTop="@dimen/dp_16"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/favorites_empty_subtitle"
+                android:textSize="@dimen/text_body_sm"
+                android:textColor="@color/swara_text_secondary"
+                android:layout_marginTop="@dimen/dp_8"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

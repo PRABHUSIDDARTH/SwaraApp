@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:background="@drawable/bg_bottom_sheet"
+    android:paddingTop="@dimen/dp_12">
+    <!-- Drag handle -->
+    <View android:layout_width="@dimen/bottom_sheet_drag_handle_width"
+        android:layout_height="@dimen/bottom_sheet_drag_handle_height"
+        android:layout_gravity="center_horizontal" android:background="@color/swara_glass_stroke"
+        android:layout_marginBottom="@dimen/dp_8"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:paddingHorizontal="@dimen/dp_16"
+        android:paddingBottom="@dimen/dp_12" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="@string/queue" android:textSize="@dimen/text_title_lg"
+            android:textColor="@color/swara_text_primary" android:fontFamily="sans-serif-medium"/>
+        <Button android:id="@+id/btnClearQueue" style="@style/Widget.Swara.Button.Text"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/clear_queue" android:textSize="12sp"/>
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerView"
+        android:layout_width="match_parent" android:layout_height="400dp" android:overScrollMode="never"/>
+</LinearLayout>

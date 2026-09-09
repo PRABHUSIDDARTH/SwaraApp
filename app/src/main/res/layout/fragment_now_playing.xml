@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Now Playing — full screen bottom sheet -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/swara_night"
+    android:paddingHorizontal="@dimen/dp_24"
+    android:paddingTop="@dimen/dp_16"
+    android:paddingBottom="@dimen/dp_24">
+
+    <!-- Drag handle / top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="@dimen/dp_16">
+
+        <!-- Back / collapse button -->
+        <ImageView
+            android:id="@+id/btnCollapse"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_arrow_back"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:rotation="-90"
+            android:contentDescription="@string/close" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/now_playing"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <!-- Queue button -->
+        <ImageView
+            android:id="@+id/btnQueue"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_queue_music"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/queue" />
+
+    </LinearLayout>
+
+    <!-- Large album artwork -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/ivArtwork"
+            android:layout_width="@dimen/now_playing_artwork_size"
+            android:layout_height="@dimen/now_playing_artwork_size"
+            android:scaleType="centerCrop"
+            android:background="@color/swara_surface_3"
+            android:src="@drawable/ic_artwork_fallback"
+            android:elevation="@dimen/elevation_4"
+            android:contentDescription="Album art" />
+
+    </LinearLayout>
+
+    <!-- Song info + favorite -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="@dimen/dp_24">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_headline_md"
+                android:textColor="@color/swara_text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_body_md"
+                android:textColor="@color/swara_text_secondary"
+                android:layout_marginTop="@dimen/dp_4"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+        <!-- Favorite toggle -->
+        <ImageView
+            android:id="@+id/btnFavorite"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_favorite_border"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/cd_favorite_empty" />
+
+    </LinearLayout>
+
+    <!-- SeekBar -->
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_20"
+        android:progressTint="@color/swara_gold"
+        android:thumbTint="@color/swara_gold"
+        android:progressBackgroundTint="@color/swara_surface_3" />
+
+    <!-- Time labels -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/dp_4">
+
+        <TextView
+            android:id="@+id/tvCurrentTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_dim" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvTotalTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_dim" />
+
+    </LinearLayout>
+
+    <!-- Main controls row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp_24">
+
+        <!-- Shuffle -->
+        <ImageView
+            android:id="@+id/btnShuffle"
+            android:layout_width="@dimen/btn_ghost_size"
+            android:layout_height="@dimen/btn_ghost_size"
+            android:src="@drawable/ic_shuffle"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/shuffle" />
+
+        <!-- Previous -->
+        <ImageView
+            android:id="@+id/btnPrevious"
+            android:layout_width="@dimen/btn_secondary_size"
+            android:layout_height="@dimen/btn_secondary_size"
+            android:src="@drawable/ic_skip_prev"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_cream"
+            android:layout_marginHorizontal="@dimen/dp_16"
+            android:contentDescription="@string/previous" />
+
+        <!-- Play/Pause — large gold circle -->
+        <LinearLayout
+            android:layout_width="@dimen/btn_play_pause_size"
+            android:layout_height="@dimen/btn_play_pause_size"
+            android:background="@drawable/bg_play_button"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/btnPlayPause"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_play"
+                android:scaleType="center"
+                android:tint="@color/swara_night"
+                android:contentDescription="@string/play_pause" />
+
+        </LinearLayout>
+
+        <!-- Next -->
+        <ImageView
+            android:id="@+id/btnNext"
+            android:layout_width="@dimen/btn_secondary_size"
+            android:layout_height="@dimen/btn_secondary_size"
+            android:src="@drawable/ic_skip_next"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_cream"
+            android:layout_marginHorizontal="@dimen/dp_16"
+            android:contentDescription="@string/next" />
+
+        <!-- Repeat -->
+        <ImageView
+            android:id="@+id/btnRepeat"
+            android:layout_width="@dimen/btn_ghost_size"
+            android:layout_height="@dimen/btn_ghost_size"
+            android:src="@drawable/ic_repeat"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/repeat" />
+
+    </LinearLayout>
+
+</LinearLayout>
