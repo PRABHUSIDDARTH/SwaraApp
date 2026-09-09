@@ -12,7 +12,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -58,8 +58,14 @@ public class MainActivity extends AppCompatActivity {
         bottomNav = findViewById(R.id.bottom_nav);
         miniPlayerContainer = findViewById(R.id.mini_player_container);
 
-        // Set up Navigation Component
-        navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        // Set up Navigation Component.
+        // NOTE: Navigation.findNavController(Activity, id) does NOT work with
+        // FragmentContainerView hosts (Navigation ≥ 2.3). The NavController is
+        // attached to the NavHostFragment's child view, not to the container,
+        // so we must retrieve it via the FragmentManager.
+        NavHostFragment navHostFragment = (NavHostFragment)
+                getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        navController = navHostFragment.getNavController();
         NavigationUI.setupWithNavController(bottomNav, navController);
 
         // Initialize activity-scoped PlaybackViewModel (shared by all fragments)
