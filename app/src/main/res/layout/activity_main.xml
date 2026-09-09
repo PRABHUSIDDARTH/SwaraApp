@@ -1,105 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:background="@color/swara_night">
 
-    <EditText
-        android:id="@+id/etSearch"
+    <!-- Fragment container — takes all space except bottom nav + mini-player -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:defaultNavHost="true"
+        app:navGraph="@navigation/nav_graph"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <!-- Mini-player — sits above bottom navigation -->
+    <FrameLayout
+        android:id="@+id/mini_player_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Search songs..."
-        android:padding="12dp"
-        android:background="#3D1F7A"
-        android:textColor="#F0E6C8"
-        android:textColorHint="#9B7EC8"
-        android:drawablePadding="8dp"
-        android:inputType="text"
-        android:imeOptions="actionSearch"/>
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="64dp"
+        android:visibility="gone"
+        android:elevation="@dimen/elevation_2" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_height="@dimen/bottom_nav_height"
+        android:layout_gravity="bottom"
+        android:background="@color/swara_surface_1"
+        app:menu="@menu/menu_bottom_nav"
+        app:itemIconTint="@color/nav_icon_color"
+        app:itemTextColor="@color/nav_text_color"
+        app:itemActiveIndicatorStyle="@style/Widget.Swara.BottomNav.Indicator"
+        app:labelVisibilityMode="unlabeled"
+        android:elevation="@dimen/elevation_2" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="#3D1F7A"
-        android:padding="12dp">
-
-        <TextView
-            android:id="@+id/tvCurrentTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No song playing"
-            android:textColor="#F0E6C8"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end"/>
-
-        <TextView
-            android:id="@+id/tvCurrentArtist"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#9B7EC8"
-            android:textSize="12sp"
-            android:maxLines="1"
-            android:ellipsize="end"/>
-
-    </LinearLayout>
-
-    <SeekBar
-        android:id="@+id/mainSeekBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:progressTint="#C9A84C"
-        android:thumbTint="#C9A84C"
-        android:progressBackgroundTint="#3D1F7A"
-        android:background="#3D1F7A"/>
-
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:padding="16dp"
-        android:background="#3D1F7A">
-
-        <Button
-            android:id="@+id/btnPrevious"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Prev"
-            android:textColor="#1A0E2E"
-            android:backgroundTint="#C9A84C"/>
-
-        <Button
-            android:id="@+id/btnPlayPause"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:text="Pause"
-            android:textColor="#1A0E2E"
-            android:backgroundTint="#C9A84C"/>
-
-        <Button
-            android:id="@+id/btnNext"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Next"
-            android:textColor="#1A0E2E"
-            android:backgroundTint="#C9A84C"/>
-
-    </LinearLayout>
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/miniPlayerRoot"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/mini_player_height"
+    android:orientation="vertical"
+    android:background="@drawable/bg_mini_player"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Progress line at top (gold) -->
+    <View
+        android:id="@+id/progressLine"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/mini_player_progress_height"
+        android:background="@color/swara_gold" />
+
+    <!-- Content row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/dp_12">
+
+        <!-- Artwork -->
+        <ImageView
+            android:id="@+id/ivArtwork"
+            android:layout_width="@dimen/mini_player_artwork_size"
+            android:layout_height="@dimen/mini_player_artwork_size"
+            android:scaleType="centerCrop"
+            android:background="@color/swara_surface_3"
+            android:src="@drawable/ic_artwork_fallback"
+            android:contentDescription="@string/cd_song_thumbnail" />
+
+        <!-- Title + artist -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="@dimen/dp_12"
+            android:layout_marginEnd="@dimen/dp_8">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textColor="@color/swara_text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:ellipsize="marquee"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:scrollHorizontally="true" />
+
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/swara_text_secondary"
+                android:layout_marginTop="@dimen/dp_2"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+        <!-- Play/Pause button -->
+        <ImageView
+            android:id="@+id/btnPlayPause"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_play"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_gold"
+            android:contentDescription="@string/play_pause" />
+
+        <!-- Next button -->
+        <ImageView
+            android:id="@+id/btnNext"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_skip_next"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/next" />
+
+    </LinearLayout>
+
+</LinearLayout>
