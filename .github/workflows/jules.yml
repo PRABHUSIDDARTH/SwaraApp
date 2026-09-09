@@ -1,4 +1,4 @@
-name: Swara V2 CI
+name: Swara_V2_CI
 
 on:
   push:
