@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reusable layout for songs list with loading/empty states -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/swara_night">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="144dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never" />
+
+    <!-- Loading state -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminateTint="@color/swara_gold"
+        android:visibility="gone" />
+
+    <!-- Empty state -->
+    <LinearLayout
+        android:id="@+id/layoutEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="@dimen/dp_32"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/ic_artwork_fallback"
+            android:alpha="0.35" />
+
+        <TextView
+            android:id="@+id/tvEmptyTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/library_empty_title"
+            android:textSize="@dimen/text_title_md"
+            android:textColor="@color/swara_text_primary"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginTop="@dimen/dp_16"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/tvEmptySubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/library_empty_subtitle"
+            android:textSize="@dimen/text_body_sm"
+            android:textColor="@color/swara_text_secondary"
+            android:layout_marginTop="@dimen/dp_8"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</FrameLayout>
