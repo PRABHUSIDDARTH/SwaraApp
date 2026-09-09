@@ -1,3 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Swara</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_favorites">Favorites</string>
+
+    <!-- Library tabs -->
+    <string name="tab_songs">Songs</string>
+    <string name="tab_albums">Albums</string>
+    <string name="tab_artists">Artists</string>
+
+    <!-- Playback -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="play_pause">Play / Pause</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
+    <string name="repeat_off">Repeat off</string>
+    <string name="repeat_one">Repeat one</string>
+    <string name="repeat_all">Repeat all</string>
+    <string name="queue">Queue</string>
+    <string name="clear_queue">Clear queue</string>
+
+    <!-- Context menu -->
+    <string name="play_next">Play next</string>
+    <string name="add_to_queue">Add to queue</string>
+    <string name="add_to_playlist">Add to playlist</string>
+    <string name="remove_from_playlist">Remove from playlist</string>
+    <string name="add_to_favorites">Add to favorites</string>
+    <string name="remove_from_favorites">Remove from favorites</string>
+
+    <!-- Favorites -->
+    <string name="favorites">Favorites</string>
+    <string name="play_all">Play all</string>
+    <string name="shuffle_play">Shuffle play</string>
+    <string name="favorites_empty_title">No favorites yet</string>
+    <string name="favorites_empty_subtitle">Tap the heart icon on any song to add it here</string>
+
+    <!-- Playlists -->
+    <string name="playlists">Playlists</string>
+    <string name="new_playlist">New playlist</string>
+    <string name="create_playlist">Create playlist</string>
+    <string name="rename_playlist">Rename playlist</string>
+    <string name="delete_playlist">Delete playlist</string>
+    <string name="playlist_name_hint">Playlist name</string>
+    <string name="confirm_delete_playlist">Delete playlist?</string>
+    <string name="playlists_empty_title">No playlists yet</string>
+    <string name="playlists_empty_subtitle">Create a playlist to organize your music</string>
+    <string name="playlist_empty_title">This playlist is empty</string>
+    <string name="playlist_empty_subtitle">Add songs from your library</string>
+    <string name="add_songs">Add songs</string>
+
+    <!-- Now Playing -->
+    <string name="now_playing">Now playing</string>
+    <string name="song_unknown">Unknown song</string>
+    <string name="artist_unknown">Unknown artist</string>
+    <string name="album_unknown">Unknown album</string>
+    <string name="no_song_playing">No song playing</string>
+    <string name="tap_to_open_player">Tap to open player</string>
+
+    <string name="playlist_name">Playlist name</string>
+    <string name="more_options">More options</string>
+    <string name="reorder">Reorder</string>
+
+    <!-- Home -->
+    <string name="recently_played">Recently played</string>
+    <string name="recently_added">Recently added</string>
+    <string name="good_morning">Good morning</string>
+    <string name="good_afternoon">Good afternoon</string>
+    <string name="good_evening">Good evening</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good night</string>
+    <string name="welcome_title">Welcome to Swara</string>
+    <string name="welcome_subtitle">Your offline music library awaits</string>
+    <string name="grant_permission">Grant permission</string>
+
+    <!-- Search -->
+    <string name="search_hint">Songs, artists, albums…</string>
+    <string name="search_no_results">No results for \'%1$s\'</string>
+    <string name="search_empty_title">Search your library</string>
+    <string name="search_empty_subtitle">Find songs, artists, and albums</string>
+    <string name="results_songs">Songs</string>
+    <string name="results_albums">Albums</string>
+    <string name="results_artists">Artists</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">Music access needed</string>
+    <string name="permission_rationale">Swara needs access to your audio files to play your music library. No data leaves your device.</string>
+    <string name="permission_denied_title">Permission denied</string>
+    <string name="permission_denied_subtitle">Open Settings to allow Swara to access your music</string>
+    <string name="open_settings">Open settings</string>
+
+    <!-- Library empty state -->
+    <string name="library_empty_title">No music found</string>
+    <string name="library_empty_subtitle">Make sure audio files are on your device</string>
+
+    <!-- Queue -->
+    <string name="queue_empty">Queue is empty</string>
+    <string name="songs_count">%1$d songs</string>
+    <string name="song_count_single">1 song</string>
+
+    <!-- Actions -->
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="done">Done</string>
+    <string name="create">Create</string>
+    <string name="rename">Rename</string>
+    <string name="delete">Delete</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_id">swara_playback</string>
+    <string name="notification_channel_name">Swara Playback</string>
+    <string name="notification_channel_description">Swara music playback controls</string>
+
+    <!-- Accessibility -->
+    <string name="cd_album_art">Album artwork for %1$s</string>
+    <string name="cd_song_thumbnail">Song thumbnail</string>
+    <string name="cd_favorite_filled">Remove from favorites</string>
+    <string name="cd_favorite_empty">Add to favorites</string>
+    <string name="cd_more_options">More options</string>
+    <string name="cd_drag_handle">Drag to reorder</string>
 </resources>
