@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="swara_night">#1A0E2E</color>
+    <!-- ===== BRAND CORE ===== -->
+    <color name="swara_night">#0D0819</color>
+    <color name="swara_deep_purple">#1A0E2E</color>
     <color name="swara_purple">#3D1F7A</color>
     <color name="swara_gold">#C9A84C</color>
+    <color name="swara_gold_bright">#D4B862</color>
     <color name="swara_cream">#F0E6C8</color>
     <color name="swara_lavender">#9B7EC8</color>
+
+    <!-- ===== SURFACE LAYERS ===== -->
+    <color name="swara_surface_0">#0D0819</color>
+    <color name="swara_surface_1">#1A0E2E</color>
+    <color name="swara_surface_2">#231645</color>
+    <color name="swara_surface_3">#2E1A5A</color>
+    <color name="swara_glass_stroke">#4D3080</color>
+    <color name="swara_scrim">#CC0D0819</color>
+
+    <!-- ===== TEXT HIERARCHY ===== -->
+    <color name="swara_text_primary">#F0E6C8</color>
+    <color name="swara_text_secondary">#9B7EC8</color>
+    <color name="swara_text_dim">#7A6A9A</color>
+    <color name="swara_text_hint">#5A4A7A</color>
+
+    <!-- ===== STATE / INTERACTIVE ===== -->
+    <color name="swara_gold_alpha_15">#26C9A84C</color>
+    <color name="swara_gold_alpha_20">#33C9A84C</color>
+    <color name="swara_gold_alpha_40">#66C9A84C</color>
+    <color name="swara_gold_muted">#7A5A20</color>
+    <color name="swara_card">#1A0E2E</color>
+    <color name="swara_text_muted">#7A6A9A</color>
+    <color name="swara_white_alpha_8">#14FFFFFF</color>
+    <color name="swara_white_alpha_12">#1FFFFFFF</color>
+    <color name="swara_ripple">#33C9A84C</color>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <color name="swara_nav_selected">#C9A84C</color>
+    <color name="swara_nav_unselected">#9B7EC8</color>
+
+    <!-- ===== LIGHT SURFACE FALLBACKS (unused in V2 — dark only) ===== -->
     <color name="swara_light_bg">#F7F4FC</color>
     <color name="swara_light_surface">#EDE5F8</color>
+    <color name="ic_launcher_background">#3D1F7A</color>
 </resources>
