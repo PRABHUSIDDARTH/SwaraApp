@@ -1,16 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Swara" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <!-- Night theme is same as day — Swara is always dark -->
+    <style name="Theme.Swara" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/swara_purple</item>
-        <item name="colorPrimaryVariant">@color/swara_night</item>
         <item name="colorOnPrimary">@color/swara_cream</item>
+        <item name="colorPrimaryContainer">@color/swara_surface_2</item>
+        <item name="colorOnPrimaryContainer">@color/swara_cream</item>
         <item name="colorSecondary">@color/swara_gold</item>
+        <item name="colorOnSecondary">@color/swara_night</item>
+        <item name="colorTertiary">@color/swara_lavender</item>
         <item name="android:colorBackground">@color/swara_night</item>
-        <item name="colorSurface">@color/swara_purple</item>
+        <item name="colorSurface">@color/swara_surface_1</item>
         <item name="colorOnSurface">@color/swara_cream</item>
-        <item name="android:textColorPrimary">@color/swara_cream</item>
-        <item name="android:textColorSecondary">@color/swara_lavender</item>
+        <item name="colorSurfaceVariant">@color/swara_surface_2</item>
+        <item name="colorOnSurfaceVariant">@color/swara_lavender</item>
+        <item name="colorOutline">@color/swara_glass_stroke</item>
+        <item name="android:textColorPrimary">@color/swara_text_primary</item>
+        <item name="android:textColorSecondary">@color/swara_text_secondary</item>
+        <item name="android:textColorHint">@color/swara_text_hint</item>
         <item name="android:statusBarColor">@color/swara_night</item>
         <item name="android:navigationBarColor">@color/swara_night</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/swara_night</item>
     </style>
 </resources>
