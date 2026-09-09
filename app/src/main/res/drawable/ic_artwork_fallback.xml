@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Artwork placeholder: rounded square with Swara music note -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!-- Background -->
+    <path
+        android:pathData="M8,0 L40,0 A8,8 0 0 1 48,8 L48,40 A8,8 0 0 1 40,48 L8,48 A8,8 0 0 1 0,40 L0,8 A8,8 0 0 1 8,0 Z"
+        android:fillColor="#2E1A5A" />
+
+    <!-- S curve (scaled to 48px viewport) -->
+    <path
+        android:pathData="M24,8 C24,8 33,6 34,12 C35,18 21,18 21,24 C21,30 31,32 31,32"
+        android:strokeColor="#C9A84C"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Note stem -->
+    <path
+        android:pathData="M31,32 L31,21"
+        android:strokeColor="#C9A84C"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Note flag -->
+    <path
+        android:pathData="M31,21 C37,19 38,26 33,28"
+        android:strokeColor="#C9A84C"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Note head -->
+    <path
+        android:pathData="M24,34 C24,31 28,30 32,31 C36,32 36,35 32,36 C28,37 24,36 24,34 Z"
+        android:fillColor="#C9A84C" />
+</vector>
