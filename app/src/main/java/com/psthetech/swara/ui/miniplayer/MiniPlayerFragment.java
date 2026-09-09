@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
@@ -85,11 +85,15 @@ public class MiniPlayerFragment extends Fragment {
             }
         });
 
-        // Tap the mini-player → open Now Playing
+        // Tap the mini-player → open Now Playing.
+        // MiniPlayerFragment lives outside the nav graph (in mini_player_container),
+        // so we must reach the NavHostFragment via the host activity's FragmentManager.
         rootView.setOnClickListener(v -> {
-            if (getActivity() != null && getActivity().getCurrentFocus() != null) {
-                Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
-                        .navigate(R.id.nowPlayingFragment);
+            NavHostFragment navHostFragment = (NavHostFragment)
+                    requireActivity().getSupportFragmentManager()
+                            .findFragmentById(R.id.nav_host_fragment);
+            if (navHostFragment != null) {
+                navHostFragment.getNavController().navigate(R.id.nowPlayingFragment);
             }
         });
 
