@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mini-player glass surface: solid dark with gold top accent border -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Top gold border -->
+    <item android:top="0dp" android:left="0dp" android:right="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/swara_gold" />
+            <corners android:topLeftRadius="@dimen/radius_lg" android:topRightRadius="@dimen/radius_lg" />
+        </shape>
+    </item>
+    <!-- Main background offset by border thickness -->
+    <item android:top="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/swara_surface_1" />
+        </shape>
+    </item>
+</layer-list>
