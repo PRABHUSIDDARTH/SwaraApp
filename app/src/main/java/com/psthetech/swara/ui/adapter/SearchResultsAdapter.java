@@ -162,6 +162,11 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
         void bind(Header h, Context ctx) {
             tvHeader.setText(ctx.getString(h.titleRes));
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                tvHeader.setTextColor(tokens.getAccentColor());
+            }
         }
     }
 
@@ -185,6 +190,15 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             tvTitle.setText(song.getTitle());
             tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
             ArtworkHelper.loadSongArt(ctx, song, ivArtwork);
+
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                tvTitle.setTextColor(tokens.getTextPrimaryColor());
+                tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+                if (ivMore != null) ivMore.setColorFilter(tokens.getIconSecondaryColor());
+            }
+
             // Hide favorite in search results (not tracking favorites state here)
             if (ivFavorite != null) ivFavorite.setVisibility(View.GONE);
             itemView.setOnClickListener(v -> listener.onSongClick(song));
@@ -211,6 +225,16 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (tvTitle != null) tvTitle.setText(album.getTitle());
             if (tvSubtitle != null) tvSubtitle.setText(album.getArtist());
             if (ivArtwork != null) ArtworkHelper.loadAlbumArt(ctx, album.getId(), ivArtwork);
+
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                if (tvTitle != null) tvTitle.setTextColor(tokens.getTextPrimaryColor());
+                if (tvSubtitle != null) tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             itemView.setOnClickListener(v -> listener.onAlbumClick(album));
         }
     }
@@ -234,6 +258,16 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
                 tvSubtitle.setText(artist.getSongCount() + " songs");
             }
             if (ivArtwork != null) ArtworkHelper.loadAlbumArt(ctx, artist.getRepresentativeAlbumId(), ivArtwork);
+
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                if (tvName != null) tvName.setTextColor(tokens.getTextPrimaryColor());
+                if (tvSubtitle != null) tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             itemView.setOnClickListener(v -> listener.onArtistClick(artist));
         }
     }
@@ -255,6 +289,15 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
         void bind(Playlist playlist, Listener listener) {
             if (tvName != null) tvName.setText(playlist.name);
             if (tvCount != null) tvCount.setVisibility(View.GONE);
+
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                if (tvName != null) tvName.setTextColor(tokens.getTextPrimaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             itemView.setOnClickListener(v -> listener.onPlaylistClick(playlist));
         }
     }

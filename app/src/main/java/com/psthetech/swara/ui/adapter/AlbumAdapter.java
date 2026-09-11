@@ -76,6 +76,17 @@ public class AlbumAdapter extends ListAdapter<Album, AlbumAdapter.AlbumViewHolde
             String tracksText = album.getSongCount() + (album.getSongCount() == 1 ? " track" : " tracks");
             albumTracks.setText(tracksText);
 
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+            if (tokens != null) {
+                albumTitle.setTextColor(tokens.getTextPrimaryColor());
+                albumArtist.setTextColor(tokens.getTextSecondaryColor());
+                albumTracks.setTextColor(tokens.getTextTertiaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             Glide.with(itemView.getContext())
                     .load(ArtworkHelper.getAlbumArtUri(album.getId()))
                     .placeholder(R.drawable.ic_album_placeholder)

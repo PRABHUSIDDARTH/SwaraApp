@@ -98,6 +98,17 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
                 playlistSongCount.setVisibility(View.VISIBLE);
             }
 
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+            if (tokens != null) {
+                playlistName.setTextColor(tokens.getTextPrimaryColor());
+                if (playlistSongCount != null) playlistSongCount.setTextColor(tokens.getTextSecondaryColor());
+                if (playlistMenuButton != null) playlistMenuButton.setColorFilter(tokens.getIconSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onPlaylistClick(playlist);
             });

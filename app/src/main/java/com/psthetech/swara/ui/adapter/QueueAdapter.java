@@ -80,6 +80,15 @@ public class QueueAdapter extends ListAdapter<Song, QueueAdapter.QueueViewHolder
             queueSongTitle.setText(song.getTitle());
             queueSongArtist.setText(song.getArtist());
 
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+            if (tokens != null) {
+                queueSongTitle.setTextColor(isPlaying ? tokens.getAccentColor() : tokens.getTextPrimaryColor());
+                queueSongArtist.setTextColor(tokens.getTextSecondaryColor());
+                if (queuePlayingIndicator != null) queuePlayingIndicator.setColorFilter(tokens.getAccentColor());
+            }
+
             queuePlayingIndicator.setVisibility(isPlaying ? View.VISIBLE : View.GONE);
 
             ArtworkHelper.loadSongArt(itemView.getContext(), song, queueSongArt);

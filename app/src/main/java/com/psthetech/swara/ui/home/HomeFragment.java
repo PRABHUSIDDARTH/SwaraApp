@@ -115,6 +115,15 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     if (tokens == null || getView() == null) return;
                     View root = view.findViewById(R.id.layoutContent);
                     if (root != null) root.setBackgroundColor(tokens.getBackgroundColor());
+                    if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextSecondaryColor());
+                    TextView tvAppName = view.findViewById(R.id.tvAppName);
+                    if (tvAppName != null) tvAppName.setTextColor(tokens.getAccentColor());
+                    if (btnSettings != null && btnSettings instanceof android.widget.ImageView) {
+                        ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getAccentColor());
+                    }
+                    if (tvSeeAllPlaylists != null && tvSeeAllPlaylists instanceof TextView) {
+                        ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getAccentColor());
+                    }
                 });
 
         observeData();

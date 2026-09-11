@@ -183,6 +183,30 @@
 
     <string name="morphism_minimalism_title">Minimalism</string>
     <string name="morphism_minimalism_desc">Extremely clean flat surfaces with generous whitespace and subtle borders</string>
+
+    <!-- Color Themes -->
+    <string name="color_theme_header">Color Palette Theme</string>
+    <string name="color_theme_swara_title">Swara</string>
+    <string name="color_theme_swara_desc">Signature midnight purple with obsidian gold accents</string>
+
+    <string name="color_theme_midnight_title">Midnight</string>
+    <string name="color_theme_midnight_desc">Pitch black obsidian with ice blue highlights</string>
+
+    <string name="color_theme_lavender_title">Lavender</string>
+    <string name="color_theme_lavender_desc">Royal violet with soft amethyst lavender tones</string>
+
+    <string name="color_theme_champagne_title">Champagne</string>
+    <string name="color_theme_champagne_desc">Rich dark amber with warm champagne gold accents</string>
+
+    <string name="color_theme_rose_title">Rose</string>
+    <string name="color_theme_rose_desc">Crimson obsidian with soft rose gold highlights</string>
+
+    <string name="color_theme_ocean_title">Ocean</string>
+    <string name="color_theme_ocean_desc">Deep sapphire ocean with aquamarine accents</string>
+
+    <string name="color_theme_forest_title">Forest</string>
+    <string name="color_theme_forest_desc">Deep emerald forest with sage leaf gold accents</string>
+
     <string name="settings">Settings</string>
     <string name="active_style">Active</string>
 

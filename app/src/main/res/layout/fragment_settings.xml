@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Section 1: Application Theme -->
+            <!-- Section 1: Application Theme Mode -->
             <TextView
                 android:id="@+id/tvThemeHeader"
                 android:layout_width="wrap_content"
@@ -117,7 +117,28 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Section 2: Morphism Language -->
+            <!-- Section 2: Color Theme Palette -->
+            <TextView
+                android:id="@+id/tvColorThemeHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/color_theme_header"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingTop="@dimen/dp_8"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvColorThemes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:layout_marginBottom="@dimen/dp_16" />
+
+            <!-- Section 3: Morphism Language -->
             <TextView
                 android:id="@+id/tvMorphismHeader"
                 android:layout_width="wrap_content"

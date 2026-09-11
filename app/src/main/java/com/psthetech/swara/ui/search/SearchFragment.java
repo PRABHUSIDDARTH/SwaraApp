@@ -6,6 +6,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -82,6 +83,20 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     view.setBackgroundColor(tokens.getBackgroundColor());
+                    if (etSearch != null) {
+                        etSearch.setTextColor(tokens.getTextPrimaryColor());
+                        etSearch.setHintTextColor(tokens.getTextTertiaryColor());
+                    }
+                    View promptTitle = view.findViewById(R.id.layoutPrompt);
+                    if (promptTitle != null) {
+                        TextView tv1 = promptTitle.findViewById(R.id.tvSectionHeader);
+                        TextView tv2 = promptTitle.findViewById(R.id.tvNoResults);
+                    }
+                    if (tvNoResults != null) tvNoResults.setTextColor(tokens.getTextSecondaryColor());
+                    if (progressBar != null && progressBar instanceof ProgressBar) {
+                        ((ProgressBar) progressBar).setIndeterminateTintList(
+                                android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
+                    }
                 });
 
         observeData();

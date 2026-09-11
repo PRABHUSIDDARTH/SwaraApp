@@ -81,9 +81,18 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         // Load artwork asynchronously via Glide
         ArtworkHelper.loadSongArt(ctx, song, holder.ivArtwork);
 
+        com.psthetech.swara.ui.theme.DesignTokens tokens =
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+        if (tokens != null) {
+            holder.tvTitle.setTextColor(tokens.getTextPrimaryColor());
+            holder.tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+            holder.ivMore.setColorFilter(tokens.getIconSecondaryColor());
+        }
+
         // Favorite state (no DB query — driven by injected set)
         boolean isFav = favoriteSongIds.contains(song.getId());
-        updateFavoriteIcon(holder.ivFavorite, isFav);
+        updateFavoriteIcon(holder.ivFavorite, isFav, tokens);
         holder.ivFavorite.setContentDescription(ctx.getString(
                 isFav ? R.string.cd_favorite_filled : R.string.cd_favorite_empty));
 
@@ -100,7 +109,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
             } else {
                 favoriteSongIds.add(song.getId());
             }
-            updateFavoriteIcon(holder.ivFavorite, !fav);
+            updateFavoriteIcon(holder.ivFavorite, !fav, tokens);
         });
 
         // Overflow / context menu
@@ -114,11 +123,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         ArtworkHelper.clear(holder.itemView.getContext(), holder.ivArtwork);
     }
 
-    private void updateFavoriteIcon(ImageView iv, boolean isFav) {
+    private void updateFavoriteIcon(ImageView iv, boolean isFav, com.psthetech.swara.ui.theme.DesignTokens tokens) {
         iv.setImageResource(isFav ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
         int tintColor = isFav
-                ? iv.getContext().getColor(R.color.swara_gold)
-                : iv.getContext().getColor(R.color.swara_lavender);
+                ? (tokens != null ? tokens.getAccentColor() : iv.getContext().getColor(R.color.swara_gold))
+                : (tokens != null ? tokens.getIconSecondaryColor() : iv.getContext().getColor(R.color.swara_lavender));
         iv.setColorFilter(tintColor);
     }
 

@@ -73,6 +73,16 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
             String detailsText = artist.getAlbumCount() + " albums • " + artist.getSongCount() + " songs";
             artistDetails.setText(detailsText);
 
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+            if (tokens != null) {
+                artistName.setTextColor(tokens.getTextPrimaryColor());
+                artistDetails.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             Glide.with(itemView.getContext())
                     .load(R.drawable.ic_artist_placeholder)
                     .transition(DrawableTransitionOptions.withCrossFade())

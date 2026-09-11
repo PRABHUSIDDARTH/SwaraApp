@@ -2,19 +2,41 @@ package com.psthetech.swara;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
+import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.domain.model.MorphismStyle;
 import com.psthetech.swara.domain.model.ThemeMode;
 
 import org.junit.Test;
 
 /**
- * Unit tests for Theme System and Morphism Design Language System.
+ * Unit tests for Theme System, Color Theme System, and Morphism Design Language System.
  */
 public class MorphismThemeTest {
+
+    @Test
+    public void testAllColorThemesExist() {
+        ColorTheme[] themes = ColorTheme.values();
+        assertEquals(7, themes.length);
+
+        assertNotNull(ColorTheme.valueOf("SWARA"));
+        assertNotNull(ColorTheme.valueOf("MIDNIGHT"));
+        assertNotNull(ColorTheme.valueOf("LAVENDER"));
+        assertNotNull(ColorTheme.valueOf("CHAMPAGNE"));
+        assertNotNull(ColorTheme.valueOf("ROSE"));
+        assertNotNull(ColorTheme.valueOf("OCEAN"));
+        assertNotNull(ColorTheme.valueOf("FOREST"));
+    }
+
+    @Test
+    public void testColorThemeDefaultFallback() {
+        assertEquals(ColorTheme.SWARA, ColorTheme.fromKey(null));
+        assertEquals(ColorTheme.SWARA, ColorTheme.fromKey("INVALID_KEY"));
+        assertEquals(ColorTheme.MIDNIGHT, ColorTheme.fromKey("MIDNIGHT"));
+        assertEquals(ColorTheme.ROSE, ColorTheme.fromKey("rose"));
+    }
 
     @Test
     public void testAllMorphismStylesExist() {

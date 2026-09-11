@@ -66,6 +66,17 @@ public class HomePlaylistAdapter extends ListAdapter<Playlist, HomePlaylistAdapt
         void bind(Playlist playlist, int count, Listener listener) {
             tvName.setText(playlist.name);
             tvCount.setText(count + (count == 1 ? " song" : " songs"));
+
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+            if (tokens != null) {
+                tvName.setTextColor(tokens.getTextPrimaryColor());
+                tvCount.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
+            }
+
             itemView.setOnClickListener(v -> listener.onPlaylistClick(playlist));
         }
     }

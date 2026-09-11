@@ -5,8 +5,9 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
@@ -18,8 +19,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.shape.CornerFamily;
 import com.google.android.material.shape.ShapeAppearanceModel;
-import com.psthetech.swara.R;
 import com.psthetech.swara.data.preference.ThemePreferences;
+import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.domain.model.MorphismStyle;
 import com.psthetech.swara.domain.model.ThemeMode;
 
@@ -35,6 +36,7 @@ public class MorphismThemeManager {
     private final MutableLiveData<DesignTokens> designTokensLiveData = new MutableLiveData<>();
     private final MutableLiveData<MorphismStyle> activeStyleLiveData = new MutableLiveData<>();
     private final MutableLiveData<ThemeMode> activeThemeModeLiveData = new MutableLiveData<>();
+    private final MutableLiveData<ColorTheme> activeColorThemeLiveData = new MutableLiveData<>();
 
     private Context appContext;
 
@@ -54,15 +56,17 @@ public class MorphismThemeManager {
 
         ThemeMode mode = preferences.getThemeMode();
         MorphismStyle style = preferences.getMorphismStyle();
+        ColorTheme colorTheme = preferences.getColorTheme();
 
         // Apply night mode setting to AppCompat
         AppCompatDelegate.setDefaultNightMode(mode.getNightMode());
 
         boolean isNight = isNightMode(appContext, mode);
-        DesignTokens tokens = new DesignTokens(appContext, style, isNight);
+        DesignTokens tokens = new DesignTokens(appContext, colorTheme, style, isNight);
 
         activeThemeModeLiveData.setValue(mode);
         activeStyleLiveData.setValue(style);
+        activeColorThemeLiveData.setValue(colorTheme);
         designTokensLiveData.setValue(tokens);
     }
 
@@ -78,12 +82,17 @@ public class MorphismThemeManager {
         return activeThemeModeLiveData;
     }
 
+    public LiveData<ColorTheme> getActiveColorTheme() {
+        return activeColorThemeLiveData;
+    }
+
     public DesignTokens getCurrentTokens() {
         DesignTokens tokens = designTokensLiveData.getValue();
         if (tokens == null && appContext != null) {
-            ThemeMode mode = preferences.getThemeMode();
-            MorphismStyle style = preferences.getMorphismStyle();
-            tokens = new DesignTokens(appContext, style, isNightMode(appContext, mode));
+            ThemeMode mode = preferences != null ? preferences.getThemeMode() : ThemeMode.DARK;
+            MorphismStyle style = preferences != null ? preferences.getMorphismStyle() : MorphismStyle.LIQUID_GLASS;
+            ColorTheme colorTheme = preferences != null ? preferences.getColorTheme() : ColorTheme.SWARA;
+            tokens = new DesignTokens(appContext, colorTheme, style, isNightMode(appContext, mode));
         }
         return tokens;
     }
@@ -105,15 +114,24 @@ public class MorphismThemeManager {
         refreshTokens(context);
     }
 
+    public void setColorTheme(Context context, ColorTheme colorTheme) {
+        if (preferences != null) {
+            preferences.setColorTheme(colorTheme);
+        }
+        activeColorThemeLiveData.setValue(colorTheme);
+        refreshTokens(context);
+    }
+
     public void refreshTokens(Context context) {
         Context ctx = (context != null ? context.getApplicationContext() : appContext);
         if (ctx == null) return;
 
         ThemeMode mode = (preferences != null ? preferences.getThemeMode() : ThemeMode.DARK);
         MorphismStyle style = (preferences != null ? preferences.getMorphismStyle() : MorphismStyle.LIQUID_GLASS);
+        ColorTheme colorTheme = (preferences != null ? preferences.getColorTheme() : ColorTheme.SWARA);
 
         boolean isNight = isNightMode(ctx, mode);
-        DesignTokens tokens = new DesignTokens(ctx, style, isNight);
+        DesignTokens tokens = new DesignTokens(ctx, colorTheme, style, isNight);
 
         designTokensLiveData.setValue(tokens);
     }
@@ -165,6 +183,33 @@ public class MorphismThemeManager {
     }
 
     /**
+     * Apply design tokens to text views.
+     */
+    public void applyToTextViews(@Nullable TextView title, @Nullable TextView subtitle, @Nullable DesignTokens tokens) {
+        if (tokens == null) tokens = getCurrentTokens();
+        if (tokens == null) return;
+
+        if (title != null) {
+            title.setTextColor(tokens.getTextPrimaryColor());
+        }
+        if (subtitle != null) {
+            subtitle.setTextColor(tokens.getTextSecondaryColor());
+        }
+    }
+
+    /**
+     * Apply design tokens to an input EditText (Search box).
+     */
+    public void applyToInputBox(EditText input, @Nullable DesignTokens tokens) {
+        if (input == null) return;
+        if (tokens == null) tokens = getCurrentTokens();
+        if (tokens == null) return;
+
+        input.setTextColor(tokens.getTextPrimaryColor());
+        input.setHintTextColor(tokens.getTextTertiaryColor());
+    }
+
+    /**
      * Apply active design tokens to BottomNavigationView.
      */
     public void applyToBottomNav(BottomNavigationView nav, @Nullable DesignTokens tokens) {
@@ -188,7 +233,7 @@ public class MorphismThemeManager {
 
         // Active state indicator color
         int activeColor = ColorStateList.valueOf(tokens.getAccentColor()).getDefaultColor();
-        int unselectedColor = tokens.getSecondaryTextColor();
+        int unselectedColor = tokens.getTextSecondaryColor();
 
         ColorStateList stateList = new ColorStateList(
                 new int[][]{
