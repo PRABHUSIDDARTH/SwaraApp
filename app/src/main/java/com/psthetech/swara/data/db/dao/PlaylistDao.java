@@ -12,6 +12,15 @@ import com.psthetech.swara.data.db.entity.PlaylistSong;
 
 import java.util.List;
 
+/**
+ * Lightweight projection used to efficiently retrieve song counts per playlist
+ * without loading all PlaylistSong rows.
+ */
+class PlaylistSongCount {
+    public long playlistId;
+    public int count;
+}
+
 @Dao
 public interface PlaylistDao {
 
@@ -59,6 +68,13 @@ public interface PlaylistDao {
 
     @Query("SELECT COUNT(*) FROM playlist_songs WHERE playlistId = :playlistId")
     int getSongCount(long playlistId);
+
+    @Query("SELECT COUNT(*) FROM playlist_songs WHERE playlistId = :playlistId")
+    LiveData<Integer> getSongCountLive(long playlistId);
+
+    /** Returns song count for every playlist — used to populate counts in the list view. */
+    @Query("SELECT playlistId, COUNT(*) AS count FROM playlist_songs GROUP BY playlistId")
+    LiveData<List<PlaylistSongCount>> getSongCountsLive();
 
     @Query("SELECT MAX(position) FROM playlist_songs WHERE playlistId = :playlistId")
     int getMaxPosition(long playlistId);

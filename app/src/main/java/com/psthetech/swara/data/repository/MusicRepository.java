@@ -167,6 +167,93 @@ public class MusicRepository {
         });
     }
 
+    /**
+     * Callback for multi-category search results (Songs + Albums + Artists in one call).
+     * Avoids 3 separate MediaStore queries for search.
+     */
+    public interface SearchCallback {
+        void onResult(List<Song> songs, List<Album> albums, List<Artist> artists);
+        void onError();
+    }
+
+    /**
+     * Searches MediaStore once for songs matching the query, then derives Album and Artist
+     * results from that same set. The query is already lower-cased by the caller.
+     *
+     * Matching:
+     *  - Songs:   title, artist, or album contains query
+     *  - Albums:  album name contains query (from any matching song)
+     *  - Artists: artist name contains query (from any matching song)
+     */
+    public void searchAllCategories(String lowerQuery, SearchCallback callback) {
+        if (lowerQuery == null || lowerQuery.trim().isEmpty()) {
+            mainHandler.post(() -> callback.onResult(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList()));
+            return;
+        }
+        SwaraApplication.getInstance().getIoExecutor().execute(() -> {
+            try {
+                String q = lowerQuery.trim();
+                // Broad query: songs where title, artist, or album matches
+                String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
+                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND ("
+                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
+                String[] args = new String[]{"%" + q + "%", "%" + q + "%", "%" + q + "%"};
+                List<Song> allMatching = querySongs(selection, args,
+                        MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC");
+
+                // Songs: title matches query
+                List<Song> songResults = new ArrayList<>();
+                for (Song s : allMatching) {
+                    if (s.getTitle().toLowerCase(Locale.getDefault()).contains(q)) {
+                        songResults.add(s);
+                    }
+                }
+                if (songResults.size() > 50) songResults = songResults.subList(0, 50);
+
+                // Albums: distinct albums whose name matches query
+                Map<Long, Song> albumReps = new LinkedHashMap<>();
+                for (Song s : allMatching) {
+                    if (s.getAlbum().toLowerCase(Locale.getDefault()).contains(q)) {
+                        albumReps.putIfAbsent(s.getAlbumId(), s);
+                    }
+                }
+                List<Album> albumResults = new ArrayList<>();
+                for (Map.Entry<Long, Song> e : albumReps.entrySet()) {
+                    Song rep = e.getValue();
+                    albumResults.add(new Album(rep.getAlbumId(), rep.getAlbum(), rep.getArtist(),
+                            1, rep.getYear(), Collections.singletonList(rep)));
+                }
+
+                // Artists: distinct artists whose name matches query
+                Map<String, Song> artistReps = new LinkedHashMap<>();
+                for (Song s : allMatching) {
+                    if (s.getArtist().toLowerCase(Locale.getDefault()).contains(q)) {
+                        artistReps.putIfAbsent(s.getArtist(), s);
+                    }
+                }
+                List<Artist> artistResults = new ArrayList<>();
+                for (Map.Entry<String, Song> e : artistReps.entrySet()) {
+                    Song rep = e.getValue();
+                    artistResults.add(new Artist(rep.getArtist(), 1, 1,
+                            rep.getAlbumId(), Collections.singletonList(rep)));
+                }
+
+                final List<Song>   finalSongs   = songResults;
+                final List<Album>  finalAlbums  = albumResults;
+                final List<Artist> finalArtists = artistResults;
+                mainHandler.post(() -> callback.onResult(finalSongs, finalAlbums, finalArtists));
+            } catch (Exception e) {
+                Log.e(TAG, "searchAllCategories failed", e);
+                mainHandler.post(callback::onError);
+            }
+        });
+    }
+
     // ===== Internal query =====
 
     private List<Song> querySongs(String selection, String[] selectionArgs, String sortOrder) {
