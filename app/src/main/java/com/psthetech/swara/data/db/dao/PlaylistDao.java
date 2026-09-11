@@ -56,6 +56,9 @@ public interface PlaylistDao {
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
     void removeSongFromPlaylist(long playlistId, long songId);
 
+    @Query("DELETE FROM playlist_songs WHERE songId = :songId")
+    void deleteSongFromAllPlaylists(long songId);
+
     /** All songs in playlist ordered by position */
     @Query("SELECT * FROM playlist_songs WHERE playlistId = :playlistId ORDER BY position ASC")
     LiveData<List<PlaylistSong>> getPlaylistSongsLive(long playlistId);

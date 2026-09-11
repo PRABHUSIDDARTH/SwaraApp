@@ -156,6 +156,11 @@ public class PlaylistRepository {
                 dao.removeSongFromPlaylist(playlistId, songId));
     }
 
+    public void deleteSongFromAllPlaylists(long songId) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() ->
+                dao.deleteSongFromAllPlaylists(songId));
+    }
+
     public void reorderSong(long playlistId, long songId, int newPosition) {
         SwaraApplication.getInstance().getDbExecutor().execute(() ->
                 dao.updateSongPosition(playlistId, songId, newPosition));

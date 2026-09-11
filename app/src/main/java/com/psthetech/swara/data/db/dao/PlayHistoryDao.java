@@ -38,6 +38,9 @@ public interface PlayHistoryDao {
            "(SELECT id FROM play_history ORDER BY playedAt DESC LIMIT 200)")
     void trimHistory();
 
+    @Query("DELETE FROM play_history WHERE songId = :songId")
+    void deleteHistoryForSong(long songId);
+
     @Query("DELETE FROM play_history")
     void clearHistory();
 

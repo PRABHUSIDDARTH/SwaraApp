@@ -68,6 +68,10 @@ public class PlayHistoryRepository {
         });
     }
 
+    public void deleteHistoryForSong(long songId) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> dao.deleteHistoryForSong(songId));
+    }
+
     public void clearHistory() {
         SwaraApplication.getInstance().getDbExecutor().execute(dao::clearHistory);
     }
