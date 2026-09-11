@@ -6,6 +6,7 @@
     android:background="@color/swara_night"
     android:orientation="vertical">
 
+    <!-- Header row: back + title/meta + overflow menu -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -49,15 +50,111 @@
 
         </LinearLayout>
 
+        <!-- Overflow menu: Rename, Delete -->
+        <ImageView
+            android:id="@+id/btnPlaylistOverflow"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/more_options"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/swara_lavender" />
+
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- Action bar: Play, Shuffle, Add Songs -->
+    <LinearLayout
+        android:id="@+id/layoutPlaylistActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btnPlayAll"
+            style="@style/Widget.Swara.Button.Primary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/play"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnShuffle"
+            style="@style/Widget.Swara.Button.Ghost"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/shuffle"
+            android:layout_marginEnd="8dp" />
+
+        <ImageView
+            android:id="@+id/btnAddSongs"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/add_songs"
+            android:padding="10dp"
+            android:src="@drawable/ic_add"
+            app:tint="@color/swara_gold" />
+
+    </LinearLayout>
+
+    <!-- Song list (empty state + RecyclerView) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:overScrollMode="never"
-        android:paddingBottom="144dp" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingBottom="144dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/dp_32"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:alpha="0.3"
+                android:src="@drawable/ic_queue_music"
+                android:tint="@color/swara_lavender" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/dp_16"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:text="@string/playlist_empty_title"
+                android:textColor="@color/swara_text_primary"
+                android:textSize="@dimen/text_title_md" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/dp_8"
+                android:gravity="center"
+                android:text="@string/playlist_empty_subtitle"
+                android:textColor="@color/swara_text_secondary"
+                android:textSize="@dimen/text_body_sm" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </LinearLayout>
