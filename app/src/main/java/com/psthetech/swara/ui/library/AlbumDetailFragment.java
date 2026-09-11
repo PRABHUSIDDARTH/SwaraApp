@@ -22,6 +22,8 @@ import com.psthetech.swara.ui.adapter.SongAdapter;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
+import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
+import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
 import com.psthetech.swara.util.ArtworkHelper;
 
 import java.util.HashSet;
@@ -119,6 +121,8 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
 
     @Override
     public void onAddToPlaylist(Song song) {
+        AddToPlaylistDialog.show(requireActivity(), requireView(), song,
+                new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class));
     }
 
     @Override

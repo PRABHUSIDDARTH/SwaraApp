@@ -18,6 +18,8 @@ import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.adapter.SongAdapter;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
+import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
+import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
 
 import java.util.HashSet;
 import java.util.List;
@@ -110,6 +112,8 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
 
     @Override
     public void onAddToPlaylist(Song song) {
+        AddToPlaylistDialog.show(requireActivity(), requireView(), song,
+                new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class));
     }
 
     @Override
