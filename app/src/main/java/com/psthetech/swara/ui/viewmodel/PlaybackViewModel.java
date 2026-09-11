@@ -29,6 +29,7 @@ import com.psthetech.swara.util.TimeFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -71,14 +72,16 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final PlayHistoryRepository historyRepository;
     private final FavoritesRepository favoritesRepository;
 
+    private final Map<Long, Song> songCache = new java.util.concurrent.ConcurrentHashMap<>();
+
     // Position tracker runnable
     private final Runnable positionUpdater = new Runnable() {
         @Override
         public void run() {
             if (controller != null && controller.isPlaying()) {
                 currentPositionMs.setValue(controller.getCurrentPosition());
+                positionHandler.postDelayed(this, 500);
             }
-            positionHandler.postDelayed(this, 500);
         }
     };
 
@@ -88,7 +91,6 @@ public class PlaybackViewModel extends AndroidViewModel {
         historyRepository = new PlayHistoryRepository(db);
         favoritesRepository = new FavoritesRepository(db);
         connectToService();
-        positionHandler.post(positionUpdater);
     }
 
     // ===== Service Connection =====
@@ -121,13 +123,15 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     private void syncStateFromController() {
         if (controller == null) return;
-        isPlaying.postValue(controller.isPlaying());
+        boolean playing = controller.isPlaying();
+        isPlaying.postValue(playing);
         shuffleEnabled.postValue(controller.getShuffleModeEnabled());
         repeatMode.postValue(controller.getRepeatMode());
         currentPositionMs.postValue(controller.getCurrentPosition());
-        durationMs.postValue(controller.getDuration() == androidx.media3.common.C.TIME_UNSET
-                ? 0L : controller.getDuration());
         updateCurrentSongFromController();
+        if (playing) {
+            positionHandler.post(positionUpdater);
+        }
     }
 
     private void updateCurrentSongFromController() {
@@ -136,10 +140,24 @@ public class PlaybackViewModel extends AndroidViewModel {
         if (item != null) {
             Song song = mediaItemToSong(item);
             currentSong.postValue(song);
+            updateDurationFromController(song);
         } else {
             currentSong.postValue(null);
+            durationMs.postValue(0L);
         }
         currentQueueIndex.postValue(controller.getCurrentMediaItemIndex());
+    }
+
+    private void updateDurationFromController(@Nullable Song song) {
+        if (controller == null) return;
+        long dur = controller.getDuration();
+        if (dur != androidx.media3.common.C.TIME_UNSET && dur > 0) {
+            durationMs.postValue(dur);
+        } else if (song != null && song.getDuration() > 0) {
+            durationMs.postValue(song.getDuration());
+        } else {
+            durationMs.postValue(0L);
+        }
     }
 
     // ===== Player.Listener =====
@@ -149,7 +167,14 @@ public class PlaybackViewModel extends AndroidViewModel {
         @Override
         public void onIsPlayingChanged(boolean playing) {
             isPlaying.postValue(playing);
-            if (!playing) {
+            if (playing) {
+                positionHandler.removeCallbacks(positionUpdater);
+                positionHandler.post(positionUpdater);
+            } else {
+                positionHandler.removeCallbacks(positionUpdater);
+                if (controller != null) {
+                    currentPositionMs.postValue(controller.getCurrentPosition());
+                }
                 // Record meaningful play when playback stops (user paused or song ended)
                 Song song = currentSong.getValue();
                 if (song != null && controller != null) {
@@ -162,8 +187,6 @@ public class PlaybackViewModel extends AndroidViewModel {
         public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
             updateCurrentSongFromController();
             if (controller != null) {
-                durationMs.postValue(controller.getDuration() == androidx.media3.common.C.TIME_UNSET
-                        ? 0L : controller.getDuration());
                 currentPositionMs.postValue(0L);
             }
         }
@@ -180,9 +203,8 @@ public class PlaybackViewModel extends AndroidViewModel {
 
         @Override
         public void onPlaybackStateChanged(int playbackState) {
-            if (playbackState == Player.STATE_READY && controller != null) {
-                durationMs.postValue(controller.getDuration() == androidx.media3.common.C.TIME_UNSET
-                        ? 0L : controller.getDuration());
+            if (playbackState == Player.STATE_READY) {
+                updateDurationFromController(currentSong.getValue());
             }
         }
 
@@ -366,14 +388,26 @@ public class PlaybackViewModel extends AndroidViewModel {
     // ===== Helpers =====
 
     private MediaItem songToMediaItem(Song song) {
+        if (song != null) {
+            songCache.put(song.getId(), song);
+        }
+        android.os.Bundle extras = new android.os.Bundle();
+        if (song != null) {
+            extras.putLong("albumId", song.getAlbumId());
+            extras.putLong("duration", song.getDuration());
+            extras.putInt("trackNumber", song.getTrackNumber());
+            extras.putInt("year", song.getYear());
+            extras.putLong("dateAdded", song.getDateAdded());
+        }
         return new MediaItem.Builder()
-                .setMediaId(String.valueOf(song.getId()))
-                .setUri(ArtworkRepository.getSongUri(song.getId()))
+                .setMediaId(song != null ? String.valueOf(song.getId()) : "0")
+                .setUri(song != null ? ArtworkRepository.getSongUri(song.getId()) : null)
                 .setMediaMetadata(new MediaMetadata.Builder()
-                        .setTitle(song.getTitle())
-                        .setArtist(song.getArtist())
-                        .setAlbumTitle(song.getAlbum())
-                        .setArtworkUri(new ArtworkRepository(getApplication()).getArtworkUri(song))
+                        .setTitle(song != null ? song.getTitle() : "Unknown")
+                        .setArtist(song != null ? song.getArtist() : "Unknown")
+                        .setAlbumTitle(song != null ? song.getAlbum() : "Unknown")
+                        .setArtworkUri(song != null ? new ArtworkRepository(getApplication()).getArtworkUri(song) : null)
+                        .setExtras(extras)
                         .build())
                 .build();
     }
@@ -498,15 +532,27 @@ public class PlaybackViewModel extends AndroidViewModel {
     }
 
     private Song mediaItemToSong(MediaItem item) {
-        MediaMetadata meta = item.mediaMetadata;
+        if (item == null) return null;
         long id = 0;
         try { id = Long.parseLong(item.mediaId); } catch (NumberFormatException ignored) {}
+        
+        Song cached = songCache.get(id);
+        if (cached != null) return cached;
+
+        MediaMetadata meta = item.mediaMetadata;
+        android.os.Bundle extras = meta != null && meta.extras != null ? meta.extras : android.os.Bundle.EMPTY;
+        long albumId = extras.getLong("albumId", 0L);
+        long duration = extras.getLong("duration", 0L);
+        int trackNumber = extras.getInt("trackNumber", 0);
+        int year = extras.getInt("year", 0);
+        long dateAdded = extras.getLong("dateAdded", 0L);
+
         return new Song(
                 id,
-                meta.title != null ? meta.title.toString() : "Unknown",
-                meta.artist != null ? meta.artist.toString() : "Unknown",
-                meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
-                0, 0, 0, 0, 0
+                meta != null && meta.title != null ? meta.title.toString() : "Unknown",
+                meta != null && meta.artist != null ? meta.artist.toString() : "Unknown",
+                meta != null && meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
+                albumId, duration, trackNumber, year, dateAdded
         );
     }
 
