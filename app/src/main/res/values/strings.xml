@@ -129,4 +129,19 @@
     <string name="cd_favorite_empty">Add to favorites</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_drag_handle">Drag to reorder</string>
+
+    <!-- Playlist feedback -->
+    <string name="song_added_to_playlist">Added to %1$s</string>
+    <string name="song_already_in_playlist">Already in %1$s</string>
+    <string name="new_playlist_ellipsis">New playlist…</string>
+    <string name="select_playlist">Select playlist</string>
+    <string name="playlist_play">Play playlist</string>
+    <string name="playlist_shuffle">Shuffle playlist</string>
+
+    <!-- Search result section headers -->
+    <string name="results_playlists">Playlists</string>
+
+    <!-- Home -->
+    <string name="see_all">See all</string>
+
 </resources>
