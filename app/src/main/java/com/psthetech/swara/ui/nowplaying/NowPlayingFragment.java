@@ -150,12 +150,19 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             if (song != null) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
-                seekBar.setMax((int) song.getDuration());
-                tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
-
+                if (song.getDuration() > 0) {
+                    seekBar.setMax((int) song.getDuration());
+                    tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
+                }
                 ArtworkHelper.loadNowPlayingArt(requireContext(), song, ivArtwork);
-
                 checkIsFavorite(song.getId());
+            }
+        });
+
+        playbackViewModel.getDurationMs().observe(getViewLifecycleOwner(), duration -> {
+            if (duration != null && duration > 0) {
+                seekBar.setMax(duration.intValue());
+                tvTotalTime.setText(TimeFormatter.formatMs(duration));
             }
         });
 
@@ -165,8 +172,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
             if (!isUserSeeking && position != null) {
-                seekBar.setProgress(position.intValue());
-                tvCurrentTime.setText(TimeFormatter.formatMs(position));
+                long pos = Math.max(0, position);
+                int max = seekBar.getMax();
+                if (max > 0) {
+                    pos = Math.min(pos, max);
+                }
+                seekBar.setProgress((int) pos);
+                tvCurrentTime.setText(TimeFormatter.formatMs(pos));
             }
         });
 

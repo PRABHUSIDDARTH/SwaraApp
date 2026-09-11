@@ -70,19 +70,11 @@ public class MiniPlayerFragment extends Fragment {
 
         // Observe progress for the top line
         playbackViewModel.getCurrentPositionMs().observe(getViewLifecycleOwner(), pos -> {
-            Long duration = playbackViewModel.getDurationMs().getValue();
-            if (duration != null && duration > 0) {
-                float fraction = (float) pos / duration;
-                ViewGroup parent = (ViewGroup) progressLine.getParent();
-                if (parent != null) {
-                    int totalWidth = rootView.getWidth();
-                    if (totalWidth > 0) {
-                        ViewGroup.LayoutParams lp = progressLine.getLayoutParams();
-                        lp.width = (int)(totalWidth * fraction);
-                        progressLine.setLayoutParams(lp);
-                    }
-                }
-            }
+            updateProgressLine(pos, playbackViewModel.getDurationMs().getValue());
+        });
+
+        playbackViewModel.getDurationMs().observe(getViewLifecycleOwner(), duration -> {
+            updateProgressLine(playbackViewModel.getCurrentPositionMs().getValue(), duration);
         });
 
         // Tap the mini-player → open Now Playing.
@@ -114,5 +106,18 @@ public class MiniPlayerFragment extends Fragment {
         tvTitle.setText(song.getTitle());
         tvArtist.setText(song.getArtist());
         ArtworkHelper.loadSongArt(requireContext(), song, ivArtwork);
+    }
+
+    private void updateProgressLine(@Nullable Long pos, @Nullable Long duration) {
+        if (pos == null || duration == null || duration <= 0) return;
+        float fraction = Math.max(0f, Math.min(1f, (float) (long) pos / duration));
+        if (rootView != null && progressLine != null) {
+            int totalWidth = rootView.getWidth();
+            if (totalWidth > 0) {
+                ViewGroup.LayoutParams lp = progressLine.getLayoutParams();
+                lp.width = (int) (totalWidth * fraction);
+                progressLine.setLayoutParams(lp);
+            }
+        }
     }
 }
