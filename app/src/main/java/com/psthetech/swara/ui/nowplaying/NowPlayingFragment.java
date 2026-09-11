@@ -95,6 +95,12 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
+        ivArtwork.setOnClickListener(v -> {
+            if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+                ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
+            }
+        });
+
         setupListeners();
         observeViewModel();
     }
@@ -147,12 +153,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 seekBar.setMax((int) song.getDuration());
                 tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
 
-                Glide.with(this)
-                        .load(ArtworkHelper.getAlbumArtUri(song.getAlbumId()))
-                        .placeholder(R.drawable.ic_album_placeholder)
-                        .error(R.drawable.ic_album_placeholder)
-                        .transition(DrawableTransitionOptions.withCrossFade())
-                        .into(ivArtwork);
+                ArtworkHelper.loadNowPlayingArt(requireContext(), song, ivArtwork);
 
                 checkIsFavorite(song.getId());
             }

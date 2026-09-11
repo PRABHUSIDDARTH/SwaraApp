@@ -82,11 +82,7 @@ public class QueueAdapter extends ListAdapter<Song, QueueAdapter.QueueViewHolder
 
             queuePlayingIndicator.setVisibility(isPlaying ? View.VISIBLE : View.GONE);
 
-            Glide.with(itemView.getContext())
-                    .load(ArtworkHelper.getAlbumArtUri(song.getAlbumId()))
-                    .placeholder(R.drawable.ic_album_placeholder)
-                    .error(R.drawable.ic_album_placeholder)
-                    .into(queueSongArt);
+            ArtworkHelper.loadSongArt(itemView.getContext(), song, queueSongArt);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {

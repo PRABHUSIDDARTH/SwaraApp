@@ -320,6 +320,13 @@ public class PlaybackViewModel extends AndroidViewModel {
     public LiveData<Integer> getCurrentQueueIndex() { return currentQueueIndex; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
 
+    public void refreshCurrentSongArtwork() {
+        Song song = currentSong.getValue();
+        if (song != null) {
+            currentSong.postValue(song);
+        }
+    }
+
     // ===== Helpers =====
 
     private MediaItem songToMediaItem(Song song) {
@@ -330,8 +337,7 @@ public class PlaybackViewModel extends AndroidViewModel {
                         .setTitle(song.getTitle())
                         .setArtist(song.getArtist())
                         .setAlbumTitle(song.getAlbum())
-                        .setArtworkUri(new com.psthetech.swara.data.repository.ArtworkRepository(
-                                getApplication()).getAlbumArtUri(song.getAlbumId()))
+                        .setArtworkUri(new ArtworkRepository(getApplication()).getArtworkUri(song))
                         .build())
                 .build();
     }
