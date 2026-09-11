@@ -314,6 +314,13 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         }
     }
 
+    @Override
+    public void onEditArtwork(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
+        }
+    }
+
     // ===== Drag-to-reorder =====
 
     private class ReorderCallback extends ItemTouchHelper.SimpleCallback {

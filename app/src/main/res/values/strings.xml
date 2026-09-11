@@ -138,6 +138,13 @@
     <string name="playlist_play">Play playlist</string>
     <string name="playlist_shuffle">Shuffle playlist</string>
 
+    <!-- Artwork -->
+    <string name="edit_artwork">Edit artwork</string>
+    <string name="change_artwork">Change artwork</string>
+    <string name="reset_artwork">Reset to default artwork</string>
+    <string name="artwork_updated">Artwork updated</string>
+    <string name="artwork_reset">Artwork reset to default</string>
+
     <!-- Search result section headers -->
     <string name="results_playlists">Playlists</string>
 

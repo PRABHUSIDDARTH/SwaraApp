@@ -33,6 +33,17 @@ import com.psthetech.swara.util.PermissionHelper;
  *
  * Does NOT control playback directly — all playback goes through PlaybackViewModel → MediaController.
  */
+import android.net.Uri;
+import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.psthetech.swara.data.repository.ArtworkRepository;
+import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.util.ArtworkHelper;
+
 public class MainActivity extends AppCompatActivity {
 
     private NavController navController;
@@ -40,10 +51,19 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNav;
     private View miniPlayerContainer;
 
+    @Nullable private Song pendingArtworkSong;
+    private ActivityResultLauncher<String> artworkPickerLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
+
+        artworkPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::handleImagePicked
+        );
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
@@ -59,10 +79,6 @@ public class MainActivity extends AppCompatActivity {
         miniPlayerContainer = findViewById(R.id.mini_player_container);
 
         // Set up Navigation Component.
-        // NOTE: Navigation.findNavController(Activity, id) does NOT work with
-        // FragmentContainerView hosts (Navigation ≥ 2.3). The NavController is
-        // attached to the NavHostFragment's child view, not to the container,
-        // so we must retrieve it via the FragmentManager.
         NavHostFragment navHostFragment = (NavHostFragment)
                 getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
@@ -83,6 +99,73 @@ public class MainActivity extends AppCompatActivity {
         // Request audio permission if needed
         if (!PermissionHelper.hasAudioPermission(this)) {
             PermissionHelper.requestAudioPermission(this);
+        }
+    }
+
+    public void promptEditArtwork(Song song) {
+        if (song == null) return;
+        ArtworkRepository repo = new ArtworkRepository(this);
+        if (repo.hasCustomArtwork(song.getId())) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.edit_artwork)
+                    .setItems(new CharSequence[]{
+                            getString(R.string.change_artwork),
+                            getString(R.string.reset_artwork)
+                    }, (dialog, which) -> {
+                        if (which == 0) {
+                            launchImagePicker(song);
+                        } else if (which == 1) {
+                            resetArtwork(song);
+                        }
+                    })
+                    .show();
+        } else {
+            launchImagePicker(song);
+        }
+    }
+
+    private void launchImagePicker(Song song) {
+        this.pendingArtworkSong = song;
+        artworkPickerLauncher.launch("image/*");
+    }
+
+    private void resetArtwork(Song song) {
+        ArtworkRepository repo = new ArtworkRepository(this);
+        repo.removeCustomArtwork(song.getId());
+        ArtworkHelper.notifyArtworkChanged(this);
+        Toast.makeText(this, R.string.artwork_reset, Toast.LENGTH_SHORT).show();
+        refreshPlaybackArtwork(song);
+    }
+
+    private void handleImagePicked(@Nullable Uri uri) {
+        if (pendingArtworkSong == null || uri == null) return;
+        ArtworkRepository repo = new ArtworkRepository(this);
+        boolean saved = repo.saveCustomArtwork(pendingArtworkSong.getId(), uri);
+        if (saved) {
+            ArtworkHelper.notifyArtworkChanged(this);
+            Toast.makeText(this, R.string.artwork_updated, Toast.LENGTH_SHORT).show();
+            refreshPlaybackArtwork(pendingArtworkSong);
+        } else {
+            Toast.makeText(this, "Failed to update artwork", Toast.LENGTH_SHORT).show();
+        }
+        pendingArtworkSong = null;
+    }
+
+    private void refreshPlaybackArtwork(Song song) {
+        if (playbackViewModel != null) {
+            playbackViewModel.refreshCurrentSongArtwork();
+        }
+        // Force refresh active fragments
+        recreateNavHostChild();
+    }
+
+    private void recreateNavHostChild() {
+        NavHostFragment navHostFragment = (NavHostFragment)
+                getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        if (navHostFragment != null && navHostFragment.getChildFragmentManager().getFragments().size() > 0) {
+            // Touch fragment view to trigger re-bind
+            View view = navHostFragment.requireView();
+            view.invalidate();
         }
     }
 

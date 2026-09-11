@@ -40,6 +40,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         void onAddToPlaylist(Song song);
         void onFavoriteToggle(Song song, boolean currentlyFavorite);
         void onRemoveFromPlaylist(Song song); // Optional — only shown in playlist context
+        default void onEditArtwork(Song song) {}
     }
 
     private Listener listener;
@@ -131,6 +132,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         if (showRemoveFromPlaylist) {
             popup.getMenu().add(0, 5, 4, ctx.getString(R.string.remove_from_playlist));
         }
+        popup.getMenu().add(0, 6, 5, ctx.getString(R.string.edit_artwork));
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
                 case 1: listener.onPlayNext(song); return true;
@@ -138,6 +140,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
                 case 3: listener.onAddToPlaylist(song); return true;
                 case 4: listener.onFavoriteToggle(song, isFav); return true;
                 case 5: listener.onRemoveFromPlaylist(song); return true;
+                case 6: listener.onEditArtwork(song); return true;
             }
             return false;
         });
