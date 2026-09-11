@@ -10,20 +10,26 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.psthetech.swara.R;
+import com.psthetech.swara.data.db.entity.Playlist;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.ui.adapter.HomePlaylistAdapter;
 import com.psthetech.swara.ui.adapter.SongAdapter;
+import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class HomeFragment extends Fragment implements SongAdapter.Listener {
@@ -36,18 +42,23 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     private TextView tvGreeting;
     private RecyclerView rvRecentlyPlayed;
     private RecyclerView rvRecentlyAdded;
+    private RecyclerView rvPlaylists;
     private View sectionRecentlyPlayed;
     private View sectionRecentlyAdded;
+    private View sectionPlaylists;
     private View layoutEmpty;
-    private View layoutContent;
+    private View tvSeeAllPlaylists;
 
     private SongAdapter recentlyPlayedAdapter;
     private SongAdapter recentlyAddedAdapter;
+    private HomePlaylistAdapter playlistAdapter;
     private Set<Long> favoriteSongIds = new HashSet<>();
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_home, container, false);
     }
 
@@ -55,44 +66,62 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        libraryViewModel = new ViewModelProvider(requireActivity()).get(LibraryViewModel.class);
+        libraryViewModel  = new ViewModelProvider(requireActivity()).get(LibraryViewModel.class);
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
         favoritesViewModel = new ViewModelProvider(requireActivity()).get(FavoritesViewModel.class);
-        playlistViewModel = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
+        playlistViewModel  = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
 
-        tvGreeting = view.findViewById(R.id.tvGreeting);
-        rvRecentlyPlayed = view.findViewById(R.id.rvRecentlyPlayed);
-        rvRecentlyAdded = view.findViewById(R.id.rvRecentlyAdded);
+        tvGreeting          = view.findViewById(R.id.tvGreeting);
+        rvRecentlyPlayed    = view.findViewById(R.id.rvRecentlyPlayed);
+        rvRecentlyAdded     = view.findViewById(R.id.rvRecentlyAdded);
+        rvPlaylists         = view.findViewById(R.id.rvPlaylists);
         sectionRecentlyPlayed = view.findViewById(R.id.sectionRecentlyPlayed);
-        sectionRecentlyAdded = view.findViewById(R.id.sectionRecentlyAdded);
-        layoutEmpty = view.findViewById(R.id.layoutEmpty);
-        layoutContent = view.findViewById(R.id.layoutContent);
+        sectionRecentlyAdded  = view.findViewById(R.id.sectionRecentlyAdded);
+        sectionPlaylists      = view.findViewById(R.id.sectionPlaylists);
+        layoutEmpty           = view.findViewById(R.id.layoutEmpty);
+        tvSeeAllPlaylists     = view.findViewById(R.id.tvSeeAllPlaylists);
 
         setGreeting();
 
         recentlyPlayedAdapter = new SongAdapter(this);
-        rvRecentlyPlayed.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvRecentlyPlayed.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyPlayed.setAdapter(recentlyPlayedAdapter);
 
         recentlyAddedAdapter = new SongAdapter(this);
-        rvRecentlyAdded.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvRecentlyAdded.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyAdded.setAdapter(recentlyAddedAdapter);
 
+        playlistAdapter = new HomePlaylistAdapter(this::onPlaylistClick);
+        rvPlaylists.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvPlaylists.setAdapter(playlistAdapter);
+
+        // "See all" navigates to the Playlists tab
+        if (tvSeeAllPlaylists != null) {
+            tvSeeAllPlaylists.setOnClickListener(v ->
+                    Navigation.findNavController(v).navigate(R.id.playlistsFragment));
+        }
+
         observeData();
+    }
+
+    private void onPlaylistClick(Playlist playlist) {
+        Bundle args = new Bundle();
+        args.putLong("playlistId", playlist.id);
+        args.putString("playlistName", playlist.name);
+        Navigation.findNavController(requireView())
+                .navigate(R.id.action_home_to_playlistDetail, args);
     }
 
     private void setGreeting() {
         if (tvGreeting == null) return;
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        if (hour >= 4 && hour < 12) {
-            tvGreeting.setText(R.string.greeting_morning);
-        } else if (hour >= 12 && hour < 17) {
-            tvGreeting.setText(R.string.greeting_afternoon);
-        } else if (hour >= 17 && hour < 22) {
-            tvGreeting.setText(R.string.greeting_evening);
-        } else {
-            tvGreeting.setText(R.string.greeting_night);
-        }
+        if (hour >= 4 && hour < 12)       tvGreeting.setText(R.string.greeting_morning);
+        else if (hour >= 12 && hour < 17) tvGreeting.setText(R.string.greeting_afternoon);
+        else if (hour >= 17 && hour < 22) tvGreeting.setText(R.string.greeting_evening);
+        else                               tvGreeting.setText(R.string.greeting_night);
     }
 
     private void observeData() {
@@ -104,6 +133,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             }
         });
 
+        // Recently Added
         libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> {
             if (songs == null || songs.isEmpty()) {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.VISIBLE);
@@ -111,12 +141,12 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             } else {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.GONE);
                 if (sectionRecentlyAdded != null) sectionRecentlyAdded.setVisibility(View.VISIBLE);
-
                 int limit = Math.min(songs.size(), 10);
                 recentlyAddedAdapter.submitList(songs.subList(0, limit));
             }
         });
 
+        // Recently Played
         libraryViewModel.getRecentlyPlayedSongs().observe(getViewLifecycleOwner(), songs -> {
             if (songs != null && !songs.isEmpty()) {
                 if (sectionRecentlyPlayed != null) sectionRecentlyPlayed.setVisibility(View.VISIBLE);
@@ -125,7 +155,31 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 if (sectionRecentlyPlayed != null) sectionRecentlyPlayed.setVisibility(View.GONE);
             }
         });
+
+        // Playlists
+        playlistViewModel.getAllPlaylists().observe(getViewLifecycleOwner(), playlists -> {
+            if (playlists != null && !playlists.isEmpty()) {
+                if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.VISIBLE);
+                playlistAdapter.submitList(playlists);
+                observePlaylistSongCounts(playlists);
+            } else {
+                if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.GONE);
+            }
+        });
     }
+
+    private void observePlaylistSongCounts(List<Playlist> playlists) {
+        final Map<Long, Integer> counts = new HashMap<>();
+        for (Playlist p : playlists) {
+            playlistViewModel.getSongsForPlaylist(p.id)
+                    .observe(getViewLifecycleOwner(), songs -> {
+                        counts.put(p.id, songs != null ? songs.size() : 0);
+                        playlistAdapter.setSongCounts(new HashMap<>(counts));
+                    });
+        }
+    }
+
+    // ===== SongAdapter.Listener =====
 
     @Override
     public void onSongClick(Song song, int position) {
@@ -154,9 +208,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
 
     @Override
     public void onAddToPlaylist(Song song) {
+        AddToPlaylistDialog.show(requireActivity(), requireView(), song, playlistViewModel);
     }
 
     @Override
     public void onRemoveFromPlaylist(Song song) {
+        // Not applicable in home screen context
     }
 }

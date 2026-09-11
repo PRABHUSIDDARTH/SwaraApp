@@ -82,6 +82,56 @@
 
                 </LinearLayout>
 
+                <!-- Playlists -->
+                <LinearLayout
+                    android:id="@+id/sectionPlaylists"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="@dimen/dp_24"
+                        android:paddingTop="@dimen/dp_24"
+                        android:paddingBottom="@dimen/dp_12">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/playlists"
+                            android:textSize="@dimen/text_title_lg"
+                            android:textColor="@color/swara_text_primary"
+                            android:fontFamily="sans-serif-medium" />
+
+                        <TextView
+                            android:id="@+id/tvSeeAllPlaylists"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/see_all"
+                            android:textSize="@dimen/text_body_sm"
+                            android:textColor="@color/swara_gold"
+                            android:paddingStart="@dimen/dp_8"
+                            android:paddingEnd="0dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:padding="4dp" />
+
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPlaylists"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/dp_16"
+                        android:clipToPadding="false" />
+
+                </LinearLayout>
+
                 <!-- Recently Added -->
                 <LinearLayout
                     android:id="@+id/sectionRecentlyAdded"
