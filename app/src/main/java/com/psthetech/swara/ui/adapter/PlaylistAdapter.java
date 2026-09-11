@@ -14,6 +14,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.psthetech.swara.R;
 import com.psthetech.swara.data.db.entity.Playlist;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Adapter for the Playlists screen list.
+ * Shows playlist name, song count, and a ⋮ menu button.
+ *
+ * Song counts are injected externally via setSongCounts() — they come from
+ * PlaylistViewModel which queries Room in the background.
+ */
 public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.PlaylistViewHolder> {
 
     public interface OnPlaylistClickListener {
@@ -22,35 +32,47 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
     }
 
     private final OnPlaylistClickListener listener;
+    private Map<Long, Integer> songCounts = new HashMap<>();
 
     public PlaylistAdapter(OnPlaylistClickListener listener) {
         super(DIFF_CALLBACK);
         this.listener = listener;
     }
 
-    private static final DiffUtil.ItemCallback<Playlist> DIFF_CALLBACK = new DiffUtil.ItemCallback<Playlist>() {
-        @Override
-        public boolean areItemsTheSame(@NonNull Playlist oldItem, @NonNull Playlist newItem) {
-            return oldItem.id == newItem.id;
-        }
+    /** Updates the song count map. Call notifyDataSetChanged() is NOT needed —
+     *  this triggers a DiffUtil-friendly re-bind via notifyItemRangeChanged(). */
+    public void setSongCounts(Map<Long, Integer> counts) {
+        this.songCounts = counts != null ? counts : new HashMap<>();
+        notifyItemRangeChanged(0, getItemCount());
+    }
 
-        @Override
-        public boolean areContentsTheSame(@NonNull Playlist oldItem, @NonNull Playlist newItem) {
-            return oldItem.name.equals(newItem.name);
-        }
-    };
+    private static final DiffUtil.ItemCallback<Playlist> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<Playlist>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull Playlist oldItem, @NonNull Playlist newItem) {
+                    return oldItem.id == newItem.id;
+                }
+
+                @Override
+                public boolean areContentsTheSame(@NonNull Playlist oldItem, @NonNull Playlist newItem) {
+                    return oldItem.name.equals(newItem.name)
+                            && oldItem.modifiedAt == newItem.modifiedAt;
+                }
+            };
 
     @NonNull
     @Override
     public PlaylistViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_playlist, parent, false);
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_playlist, parent, false);
         return new PlaylistViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull PlaylistViewHolder holder, int position) {
         Playlist playlist = getItem(position);
-        holder.bind(playlist, listener);
+        int count = songCounts.containsKey(playlist.id) ? songCounts.get(playlist.id) : 0;
+        holder.bind(playlist, count, listener);
     }
 
     static class PlaylistViewHolder extends RecyclerView.ViewHolder {
@@ -60,28 +82,29 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
 
         public PlaylistViewHolder(@NonNull View itemView) {
             super(itemView);
-            playlistName = itemView.findViewById(R.id.playlistName);
+            playlistName      = itemView.findViewById(R.id.playlistName);
             playlistSongCount = itemView.findViewById(R.id.playlistSongCount);
             playlistMenuButton = itemView.findViewById(R.id.playlistMenuButton);
         }
 
-        public void bind(Playlist playlist, OnPlaylistClickListener listener) {
+        public void bind(Playlist playlist, int count, OnPlaylistClickListener listener) {
             playlistName.setText(playlist.name);
+
             if (playlistSongCount != null) {
-                playlistSongCount.setVisibility(View.GONE);
+                String countText = count == 1
+                        ? "1 song"
+                        : count + " songs";
+                playlistSongCount.setText(countText);
+                playlistSongCount.setVisibility(View.VISIBLE);
             }
 
             itemView.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onPlaylistClick(playlist);
-                }
+                if (listener != null) listener.onPlaylistClick(playlist);
             });
 
             if (playlistMenuButton != null) {
                 playlistMenuButton.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onPlaylistMenuClick(v, playlist);
-                    }
+                    if (listener != null) listener.onPlaylistMenuClick(v, playlist);
                 });
             }
         }
