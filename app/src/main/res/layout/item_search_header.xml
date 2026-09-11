@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tvSectionHeader"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="@dimen/dp_16"
+    android:paddingTop="@dimen/dp_16"
+    android:paddingBottom="@dimen/dp_8"
+    android:textSize="@dimen/text_label_md"
+    android:textColor="@color/swara_text_secondary"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.08"
+    android:textAllCaps="true" />
