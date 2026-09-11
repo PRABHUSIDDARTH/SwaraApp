@@ -138,6 +138,13 @@
     <string name="playlist_play">Play playlist</string>
     <string name="playlist_shuffle">Shuffle playlist</string>
 
+    <!-- Deletion -->
+    <string name="delete_from_device">Delete from device</string>
+    <string name="confirm_delete_song_title">Delete song?</string>
+    <string name="confirm_delete_song_message">Are you sure you want to permanently delete \"%1$s\" from your device?</string>
+    <string name="song_deleted">Song deleted</string>
+    <string name="song_delete_failed">Failed to delete song</string>
+
     <!-- Artwork -->
     <string name="edit_artwork">Edit artwork</string>
     <string name="change_artwork">Change artwork</string>

@@ -44,6 +44,11 @@ import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.util.ArtworkHelper;
 
+import androidx.activity.result.IntentSenderRequest;
+import com.psthetech.swara.data.repository.SongDeletionManager;
+import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
+import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
+
 public class MainActivity extends AppCompatActivity {
 
     private NavController navController;
@@ -54,14 +59,33 @@ public class MainActivity extends AppCompatActivity {
     @Nullable private Song pendingArtworkSong;
     private ActivityResultLauncher<String> artworkPickerLauncher;
 
+    @Nullable private Song pendingDeletionSong;
+    private ActivityResultLauncher<IntentSenderRequest> deleteRequestLauncher;
+    private SongDeletionManager songDeletionManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
 
+        songDeletionManager = new SongDeletionManager(this);
+
         artworkPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 this::handleImagePicked
+        );
+
+        deleteRequestLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartIntentSenderForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && pendingDeletionSong != null) {
+                        songDeletionManager.onSystemDeleteConfirmed(pendingDeletionSong);
+                        onSongDeletedSuccessfully(pendingDeletionSong);
+                    } else if (pendingDeletionSong != null) {
+                        Toast.makeText(this, R.string.song_delete_failed, Toast.LENGTH_SHORT).show();
+                    }
+                    pendingDeletionSong = null;
+                }
         );
 
         EdgeToEdge.enable(this);
@@ -100,6 +124,45 @@ public class MainActivity extends AppCompatActivity {
         if (!PermissionHelper.hasAudioPermission(this)) {
             PermissionHelper.requestAudioPermission(this);
         }
+    }
+
+    public void promptDeleteSong(Song song) {
+        if (song == null) return;
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.confirm_delete_song_title)
+                .setMessage(getString(R.string.confirm_delete_song_message, song.getTitle()))
+                .setPositiveButton(R.string.delete, (dialog, which) -> performDeleteSong(song))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void performDeleteSong(Song song) {
+        songDeletionManager.deleteSong(song, new SongDeletionManager.DeletionCallback() {
+            @Override
+            public void onDeletionSuccess(Song song) {
+                onSongDeletedSuccessfully(song);
+            }
+
+            @Override
+            public void onDeletionFailed(Song song, String reason) {
+                Toast.makeText(MainActivity.this, getString(R.string.song_delete_failed) + (reason != null ? ": " + reason : ""), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onSystemPromptRequired(IntentSenderRequest request, Song song) {
+                pendingDeletionSong = song;
+                deleteRequestLauncher.launch(request);
+            }
+        });
+    }
+
+    private void onSongDeletedSuccessfully(Song song) {
+        Toast.makeText(this, R.string.song_deleted, Toast.LENGTH_SHORT).show();
+        if (playbackViewModel != null) {
+            playbackViewModel.handleSongDeleted(song.getId());
+        }
+        LibraryViewModel libraryVm = new ViewModelProvider(this).get(LibraryViewModel.class);
+        libraryVm.loadSongs();
     }
 
     public void promptEditArtwork(Song song) {

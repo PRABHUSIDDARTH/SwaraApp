@@ -321,6 +321,13 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         }
     }
 
+    @Override
+    public void onDeleteSong(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
+        }
+    }
+
     // ===== Drag-to-reorder =====
 
     private class ReorderCallback extends ItemTouchHelper.SimpleCallback {

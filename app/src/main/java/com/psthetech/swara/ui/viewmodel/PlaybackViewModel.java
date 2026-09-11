@@ -254,6 +254,42 @@ public class PlaybackViewModel extends AndroidViewModel {
         if (queueManager != null) queueManager.cycleRepeatMode();
     }
 
+    public void handleSongDeleted(long songId) {
+        if (controller == null) return;
+        List<Song> queue = currentQueue.getValue();
+        if (queue == null || queue.isEmpty()) return;
+
+        Song activeSong = currentSong.getValue();
+        boolean isPlayingActive = activeSong != null && activeSong.getId() == songId;
+
+        List<Integer> indicesToRemove = new ArrayList<>();
+        for (int i = 0; i < queue.size(); i++) {
+            if (queue.get(i).getId() == songId) {
+                indicesToRemove.add(i);
+            }
+        }
+
+        if (indicesToRemove.isEmpty()) return;
+
+        if (isPlayingActive) {
+            if (controller.hasNextMediaItem()) {
+                controller.seekToNextMediaItem();
+            } else {
+                controller.stop();
+                currentSong.postValue(null);
+            }
+        }
+
+        for (int i = indicesToRemove.size() - 1; i >= 0; i--) {
+            int idx = indicesToRemove.get(i);
+            if (idx >= 0 && idx < controller.getMediaItemCount()) {
+                controller.removeMediaItem(idx);
+            }
+        }
+
+        rebuildQueueSnapshot();
+    }
+
     public void removeFromQueue(int index) {
         if (queueManager != null) queueManager.removeFromQueue(index);
     }

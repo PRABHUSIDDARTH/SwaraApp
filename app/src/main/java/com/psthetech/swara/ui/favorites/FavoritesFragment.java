@@ -126,4 +126,11 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
         }
     }
+
+    @Override
+    public void onDeleteSong(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
+        }
+    }
 }
