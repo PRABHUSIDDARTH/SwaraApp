@@ -9,7 +9,11 @@
         android:id="@+id/homeFragment"
         android:name="com.psthetech.swara.ui.home.HomeFragment"
         android:label="Home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_playlistDetail"
+            app:destination="@id/playlistDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/libraryFragment"
@@ -51,7 +55,17 @@
         android:id="@+id/searchFragment"
         android:name="com.psthetech.swara.ui.search.SearchFragment"
         android:label="Search"
-        tools:layout="@layout/fragment_search" />
+        tools:layout="@layout/fragment_search">
+        <action
+            android:id="@+id/action_search_to_albumDetail"
+            app:destination="@id/albumDetailFragment" />
+        <action
+            android:id="@+id/action_search_to_artistDetail"
+            app:destination="@id/artistDetailFragment" />
+        <action
+            android:id="@+id/action_search_to_playlistDetail"
+            app:destination="@id/playlistDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/favoritesFragment"
