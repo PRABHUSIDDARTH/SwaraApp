@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutSettingsRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/swara_night">
+
+    <!-- Top Bar Header -->
+    <LinearLayout
+        android:id="@+id/headerSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/dp_16"
+        android:paddingTop="@dimen/dp_16"
+        android:paddingBottom="@dimen/dp_12">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/swara_cream"
+            android:contentDescription="@string/previous" />
+
+        <TextView
+            android:id="@+id/tvSettingsTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/appearance"
+            android:textSize="@dimen/text_title_lg"
+            android:textColor="@color/swara_text_primary"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginStart="@dimen/dp_12" />
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:overScrollMode="never"
+        android:paddingBottom="144dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Section 1: Application Theme -->
+            <TextView
+                android:id="@+id/tvThemeHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/theme_title"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingTop="@dimen/dp_16"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardThemeContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:layout_marginBottom="@dimen/dp_16"
+                app:cardBackgroundColor="@color/swara_surface_2"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:strokeColor="@color/swara_glass_stroke"
+                app:strokeWidth="@dimen/border_regular">
+
+                <RadioGroup
+                    android:id="@+id/rgTheme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dp_8">
+
+                    <RadioButton
+                        android:id="@+id/rbThemeDark"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/theme_dark"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="@dimen/text_body_md"
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
+
+                    <RadioButton
+                        android:id="@+id/rbThemeSystem"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/theme_system"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="@dimen/text_body_md"
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
+
+                    <RadioButton
+                        android:id="@+id/rbThemeLight"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/theme_light"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="@dimen/text_body_md"
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
+
+                </RadioGroup>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Section 2: Morphism Language -->
+            <TextView
+                android:id="@+id/tvMorphismHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/morphism_title"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingTop="@dimen/dp_8"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvMorphismStyles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

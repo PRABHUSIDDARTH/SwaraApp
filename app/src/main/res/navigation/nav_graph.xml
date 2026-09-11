@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_home_to_playlistDetail"
             app:destination="@id/playlistDetailFragment" />
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settingsFragment" />
     </fragment>
 
     <fragment
@@ -107,5 +110,11 @@
         android:name="com.psthetech.swara.ui.queue.QueueFragment"
         android:label="Queue"
         tools:layout="@layout/fragment_queue" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.psthetech.swara.ui.settings.SettingsFragment"
+        android:label="Settings"
+        tools:layout="@layout/fragment_settings" />
 
 </navigation>

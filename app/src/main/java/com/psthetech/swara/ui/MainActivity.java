@@ -88,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
+        // Initialize Morphism & Theme engine
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
@@ -101,6 +104,17 @@ public class MainActivity extends AppCompatActivity {
 
         bottomNav = findViewById(R.id.bottom_nav);
         miniPlayerContainer = findViewById(R.id.mini_player_container);
+
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(this, tokens -> {
+                    if (tokens == null) return;
+                    View mainRoot = findViewById(R.id.main);
+                    if (mainRoot != null) mainRoot.setBackgroundColor(tokens.getBackgroundColor());
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                            .applyToBottomNav(bottomNav, tokens);
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                            .applyToView(miniPlayerContainer, true, tokens);
+                });
 
         // Set up Navigation Component.
         NavHostFragment navHostFragment = (NavHostFragment)

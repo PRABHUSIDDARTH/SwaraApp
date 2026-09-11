@@ -78,6 +78,12 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
             });
         }
 
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    view.setBackgroundColor(tokens.getBackgroundColor());
+                });
+
         observeData();
     }
 

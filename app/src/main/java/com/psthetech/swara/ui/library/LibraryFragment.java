@@ -49,5 +49,14 @@ public class LibraryFragment extends Fragment {
                     break;
             }
         }).attach();
+
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    view.setBackgroundColor(tokens.getBackgroundColor());
+                    tabLayout.setBackgroundColor(tokens.getSurfaceColor());
+                    tabLayout.setTabTextColors(tokens.getSecondaryTextColor(), tokens.getAccentColor());
+                    tabLayout.setSelectedTabIndicatorColor(tokens.getAccentColor());
+                });
     }
 }

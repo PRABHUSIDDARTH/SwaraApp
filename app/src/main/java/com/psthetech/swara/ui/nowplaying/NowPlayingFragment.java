@@ -211,6 +211,25 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 checkIsFavorite(currentSong.getId());
             }
         });
+
+        // Observe Morphism design tokens for Now Playing styling
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    View view = getView();
+                    view.setBackgroundColor(tokens.getBackgroundColor());
+                    tvTitle.setTextColor(tokens.getPrimaryTextColor());
+                    tvArtist.setTextColor(tokens.getSecondaryTextColor());
+                    tvCurrentTime.setTextColor(tokens.getDimTextColor());
+                    tvTotalTime.setTextColor(tokens.getDimTextColor());
+
+                    btnPlayPause.setColorFilter(tokens.getAccentColor());
+                    btnPrevious.setColorFilter(tokens.getAccentColor());
+                    btnNext.setColorFilter(tokens.getAccentColor());
+                    btnFavorite.setColorFilter(tokens.getAccentColor());
+                    btnQueue.setColorFilter(tokens.getAccentColor());
+                    if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
+                });
     }
 
     private void checkIsFavorite(long songId) {

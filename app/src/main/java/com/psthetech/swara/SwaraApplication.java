@@ -34,6 +34,9 @@ public class SwaraApplication extends Application {
 
         // Eagerly initialize the Room DB so the first DB access is not blocked
         AppDatabase.getInstance(this);
+
+        // Eagerly initialize theme preferences and night mode state
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
     }
 
     public static SwaraApplication getInstance() {

@@ -77,6 +77,21 @@ public class MiniPlayerFragment extends Fragment {
             updateProgressLine(playbackViewModel.getCurrentPositionMs().getValue(), duration);
         });
 
+        // Observe Morphism design tokens
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                            .applyToView(rootView, true, tokens);
+                    tvTitle.setTextColor(tokens.getPrimaryTextColor());
+                    tvArtist.setTextColor(tokens.getSecondaryTextColor());
+                    btnPlayPause.setColorFilter(tokens.getAccentColor());
+                    btnNext.setColorFilter(tokens.getAccentColor());
+                    if (progressLine != null) {
+                        progressLine.setBackgroundColor(tokens.getAccentColor());
+                    }
+                });
+
         // Tap the mini-player → open Now Playing.
         // MiniPlayerFragment lives outside the nav graph (in mini_player_container),
         // so we must reach the NavHostFragment via the host activity's FragmentManager.

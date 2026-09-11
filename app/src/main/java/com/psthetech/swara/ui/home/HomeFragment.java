@@ -104,6 +104,19 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     Navigation.findNavController(v).navigate(R.id.playlistsFragment));
         }
 
+        View btnSettings = view.findViewById(R.id.btnSettings);
+        if (btnSettings != null) {
+            btnSettings.setOnClickListener(v ->
+                    Navigation.findNavController(v).navigate(R.id.action_home_to_settings));
+        }
+
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    View root = view.findViewById(R.id.layoutContent);
+                    if (root != null) root.setBackgroundColor(tokens.getBackgroundColor());
+                });
+
         observeData();
     }
 

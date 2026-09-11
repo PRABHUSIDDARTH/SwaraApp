@@ -5,33 +5,40 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- S curve -->
-    <path
-        android:pathData="M54,18 C54,18 74,13 76,26 C78,39 48,40 48,53 C48,66 70,71 70,71"
-        android:strokeColor="#C9A84C"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"/>
+    <!-- Mathematically centered group: shifted -12 on X and +6 on Y to center logo bounds at (54, 54) -->
+    <group
+        android:translateX="-12"
+        android:translateY="6">
 
-    <!-- Note stem -->
-    <path
-        android:pathData="M70,71 L70,48"
-        android:strokeColor="#C9A84C"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"/>
+        <!-- S curve -->
+        <path
+            android:pathData="M54,18 C54,18 74,13 76,26 C78,39 48,40 48,53 C48,66 70,71 70,71"
+            android:strokeColor="#C9A84C"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent"/>
 
-    <!-- Note flag -->
-    <path
-        android:pathData="M70,48 C82,43 84,58 74,62"
-        android:strokeColor="#C9A84C"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"/>
+        <!-- Note stem -->
+        <path
+            android:pathData="M70,71 L70,48"
+            android:strokeColor="#C9A84C"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent"/>
 
-    <!-- Note head — ellipse drawn as path -->
-    <path
-        android:pathData="M54,76 C54,71 63,69 72,71 C81,73 81,79 72,81 C63,83 54,81 54,76 Z"
-        android:fillColor="#C9A84C"/>
+        <!-- Note flag -->
+        <path
+            android:pathData="M70,48 C82,43 84,58 74,62"
+            android:strokeColor="#C9A84C"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent"/>
+
+        <!-- Note head — ellipse drawn as path -->
+        <path
+            android:pathData="M54,76 C54,71 63,69 72,71 C81,73 81,79 72,81 C63,83 54,81 54,76 Z"
+            android:fillColor="#C9A84C"/>
+
+    </group>
 
 </vector>
