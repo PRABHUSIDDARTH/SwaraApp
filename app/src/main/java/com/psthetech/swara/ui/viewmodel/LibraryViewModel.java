@@ -18,8 +18,20 @@ import com.psthetech.swara.domain.model.Song;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+
+/**
+ * Sort orders supported by the Songs list.
+ */
+enum SortOrder {
+    TITLE_ASC,   // A → Z by title (default)
+    TITLE_DESC,  // Z → A by title
+    ARTIST_ASC,  // A → Z by artist
+    DATE_ADDED,  // Newest added first
+    DURATION_ASC // Shortest first
+}
 
 /**
  * ViewModel for the Library (songs, albums, artists) and search.
@@ -31,16 +43,22 @@ public class LibraryViewModel extends AndroidViewModel {
     private final PlayHistoryRepository historyRepository;
 
     // Full unfiltered lists (loaded once)
-    private final MutableLiveData<List<Song>> allSongs = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<List<Album>> allAlbums = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Song>>   allSongs   = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Album>>  allAlbums  = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Artist>> allArtists = new MutableLiveData<>(new ArrayList<>());
+
+    // Active sort order (default: A–Z by title)
+    private final MutableLiveData<SortOrder> activeSortOrder = new MutableLiveData<>(SortOrder.TITLE_ASC);
+
+    // Derived sorted view of allSongs, updated whenever allSongs or activeSortOrder changes
+    private final LiveData<List<Song>> sortedSongs;
 
     // Search results
     private final MutableLiveData<List<Song>> searchResults = new MutableLiveData<>(new ArrayList<>());
 
     // Loading states
-    private final MutableLiveData<Boolean> isLoadingSongs = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> isLoadingAlbums = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> isLoadingSongs   = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> isLoadingAlbums  = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> isLoadingArtists = new MutableLiveData<>(false);
 
     private final MutableLiveData<String> loadError = new MutableLiveData<>(null);
@@ -70,6 +88,45 @@ public class LibraryViewModel extends AndroidViewModel {
             }
             return songs;
         });
+
+        // Build a sorted view: re-sort whenever allSongs or activeSortOrder changes
+        sortedSongs = Transformations.switchMap(activeSortOrder, order ->
+                Transformations.map(allSongs, songs -> applySortOrder(songs, order)));
+    }
+
+    /** Apply sort order to a list (always returns a fresh mutable copy). */
+    private static List<Song> applySortOrder(List<Song> songs, SortOrder order) {
+        if (songs == null) return Collections.emptyList();
+        List<Song> sorted = new ArrayList<>(songs);
+        switch (order) {
+            case TITLE_DESC:
+                sorted.sort((a, b) -> b.getTitle().compareToIgnoreCase(a.getTitle()));
+                break;
+            case ARTIST_ASC:
+                sorted.sort((a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
+                break;
+            case DATE_ADDED:
+                sorted.sort((a, b) -> Long.compare(b.getDateAdded(), a.getDateAdded()));
+                break;
+            case DURATION_ASC:
+                sorted.sort((a, b) -> Long.compare(a.getDuration(), b.getDuration()));
+                break;
+            case TITLE_ASC:
+            default:
+                sorted.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+                break;
+        }
+        return sorted;
+    }
+
+    /** Change the active sort order; sortedSongs will automatically update. */
+    public void setSortOrder(SortOrder order) {
+        activeSortOrder.setValue(order);
+    }
+
+    public SortOrder getActiveSortOrder() {
+        SortOrder o = activeSortOrder.getValue();
+        return o != null ? o : SortOrder.TITLE_ASC;
     }
 
     // ===== Loaders =====
@@ -146,11 +203,15 @@ public class LibraryViewModel extends AndroidViewModel {
 
     // ===== Convenience Aliases and Filtering for Fragments =====
 
+    /**
+     * Returns the sorted song list (re-emits on sort-order or data change).
+     * Prefer this over getAllSongs() when displaying in the Songs tab.
+     */
     public LiveData<List<Song>> getSongs() {
         if (allSongs.getValue() == null || allSongs.getValue().isEmpty()) {
             loadSongs();
         }
-        return allSongs;
+        return sortedSongs;
     }
 
     public LiveData<List<Album>> getAlbums() {
