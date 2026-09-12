@@ -110,6 +110,49 @@ public class ArtworkHelper {
     }
 
     /**
+     * Loads song artwork with a crossfade animation (for mini-player artwork changes).
+     * Identical to loadSongArt but adds a 250ms crossfade transition.
+     */
+    public static void loadSongArtWithCrossfade(Context context, @Nullable Song song, ImageView into) {
+        if (context == null || into == null) return;
+        if (song == null) {
+            into.setImageResource(R.drawable.ic_artwork_fallback);
+            return;
+        }
+
+        ArtworkRepository repo = new ArtworkRepository(context);
+        Uri primaryUri = repo.getArtworkUri(song);
+        Uri albumArtUri = ArtworkRepository.getAlbumArtUri(song.getAlbumId());
+        ObjectKey signature = getSongSignature(context, song);
+
+        if (primaryUri == null) {
+            into.setImageResource(R.drawable.ic_artwork_fallback);
+            return;
+        }
+
+        if (albumArtUri != null && !primaryUri.equals(albumArtUri)) {
+            Glide.with(context)
+                    .load(primaryUri)
+                    .signature(signature)
+                    .apply(THUMBNAIL_OPTIONS)
+                    .transition(com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade(250))
+                    .error(Glide.with(context)
+                            .load(albumArtUri)
+                            .signature(signature)
+                            .apply(THUMBNAIL_OPTIONS)
+                            .error(R.drawable.ic_artwork_fallback))
+                    .into(into);
+        } else {
+            Glide.with(context)
+                    .load(primaryUri)
+                    .signature(signature)
+                    .apply(THUMBNAIL_OPTIONS)
+                    .transition(com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade(250))
+                    .into(into);
+        }
+    }
+
+    /**
      * Loads artwork by albumId (for album cards, artist cards).
      */
     public static void loadAlbumArt(Context context, long albumId, ImageView into) {
