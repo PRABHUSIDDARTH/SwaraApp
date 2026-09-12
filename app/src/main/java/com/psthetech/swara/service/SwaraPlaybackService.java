@@ -17,6 +17,7 @@ import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 
 import com.psthetech.swara.ui.MainActivity;
+import com.psthetech.swara.util.SleepTimerManager;
 
 /**
  * Swara V2 Playback Service — the authoritative playback engine.
@@ -61,6 +62,17 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setAudioAttributes(audioAttributes, /* handleAudioFocus */ true)
                 .setHandleAudioBecomingNoisy(true)
                 .build();
+
+        // Notify SleepTimerManager when the song changes (for end-of-song sleep mode)
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    // Natural track finish → trigger end-of-song sleep if armed
+                    SleepTimerManager.getInstance().onSongTransition();
+                }
+            }
+        });
 
         // PendingIntent to open the app from the notification
         PendingIntent activityIntent = PendingIntent.getActivity(
