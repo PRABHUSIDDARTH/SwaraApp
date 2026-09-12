@@ -79,8 +79,8 @@
             android:text="@string/shuffle_all"
             android:textSize="13sp"
             android:textAllCaps="false"
-            android:drawableStartCompat="@drawable/ic_shuffle"
-            android:drawablePadding="4dp"
+            app:icon="@drawable/ic_shuffle"
+            app:iconPadding="4dp"
             style="@style/Widget.Material3.Button.OutlinedButton" />
 
     </LinearLayout>
