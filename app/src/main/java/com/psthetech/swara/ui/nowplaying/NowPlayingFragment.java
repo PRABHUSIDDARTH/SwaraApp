@@ -64,6 +64,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 behavior.setSkipCollapsed(true);
+                behavior.setHideable(true);
+                behavior.setDraggable(true);
             }
         });
         return dialog;
