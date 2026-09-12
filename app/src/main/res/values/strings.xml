@@ -244,5 +244,6 @@
     <!-- History -->
     <string name="clear">Clear</string>
     <string name="clear_history_confirm">Clear play history?</string>
+    <string name="share">Share</string>
 
 </resources>

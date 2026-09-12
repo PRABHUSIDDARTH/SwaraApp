@@ -144,6 +144,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         }
         popup.getMenu().add(0, 6, 5, ctx.getString(R.string.edit_artwork));
         popup.getMenu().add(0, 7, 6, ctx.getString(R.string.delete_from_device));
+        popup.getMenu().add(0, 8, 7, ctx.getString(R.string.share));
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
                 case 1: listener.onPlayNext(song); return true;
@@ -153,6 +154,16 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
                 case 5: listener.onRemoveFromPlaylist(song); return true;
                 case 6: listener.onEditArtwork(song); return true;
                 case 7: listener.onDeleteSong(song); return true;
+                case 8:
+                    // Share song info via Android share sheet
+                    android.content.Intent shareIntent = new android.content.Intent(
+                            android.content.Intent.ACTION_SEND);
+                    shareIntent.setType("text/plain");
+                    shareIntent.putExtra(android.content.Intent.EXTRA_TEXT,
+                            song.getTitle() + " — " + song.getArtist());
+                    ctx.startActivity(android.content.Intent.createChooser(
+                            shareIntent, ctx.getString(R.string.share)));
+                    return true;
             }
             return false;
         });
