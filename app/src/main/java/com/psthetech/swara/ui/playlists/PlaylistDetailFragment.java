@@ -146,7 +146,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 int count = currentSongs.size();
                 long totalMs = 0;
                 for (Song s : currentSongs) {
-                    totalMs += s.getDurationMs();
+                    totalMs += s.getDuration();
                 }
                 String durationStr = formatTotalDuration(totalMs);
                 playlistMeta.setText(count + (count == 1 ? " track" : " tracks")
