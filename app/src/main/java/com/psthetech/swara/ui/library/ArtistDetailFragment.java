@@ -69,6 +69,27 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
+        View btnPlayAll = view.findViewById(R.id.btnPlayAll);
+        if (btnPlayAll != null) {
+            btnPlayAll.setOnClickListener(v -> {
+                List<Song> songs = songAdapter.getCurrentList();
+                if (!songs.isEmpty()) playbackViewModel.playSongs(songs, 0);
+            });
+        }
+
+        View btnShuffle = view.findViewById(R.id.btnShuffle);
+        if (btnShuffle != null) {
+            btnShuffle.setOnClickListener(v -> {
+                List<Song> songs = songAdapter.getCurrentList();
+                if (!songs.isEmpty()) {
+                    if (!Boolean.TRUE.equals(playbackViewModel.getShuffleEnabled().getValue())) {
+                        playbackViewModel.toggleShuffle();
+                    }
+                    playbackViewModel.playSongs(songs, 0);
+                }
+            });
+        }
+
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
