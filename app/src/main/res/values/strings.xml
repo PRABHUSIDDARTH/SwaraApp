@@ -37,7 +37,6 @@
 
     <!-- Favorites -->
     <string name="favorites">Favorites</string>
-    <string name="play_all">Play all</string>
     <string name="shuffle_play">Shuffle play</string>
     <string name="favorites_empty_title">No favorites yet</string>
     <string name="favorites_empty_subtitle">Tap the heart icon on any song to add it here</string>

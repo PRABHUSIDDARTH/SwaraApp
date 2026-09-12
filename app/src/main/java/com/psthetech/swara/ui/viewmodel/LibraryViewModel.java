@@ -18,20 +18,8 @@ import com.psthetech.swara.domain.model.Song;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-
-/**
- * Sort orders supported by the Songs list.
- */
-enum SortOrder {
-    TITLE_ASC,   // A → Z by title (default)
-    TITLE_DESC,  // Z → A by title
-    ARTIST_ASC,  // A → Z by artist
-    DATE_ADDED,  // Newest added first
-    DURATION_ASC // Shortest first
-}
 
 /**
  * ViewModel for the Library (songs, albums, artists) and search.
