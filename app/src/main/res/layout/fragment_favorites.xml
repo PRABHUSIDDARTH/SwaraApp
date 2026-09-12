@@ -22,15 +22,28 @@
             android:textColor="@color/swara_text_primary"
             android:fontFamily="sans-serif-medium" />
 
-        <Button
-            android:id="@+id/btnShuffleFavorites"
-            style="@style/Widget.Swara.Button.Ghost"
-            android:layout_width="wrap_content"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlayAllFavorites"
+            android:layout_width="0dp"
             android:layout_height="36dp"
-            android:text="@string/shuffle_play"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/play_all"
             android:textSize="12sp"
-            android:paddingHorizontal="@dimen/dp_16"
-            android:visibility="gone" />
+            android:textAllCaps="false"
+            android:visibility="gone"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShuffleFavorites"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="@string/shuffle_all"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
 
     </LinearLayout>
 

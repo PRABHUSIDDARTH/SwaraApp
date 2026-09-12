@@ -31,7 +31,8 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
 
     private RecyclerView recyclerView;
     private View layoutEmpty;
-    private Button btnShuffleFavorites;
+    private View btnPlayAllFavorites;
+    private View btnShuffleFavorites;
     private SongAdapter songAdapter;
 
     @Nullable
@@ -49,18 +50,30 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
 
         recyclerView = view.findViewById(R.id.recyclerView);
         layoutEmpty = view.findViewById(R.id.layoutEmpty);
-        btnShuffleFavorites = view.findViewById(R.id.btnShuffleFavorites);
+        btnPlayAllFavorites  = view.findViewById(R.id.btnPlayAllFavorites);
+        btnShuffleFavorites  = view.findViewById(R.id.btnShuffleFavorites);
 
         songAdapter = new SongAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
+        if (btnPlayAllFavorites != null) {
+            btnPlayAllFavorites.setOnClickListener(v -> {
+                List<Song> songs = songAdapter.getCurrentList();
+                if (songs != null && !songs.isEmpty()) {
+                    playbackViewModel.playSongs(songs, 0);
+                }
+            });
+        }
+
         if (btnShuffleFavorites != null) {
             btnShuffleFavorites.setOnClickListener(v -> {
                 List<Song> songs = songAdapter.getCurrentList();
                 if (songs != null && !songs.isEmpty()) {
+                    if (!Boolean.TRUE.equals(playbackViewModel.getShuffleEnabled().getValue())) {
+                        playbackViewModel.toggleShuffle();
+                    }
                     playbackViewModel.playSongs(songs, 0);
-                    playbackViewModel.toggleShuffle();
                 }
             });
         }
@@ -79,10 +92,12 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
             if (songs == null || songs.isEmpty()) {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.VISIBLE);
                 recyclerView.setVisibility(View.GONE);
+                if (btnPlayAllFavorites != null) btnPlayAllFavorites.setVisibility(View.GONE);
                 if (btnShuffleFavorites != null) btnShuffleFavorites.setVisibility(View.GONE);
             } else {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.GONE);
                 recyclerView.setVisibility(View.VISIBLE);
+                if (btnPlayAllFavorites != null) btnPlayAllFavorites.setVisibility(View.VISIBLE);
                 if (btnShuffleFavorites != null) btnShuffleFavorites.setVisibility(View.VISIBLE);
                 songAdapter.submitList(songs);
             }
