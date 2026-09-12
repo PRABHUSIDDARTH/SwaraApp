@@ -24,6 +24,7 @@ import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.util.ArtworkHelper;
+import com.psthetech.swara.util.SleepTimerManager;
 import com.psthetech.swara.util.TimeFormatter;
 
 public class NowPlayingFragment extends BottomSheetDialogFragment {
@@ -45,6 +46,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnFavorite;
     private ImageView btnQueue;
     private ImageView btnCollapse;
+    private ImageView btnSleepTimer;
 
     private boolean isUserSeeking = false;
     private Song currentSong;
@@ -89,9 +91,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnNext = view.findViewById(R.id.btnNext);
         btnShuffle = view.findViewById(R.id.btnShuffle);
         btnRepeat = view.findViewById(R.id.btnRepeat);
-        btnFavorite = view.findViewById(R.id.btnFavorite);
-        btnQueue = view.findViewById(R.id.btnQueue);
-        btnCollapse = view.findViewById(R.id.btnCollapse);
+        btnFavorite   = view.findViewById(R.id.btnFavorite);
+        btnQueue      = view.findViewById(R.id.btnQueue);
+        btnCollapse   = view.findViewById(R.id.btnCollapse);
+        btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
@@ -122,6 +125,28 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             QueueFragment queueFragment = new QueueFragment();
             queueFragment.show(getParentFragmentManager(), "QueueFragment");
         });
+
+        if (btnSleepTimer != null) {
+            btnSleepTimer.setOnClickListener(v -> {
+                SleepTimerDialog dialog = SleepTimerDialog.newInstance(
+                        () -> playbackViewModel.pause());
+                dialog.show(getParentFragmentManager(), SleepTimerDialog.TAG);
+            });
+
+            // Highlight the button when a timer is active
+            SleepTimerManager.getInstance().getActive().observe(getViewLifecycleOwner(), isActive -> {
+                if (isActive != null) {
+                    com.psthetech.swara.ui.theme.DesignTokens tokens =
+                            com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+                    if (tokens != null) {
+                        btnSleepTimer.setColorFilter(
+                                Boolean.TRUE.equals(isActive)
+                                        ? tokens.getAccentColor()
+                                        : tokens.getIconSecondaryColor());
+                    }
+                }
+            });
+        }
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override

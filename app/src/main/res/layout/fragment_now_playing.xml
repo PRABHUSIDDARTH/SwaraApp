@@ -239,5 +239,38 @@
 
     </LinearLayout>
 
+    <!-- Secondary controls row: Sleep Timer + Equalizer -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp_16">
+
+        <!-- Sleep Timer -->
+        <ImageView
+            android:id="@+id/btnSleepTimer"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_timer"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/sleep_timer" />
+
+        <!-- Equalizer -->
+        <ImageView
+            android:id="@+id/btnEqualizer"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_equalizer"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/equalizer" />
+
+    </LinearLayout>
+
 </LinearLayout>
 </androidx.core.widget.NestedScrollView>
+
