@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.data.db.entity.PlayHistory;
@@ -44,8 +45,11 @@ public class LibraryViewModel extends AndroidViewModel {
 
     private final MutableLiveData<String> loadError = new MutableLiveData<>(null);
 
-    // Recently played from Room (reactive)
+    // Recently played from Room (reactive) — raw PlayHistory rows
     private final LiveData<List<PlayHistory>> recentlyPlayed;
+
+    // Transformed Song objects derived from play history (for Home fragment)
+    private final LiveData<List<Song>> recentlyPlayedSongs;
 
     public LibraryViewModel(@NonNull Application application) {
         super(application);
@@ -53,6 +57,19 @@ public class LibraryViewModel extends AndroidViewModel {
         AppDatabase db = AppDatabase.getInstance(application);
         historyRepository = new PlayHistoryRepository(db);
         recentlyPlayed = historyRepository.getRecentlyPlayedLive();
+
+        // Map PlayHistory rows → Song domain objects (max 20, most recent first)
+        recentlyPlayedSongs = Transformations.map(recentlyPlayed, historyList -> {
+            if (historyList == null || historyList.isEmpty()) return Collections.emptyList();
+            List<Song> songs = new ArrayList<>();
+            int limit = Math.min(historyList.size(), 20);
+            for (int i = 0; i < limit; i++) {
+                PlayHistory h = historyList.get(i);
+                songs.add(new Song(h.songId, h.title, h.artist, h.album,
+                        h.albumId, h.duration, 0, 0, h.playedAt));
+            }
+            return songs;
+        });
     }
 
     // ===== Loaders =====
@@ -190,9 +207,13 @@ public class LibraryViewModel extends AndroidViewModel {
         return artistSongs;
     }
 
+    /**
+     * Returns a reactive list of recently played songs, derived from Room PlayHistory.
+     * Each entry is mapped from a PlayHistory row back to a Song domain object.
+     * Empty until the user plays at least one song past the meaningful-play threshold.
+     */
     public LiveData<List<Song>> getRecentlyPlayedSongs() {
-        // Return top recently loaded songs as fallback or history songs
-        return allSongs;
+        return recentlyPlayedSongs;
     }
 
     // ===== LiveData getters =====
