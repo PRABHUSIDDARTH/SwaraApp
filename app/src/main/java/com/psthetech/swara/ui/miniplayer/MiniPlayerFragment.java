@@ -121,7 +121,7 @@ public class MiniPlayerFragment extends Fragment {
         if (song == null) return;
         tvTitle.setText(song.getTitle());
         tvArtist.setText(song.getArtist());
-        ArtworkHelper.loadSongArt(requireContext(), song, ivArtwork);
+        ArtworkHelper.loadSongArtWithCrossfade(requireContext(), song, ivArtwork);
     }
 
     private void updateProgressLine(@Nullable Long pos, @Nullable Long duration) {

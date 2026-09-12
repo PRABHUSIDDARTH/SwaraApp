@@ -42,4 +42,9 @@
     <color name="swara_light_bg">#F7F4FC</color>
     <color name="swara_light_surface">#EDE5F8</color>
     <color name="ic_launcher_background">#3D1F7A</color>
+
+    <!-- ===== SEMANTIC ALIASES ===== -->
+    <color name="swara_divider">#33FFFFFF</color>
+    <color name="swara_error">#CF6679</color>
+
 </resources>

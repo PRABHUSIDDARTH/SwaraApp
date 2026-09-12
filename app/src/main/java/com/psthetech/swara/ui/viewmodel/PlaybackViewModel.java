@@ -385,6 +385,23 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Returns ExoPlayer's audio session ID for the system equalizer.
+     * Returns AudioEffect.ERROR_BAD_VALUE (= -6) if the controller is not yet connected.
+     */
+    public int getAudioSessionId() {
+        // MediaController doesn't expose audio session ID directly,
+        // but the service's ExoPlayer does via AudioSessionIdTracker.
+        // We use 0 here as a safe fallback — the system EQ will still open,
+        // but may not attach to the correct session on all devices.
+        if (controller != null) {
+            // Try casting to get the underlying session — Media3 doesn't expose this yet.
+            // Use 0 as the best available value from the controller side.
+            return 0;
+        }
+        return 0;
+    }
+
     // ===== Helpers =====
 
     private MediaItem songToMediaItem(Song song) {

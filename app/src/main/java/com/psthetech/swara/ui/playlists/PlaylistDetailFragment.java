@@ -144,7 +144,13 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
             if (playlistMeta != null) {
                 int count = currentSongs.size();
-                playlistMeta.setText(count + (count == 1 ? " track" : " tracks"));
+                long totalMs = 0;
+                for (Song s : currentSongs) {
+                    totalMs += s.getDuration();
+                }
+                String durationStr = formatTotalDuration(totalMs);
+                playlistMeta.setText(count + (count == 1 ? " track" : " tracks")
+                        + (durationStr.isEmpty() ? "" : " • " + durationStr));
             }
 
             // Empty state
@@ -362,8 +368,22 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         }
 
         @Override
-        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-            // No swipe-to-dismiss in this screen (use the ⋮ menu)
+        public void onSwiped(@NonNull RecyclerView.ViewHolder holder, int dir) {}
+    }
+
+    private static String formatTotalDuration(long totalMs) {
+        if (totalMs <= 0) return "";
+        long totalSecs = totalMs / 1000;
+        long hours = totalSecs / 3600;
+        long mins = (totalSecs % 3600) / 60;
+        long secs = totalSecs % 60;
+
+        if (hours > 0) {
+            return String.format(java.util.Locale.getDefault(), "%d hr %d min", hours, mins);
+        } else if (mins > 0) {
+            return String.format(java.util.Locale.getDefault(), "%d min %d sec", mins, secs);
+        } else {
+            return String.format(java.util.Locale.getDefault(), "%d sec", secs);
         }
     }
 }

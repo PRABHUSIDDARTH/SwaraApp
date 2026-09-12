@@ -1,14 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reusable layout for songs list with loading/empty states -->
+<!-- Songs list with header bar (sort) and loading/empty states -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/swara_night">
+
+    <!-- Header bar: label + sort button -->
+    <LinearLayout
+        android:id="@+id/headerBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/songs"
+            android:textColor="@color/swara_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnSort"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_sort"
+            android:contentDescription="@string/sort"
+            app:tint="@color/swara_gold" />
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="48dp"
         android:paddingBottom="144dp"
         android:clipToPadding="false"
         android:overScrollMode="never" />

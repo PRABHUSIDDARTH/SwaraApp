@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="24dp">
+
+    <TextView
+        android:id="@+id/tvTimerTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sleep_timer"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/swara_text_primary"
+        android:padding="20dp" />
+
+    <!-- 15 min -->
+    <TextView
+        android:id="@+id/option15"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_15"
+        android:textColor="@color/swara_text_primary"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <!-- 30 min -->
+    <TextView
+        android:id="@+id/option30"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_30"
+        android:textColor="@color/swara_text_primary"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <!-- 45 min -->
+    <TextView
+        android:id="@+id/option45"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_45"
+        android:textColor="@color/swara_text_primary"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <!-- 60 min -->
+    <TextView
+        android:id="@+id/option60"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_60"
+        android:textColor="@color/swara_text_primary"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <!-- End of song -->
+    <TextView
+        android:id="@+id/optionEndOfSong"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_end_of_song"
+        android:textColor="@color/swara_text_primary"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/swara_divider"
+        android:layout_marginVertical="8dp" />
+
+    <!-- Cancel -->
+    <TextView
+        android:id="@+id/optionCancel"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="@string/sleep_timer_cancel"
+        android:textColor="@color/swara_error"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="gone" />
+
+</LinearLayout>

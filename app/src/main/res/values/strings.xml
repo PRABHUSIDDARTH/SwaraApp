@@ -37,7 +37,6 @@
 
     <!-- Favorites -->
     <string name="favorites">Favorites</string>
-    <string name="play_all">Play all</string>
     <string name="shuffle_play">Shuffle play</string>
     <string name="favorites_empty_title">No favorites yet</string>
     <string name="favorites_empty_subtitle">Tap the heart icon on any song to add it here</string>
@@ -209,5 +208,42 @@
 
     <string name="settings">Settings</string>
     <string name="active_style">Active</string>
+
+    <!-- Library sort -->
+    <string name="sort">Sort</string>
+    <string name="sort_title_az">Title (A–Z)</string>
+    <string name="sort_title_za">Title (Z–A)</string>
+    <string name="sort_artist_az">Artist (A–Z)</string>
+    <string name="sort_date_added">Recently Added</string>
+    <string name="sort_duration">Duration (Shortest)</string>
+
+    <!-- Library labels -->
+    <string name="songs">Songs</string>
+    <string name="albums">Albums</string>
+    <string name="artists">Artists</string>
+
+    <!-- Play All / Shuffle -->
+    <string name="play_all">Play All</string>
+    <string name="shuffle_all">Shuffle</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_timer">Sleep Timer</string>
+    <string name="sleep_timer_15">15 minutes</string>
+    <string name="sleep_timer_30">30 minutes</string>
+    <string name="sleep_timer_45">45 minutes</string>
+    <string name="sleep_timer_60">60 minutes</string>
+    <string name="sleep_timer_end_of_song">End of current song</string>
+    <string name="sleep_timer_cancel">Cancel timer</string>
+    <string name="sleep_timer_set">Set Timer</string>
+    <string name="sleep_timer_active">Sleep timer: %1$s remaining</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer">Equalizer</string>
+    <string name="equalizer_not_available">No equalizer available on this device</string>
+
+    <!-- History -->
+    <string name="clear">Clear</string>
+    <string name="clear_history_confirm">Clear play history?</string>
+    <string name="share">Share</string>
 
 </resources>

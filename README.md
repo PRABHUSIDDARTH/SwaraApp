@@ -1,6 +1,6 @@
 <img width="1918" height="952" alt="Swara App" src="https://github.com/user-attachments/assets/b6fd1711-7e4e-4621-9834-d3b6c854216a" />
 
-# Swara V2
+# Swara V2.1
 
 > A modern, offline-first Android music player built entirely in Java — no Kotlin, no compromises.
 
@@ -26,7 +26,7 @@
 
 ## Overview
 
-Swara V2 is a production-ready offline Android music player that reads from the device's `MediaStore`,
+Swara V2.1 is a production-ready offline Android music player that reads from the device's `MediaStore`,
 plays audio through Jetpack Media3 ExoPlayer, and persists user data (playlists, favourites, play
 history) with Room. The UI is a **single-activity** architecture driven entirely by the Jetpack
 Navigation Component.
@@ -43,14 +43,17 @@ Material 3 transitions.
 | **Audio playback** | Jetpack Media3 ExoPlayer with `MediaSessionService` — background playback survives app backgrounding and screen-off |
 | **Lock-screen & notification controls** | System media notification with play/pause/skip, artwork, and seek bar via `MediaSession` |
 | **MediaStore discovery** | Automatic indexing of all on-device audio files; album art extracted from embedded tags via `ContentResolver` |
-| **Mini-Player** | Persistent collapsible bar above the bottom navigation with live progress line and artwork |
-| **Now Playing** | Full-screen bottom-sheet dialog with seek bar, repeat/shuffle, queue access |
-| **Queue management** | Dynamic queue reorder and swipe-to-remove, backed by `PlaybackViewModel` |
-| **Favourites** | One-tap toggle, persisted in Room `FavoriteSong` table |
-| **Custom Playlists** | Full CRUD — create, rename, delete, add/remove songs via `PlaylistSong` join table |
-| **Play History** | Automatic per-song timestamp recording via `PlayHistoryDao` |
-| **Search** | Real-time multi-criteria search across songs, albums, and artists |
-| **Library tabs** | Songs · Albums · Artists with detail drill-down (album tracks, artist songs) |
+| **Mini-Player** | Persistent collapsible bar with live progress line, artwork crossfade animation, and controls |
+| **Now Playing** | Full-screen bottom-sheet dialog with swipe-down dismiss gesture, seek bar, repeat/shuffle, sleep timer, equalizer |
+| **Queue management** | Drag-to-reorder via `ItemTouchHelper` and swipe-to-remove, backed by `PlaybackViewModel` |
+| **Sleep Timer** | Singleton count-down (15, 30, 45, 60 minutes) and automatic **End-of-Song** sleep mode |
+| **Library Sorting** | Multi-attribute sorting for songs: Title (A-Z / Z-A), Artist (A-Z), Duration, and Date Added |
+| **Equalizer Integration** | System AudioEffect intent integration with fallback |
+| **Favourites** | One-tap toggle with Play All & Shuffle buttons, persisted in Room `FavoriteSong` table |
+| **Custom Playlists** | Full CRUD — create, rename, delete, add/remove songs, drag reorder, total playlist duration formatting |
+| **Play History** | Threshold-based (30s / 40% duration) automatic timestamp recording with a **Clear Play History** option |
+| **Search** | Real-time multi-criteria search across songs, albums, artists, and custom playlists |
+| **Library tabs** | Songs · Albums · Artists with Play All & Shuffle detail screens |
 
 ---
 
