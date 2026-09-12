@@ -97,9 +97,9 @@ public class MainActivity extends AppCompatActivity {
         // Apply window insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            // Bottom nav handles its own bottom inset; apply top inset to the fragment container
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
-            return insets;
+            // Keep the floating controls above both gesture and three-button navigation.
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets.inset(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
         });
 
         bottomNav = findViewById(R.id.bottom_nav);
@@ -109,11 +109,9 @@ public class MainActivity extends AppCompatActivity {
                 .getDesignTokens().observe(this, tokens -> {
                     if (tokens == null) return;
                     View mainRoot = findViewById(R.id.main);
-                    if (mainRoot != null) mainRoot.setBackgroundColor(tokens.getBackgroundColor());
+                    if (mainRoot != null) mainRoot.setBackground(tokens.createAmbientDrawable());
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                             .applyToBottomNav(bottomNav, tokens);
-                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                            .applyToView(miniPlayerContainer, true, tokens);
                 });
 
         // Set up Navigation Component.

@@ -477,6 +477,9 @@ public class DesignTokens {
      * Create a card background drawable adhering to design tokens.
      */
     public Drawable createCardDrawable(Context context) {
+        if (style == MorphismStyle.LIQUID_GLASS) {
+            return createGlassDrawable(context, false);
+        }
         GradientDrawable drawable = new GradientDrawable();
         drawable.setShape(GradientDrawable.RECTANGLE);
         drawable.setColor(surfaceColor);
@@ -496,6 +499,9 @@ public class DesignTokens {
      * Create a surface variant container drawable (e.g. search box, dialog, elevated card).
      */
     public Drawable createSurfaceVariantDrawable(Context context) {
+        if (style == MorphismStyle.LIQUID_GLASS) {
+            return createGlassDrawable(context, true);
+        }
         GradientDrawable drawable = new GradientDrawable();
         drawable.setShape(GradientDrawable.RECTANGLE);
         drawable.setColor(surfaceVariantColor);
@@ -527,5 +533,35 @@ public class DesignTokens {
             drawable.setStroke(Math.round(2 * density), Color.BLACK);
         }
         return drawable;
+    }
+
+    /** Palette-aware glass approximation; no offscreen blur or continuous GPU work. */
+    private GradientDrawable createGlassDrawable(Context context, boolean elevated) {
+        int base = elevated ? surfaceVariantColor : surfaceColor;
+        int light = isNightMode ? Color.WHITE : primaryColor;
+        GradientDrawable glass = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{mix(base, light, 0.22f), mix(base, light, 0.06f),
+                        mix(base, secondaryColor, 0.10f)});
+        float density = context.getResources().getDisplayMetrics().density;
+        glass.setCornerRadius(cornerRadiusDp * density);
+        glass.setAlpha(238);
+        glass.setStroke(Math.max(1, Math.round(density)), mix(base, light, 0.38f));
+        return glass;
+    }
+
+    /** An opaque backdrop keeps the glass and text contrast stable in every palette. */
+    public Drawable createAmbientDrawable() {
+        if (style != MorphismStyle.LIQUID_GLASS) {
+            return new android.graphics.drawable.ColorDrawable(backgroundColor);
+        }
+        return new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{mix(backgroundColor, primaryColor, 0.13f),
+                        backgroundSecondaryColor, backgroundColor});
+    }
+
+    private static int mix(int from, int to, float amount) {
+        return Color.rgb(Math.round(Color.red(from) * (1 - amount) + Color.red(to) * amount),
+                Math.round(Color.green(from) * (1 - amount) + Color.green(to) * amount),
+                Math.round(Color.blue(from) * (1 - amount) + Color.blue(to) * amount));
     }
 }

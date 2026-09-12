@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Now Playing — full screen bottom sheet -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/swara_night"
+    android:background="@android:color/transparent"
     android:paddingHorizontal="@dimen/dp_24"
     android:paddingTop="@dimen/dp_16"
     android:paddingBottom="@dimen/dp_24">
@@ -32,6 +37,7 @@
         <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
         <TextView
+            android:id="@+id/nowPlayingHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/now_playing"
@@ -56,23 +62,29 @@
     </LinearLayout>
 
     <!-- Large album artwork -->
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center">
+        android:layout_height="wrap_content">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivArtwork"
-            android:layout_width="@dimen/now_playing_artwork_size"
-            android:layout_height="@dimen/now_playing_artwork_size"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintWidth_max="360dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:padding="6dp"
             android:scaleType="centerCrop"
             android:background="@color/swara_surface_3"
             android:src="@drawable/ic_artwork_fallback"
             android:elevation="@dimen/elevation_4"
             android:contentDescription="Album art" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Song info + favorite -->
     <LinearLayout
@@ -171,8 +183,8 @@
         <!-- Shuffle -->
         <ImageView
             android:id="@+id/btnShuffle"
-            android:layout_width="@dimen/btn_ghost_size"
-            android:layout_height="@dimen/btn_ghost_size"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/ic_shuffle"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
@@ -188,26 +200,20 @@
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
             android:tint="@color/swara_cream"
-            android:layout_marginHorizontal="@dimen/dp_16"
             android:contentDescription="@string/previous" />
 
-        <!-- Play/Pause — large gold circle -->
-        <LinearLayout
-            android:layout_width="@dimen/btn_play_pause_size"
-            android:layout_height="@dimen/btn_play_pause_size"
-            android:background="@drawable/bg_play_button"
-            android:gravity="center">
-
+        <!-- Entire glass control is the playback touch target. -->
             <ImageView
                 android:id="@+id/btnPlayPause"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_play_button"
                 android:src="@drawable/ic_play"
                 android:scaleType="center"
                 android:tint="@color/swara_night"
                 android:contentDescription="@string/play_pause" />
 
-        </LinearLayout>
 
         <!-- Next -->
         <ImageView
@@ -218,14 +224,13 @@
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
             android:tint="@color/swara_cream"
-            android:layout_marginHorizontal="@dimen/dp_16"
             android:contentDescription="@string/next" />
 
         <!-- Repeat -->
         <ImageView
             android:id="@+id/btnRepeat"
-            android:layout_width="@dimen/btn_ghost_size"
-            android:layout_height="@dimen/btn_ghost_size"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/ic_repeat"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
@@ -235,3 +240,4 @@
     </LinearLayout>
 
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>

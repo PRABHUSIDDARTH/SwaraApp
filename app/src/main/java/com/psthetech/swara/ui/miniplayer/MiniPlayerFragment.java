@@ -85,7 +85,8 @@ public class MiniPlayerFragment extends Fragment {
                             .applyToView(rootView, true, tokens);
                     tvTitle.setTextColor(tokens.getPrimaryTextColor());
                     tvArtist.setTextColor(tokens.getSecondaryTextColor());
-                    btnPlayPause.setColorFilter(tokens.getAccentColor());
+                    btnPlayPause.setBackground(tokens.createCardDrawable(requireContext()));
+                    btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
                     btnNext.setColorFilter(tokens.getAccentColor());
                     if (progressLine != null) {
                         progressLine.setBackgroundColor(tokens.getAccentColor());

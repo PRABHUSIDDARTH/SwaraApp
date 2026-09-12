@@ -114,7 +114,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     View root = view.findViewById(R.id.layoutContent);
-                    if (root != null) root.setBackgroundColor(tokens.getBackgroundColor());
+                    if (root != null) root.setBackground(tokens.createAmbientDrawable());
                     if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextSecondaryColor());
                     TextView tvAppName = view.findViewById(R.id.tvAppName);
                     if (tvAppName != null) tvAppName.setTextColor(tokens.getAccentColor());
