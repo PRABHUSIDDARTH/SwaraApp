@@ -24,6 +24,7 @@ import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.util.ArtworkHelper;
+import com.psthetech.swara.util.EqualizerManager;
 import com.psthetech.swara.util.SleepTimerManager;
 import com.psthetech.swara.util.TimeFormatter;
 
@@ -47,6 +48,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnQueue;
     private ImageView btnCollapse;
     private ImageView btnSleepTimer;
+    private ImageView btnEqualizer;
 
     private boolean isUserSeeking = false;
     private Song currentSong;
@@ -95,6 +97,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnQueue      = view.findViewById(R.id.btnQueue);
         btnCollapse   = view.findViewById(R.id.btnCollapse);
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
+        btnEqualizer  = view.findViewById(R.id.btnEqualizer);
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
@@ -144,6 +147,15 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                                         ? tokens.getAccentColor()
                                         : tokens.getIconSecondaryColor());
                     }
+                }
+            });
+        }
+
+        if (btnEqualizer != null) {
+            btnEqualizer.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    EqualizerManager.openSystemEqualizer(
+                            getActivity(), playbackViewModel.getAudioSessionId());
                 }
             });
         }
