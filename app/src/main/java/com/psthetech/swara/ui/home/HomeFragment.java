@@ -127,6 +127,19 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 });
 
         observeData();
+
+        // Clear recently played history with confirmation
+        View btnClearHistory = view.findViewById(R.id.btnClearHistory);
+        if (btnClearHistory != null) {
+            btnClearHistory.setOnClickListener(v -> {
+                new android.app.AlertDialog.Builder(requireContext())
+                        .setMessage(R.string.clear_history_confirm)
+                        .setPositiveButton(android.R.string.ok, (d, w) ->
+                                libraryViewModel.clearPlayHistory())
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            });
+        }
     }
 
     private void onPlaylistClick(Playlist playlist) {

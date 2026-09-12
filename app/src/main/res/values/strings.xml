@@ -241,4 +241,8 @@
     <string name="equalizer">Equalizer</string>
     <string name="equalizer_not_available">No equalizer available on this device</string>
 
+    <!-- History -->
+    <string name="clear">Clear</string>
+    <string name="clear_history_confirm">Clear play history?</string>
+
 </resources>

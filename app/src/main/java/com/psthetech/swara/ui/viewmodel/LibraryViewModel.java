@@ -276,4 +276,10 @@ public class LibraryViewModel extends AndroidViewModel {
     public LiveData<Boolean> getIsLoadingArtists() { return isLoadingArtists; }
     public LiveData<String> getLoadError() { return loadError; }
     public LiveData<List<PlayHistory>> getRecentlyPlayed() { return recentlyPlayed; }
+
+    /** Clears all play history (called from the Home screen's clear button). */
+    public void clearPlayHistory() {
+        historyRepository.clearHistory();
+    }
 }
+
