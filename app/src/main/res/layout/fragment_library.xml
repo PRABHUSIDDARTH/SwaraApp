@@ -12,6 +12,9 @@
         style="@style/Widget.Swara.TabLayout"
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="12dp"
+        app:tabIndicatorFullWidth="false"
         app:tabMode="fixed"
         app:tabGravity="fill" />
 

@@ -174,6 +174,17 @@ public class MorphismThemeManager {
         if (tokens == null) tokens = getCurrentTokens();
         if (tokens == null) return;
 
+        if (view instanceof MaterialCardView) {
+            MaterialCardView card = (MaterialCardView) view;
+            applyToCard(card, tokens);
+            // MaterialCardView owns its background. Decorate its content instead.
+            if (card.getChildCount() > 0) {
+                card.getChildAt(0).setBackground(tokens.getStyle() == MorphismStyle.LIQUID_GLASS
+                        ? tokens.createCardDrawable(card.getContext()) : null);
+            }
+            return;
+        }
+
         Context context = view.getContext();
         GradientDrawable drawable = isVariant
                 ? (GradientDrawable) tokens.createSurfaceVariantDrawable(context)
@@ -229,7 +240,9 @@ public class MorphismThemeManager {
         } else if (tokens.getStrokeWidthDp() > 0) {
             bg.setStroke(Math.max(1, Math.round(tokens.getStrokeWidthDp() * density)), tokens.getStrokeColor());
         }
-        nav.setBackground(bg);
+        bg.setCornerRadius(tokens.getCornerRadiusDp() * density);
+        nav.setBackground(tokens.getStyle() == MorphismStyle.LIQUID_GLASS
+                ? tokens.createSurfaceVariantDrawable(context) : bg);
 
         // Active state indicator color
         int activeColor = ColorStateList.valueOf(tokens.getAccentColor()).getDefaultColor();

@@ -168,6 +168,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), isPlaying -> {
             btnPlayPause.setImageResource(Boolean.TRUE.equals(isPlaying) ? R.drawable.ic_pause : R.drawable.ic_play);
+            btnPlayPause.setContentDescription(getString(Boolean.TRUE.equals(isPlaying) ? R.string.pause : R.string.play));
         });
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
@@ -217,13 +218,21 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     View view = getView();
-                    view.setBackgroundColor(tokens.getBackgroundColor());
+                    view.setBackground(tokens.createAmbientDrawable());
+                    ((TextView) view.findViewById(R.id.nowPlayingHeader)).setTextColor(tokens.getSecondaryTextColor());
+                    ivArtwork.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
                     tvTitle.setTextColor(tokens.getPrimaryTextColor());
                     tvArtist.setTextColor(tokens.getSecondaryTextColor());
-                    tvCurrentTime.setTextColor(tokens.getDimTextColor());
-                    tvTotalTime.setTextColor(tokens.getDimTextColor());
+                    tvCurrentTime.setTextColor(tokens.getSecondaryTextColor());
+                    tvTotalTime.setTextColor(tokens.getSecondaryTextColor());
 
-                    btnPlayPause.setColorFilter(tokens.getAccentColor());
+                    btnPlayPause.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+                    btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
+                    seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
+                    seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(tokens.getPrimaryTextColor()));
+                    seekBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getSurfaceVariantColor()));
+                    btnShuffle.setColorFilter(tokens.getAccentColor());
+                    btnRepeat.setColorFilter(tokens.getAccentColor());
                     btnPrevious.setColorFilter(tokens.getAccentColor());
                     btnNext.setColorFilter(tokens.getAccentColor());
                     btnFavorite.setColorFilter(tokens.getAccentColor());
