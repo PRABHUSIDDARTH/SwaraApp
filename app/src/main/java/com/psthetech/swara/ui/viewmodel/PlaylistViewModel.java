@@ -52,14 +52,19 @@ public class PlaylistViewModel extends AndroidViewModel {
             List<Song> songs = new ArrayList<>();
             if (list != null) {
                 for (PlaylistSong item : list) {
+                    Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(item.songId);
+                    long dur = item.duration > 0 ? item.duration : (canonical != null ? canonical.getDuration() : 0);
+                    long albumId = item.albumId != 0 ? item.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                     songs.add(new Song(
                             item.songId,
                             item.title,
                             item.artist,
                             item.album,
-                            item.albumId,
-                            item.duration,
-                            item.position, 0, 0
+                            albumId,
+                            dur,
+                            item.position,
+                            canonical != null ? canonical.getYear() : 0,
+                            0
                     ));
                 }
             }
