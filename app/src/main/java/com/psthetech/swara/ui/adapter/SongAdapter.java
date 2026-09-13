@@ -45,6 +45,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         void onFavoriteToggle(Song song, boolean currentlyFavorite);
         void onRemoveFromPlaylist(Song song); // Optional — only shown in playlist context
         default void onEditArtwork(Song song) {}
+        default void onEditSongInfo(Song song) {}
         default void onDeleteSong(Song song) {}
     }
 
@@ -191,13 +192,13 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
 
     private void applyPlaybackGlow(ViewHolder holder, boolean isPlaying, DesignTokens tokens) {
         if (isPlaying && tokens != null) {
-            // Subtle tinted glass surface for the playing row
+            // High-contrast, theme-harmonized tinted glass surface for the playing row
             GradientDrawable glow = new GradientDrawable();
             glow.setShape(GradientDrawable.RECTANGLE);
-            glow.setColor(tokens.getPlaybackHighlightColor());
+            glow.setColor(tokens.getPlaybackSurfaceColor());
             float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
             glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
-            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
             holder.itemView.setBackground(glow);
         } else {
             // Always clear glow for non-playing rows (RecyclerView safety)
@@ -232,8 +233,9 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
             popup.getMenu().add(0, 5, 4, ctx.getString(R.string.remove_from_playlist));
         }
         popup.getMenu().add(0, 6, 5, ctx.getString(R.string.edit_artwork));
-        popup.getMenu().add(0, 7, 6, ctx.getString(R.string.delete_from_device));
-        popup.getMenu().add(0, 8, 7, ctx.getString(R.string.share));
+        popup.getMenu().add(0, 9, 6, ctx.getString(R.string.edit_song_info));
+        popup.getMenu().add(0, 7, 7, ctx.getString(R.string.delete_from_device));
+        popup.getMenu().add(0, 8, 8, ctx.getString(R.string.share));
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
                 case 1: listener.onPlayNext(song); return true;
@@ -242,6 +244,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
                 case 4: listener.onFavoriteToggle(song, isFav); return true;
                 case 5: listener.onRemoveFromPlaylist(song); return true;
                 case 6: listener.onEditArtwork(song); return true;
+                case 9: listener.onEditSongInfo(song); return true;
                 case 7: listener.onDeleteSong(song); return true;
                 case 8:
                     android.content.Intent shareIntent = new android.content.Intent(

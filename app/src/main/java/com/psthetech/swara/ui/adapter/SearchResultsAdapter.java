@@ -250,10 +250,10 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (isPlaying && tokens != null) {
                 android.graphics.drawable.GradientDrawable glow = new android.graphics.drawable.GradientDrawable();
                 glow.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                glow.setColor(tokens.getPlaybackHighlightColor());
+                glow.setColor(tokens.getPlaybackSurfaceColor());
                 float density = itemView.getContext().getResources().getDisplayMetrics().density;
                 glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
-                glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+                glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
                 itemView.setBackground(glow);
             } else {
                 itemView.setBackground(null);
