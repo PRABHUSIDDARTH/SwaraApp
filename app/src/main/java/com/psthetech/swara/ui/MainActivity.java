@@ -199,6 +199,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void promptEditSongInfo(Song song) {
+        if (song == null) return;
+        com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet sheet =
+                com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet.newInstance(song);
+        sheet.show(getSupportFragmentManager(), com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet.TAG);
+    }
+
     private void launchImagePicker(Song song) {
         this.pendingArtworkSong = song;
         artworkPickerLauncher.launch("image/*");
