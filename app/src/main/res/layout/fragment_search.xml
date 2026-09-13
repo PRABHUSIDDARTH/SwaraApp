@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/swara_night">
+    android:background="?android:attr/colorBackground">
 
     <!-- Search bar -->
     <LinearLayout
@@ -14,6 +14,7 @@
         android:gravity="center_vertical">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilSearch"
             style="@style/Widget.Swara.TextField"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -27,7 +28,7 @@
                 android:inputType="text"
                 android:imeOptions="actionSearch"
                 android:maxLines="1"
-                android:textColor="@color/swara_cream" />
+                android:textColor="?android:attr/textColorPrimary" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -59,28 +60,30 @@
             android:padding="@dimen/dp_32">
 
             <ImageView
+                android:id="@+id/ivPromptIcon"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:src="@drawable/ic_nav_search"
-                android:alpha="0.3"
-                android:tint="@color/swara_lavender" />
+                android:alpha="0.3" />
 
             <TextView
+                android:id="@+id/tvPromptTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/search_empty_title"
                 android:textSize="@dimen/text_title_md"
-                android:textColor="@color/swara_text_primary"
+                android:textColor="?android:attr/textColorPrimary"
                 android:fontFamily="sans-serif-medium"
                 android:layout_marginTop="@dimen/dp_16"
                 android:gravity="center" />
 
             <TextView
+                android:id="@+id/tvPromptSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/search_empty_subtitle"
                 android:textSize="@dimen/text_body_sm"
-                android:textColor="@color/swara_text_secondary"
+                android:textColor="?android:attr/textColorSecondary"
                 android:layout_marginTop="@dimen/dp_8"
                 android:gravity="center" />
 

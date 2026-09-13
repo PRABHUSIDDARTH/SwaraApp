@@ -55,7 +55,10 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
         searchViewModel   = new ViewModelProvider(this).get(SearchViewModel.class);
         playlistViewModel = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
+        com.psthetech.swara.ui.viewmodel.PlaybackViewModel playbackViewModel =
+                new ViewModelProvider(requireActivity()).get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class);
 
+        com.google.android.material.textfield.TextInputLayout tilSearch = view.findViewById(R.id.tilSearch);
         etSearch     = view.findViewById(R.id.etSearch);
         recyclerView = view.findViewById(R.id.recyclerView);
         layoutPrompt = view.findViewById(R.id.layoutPrompt);
@@ -63,8 +66,15 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         progressBar  = view.findViewById(R.id.progressBar);
 
         searchAdapter = new SearchResultsAdapter(this);
+        searchAdapter.setPlaylistArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(searchAdapter);
+
+        // --- Observe current playing song for glow highlight ---
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            long currentId = (song != null) ? song.getId() : -1L;
+            searchAdapter.setCurrentPlayingSongId(currentId);
+        });
 
         // --- Text watcher — debounce is inside SearchViewModel ---
         if (etSearch != null) {
@@ -83,20 +93,23 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     view.setBackgroundColor(tokens.getBackgroundColor());
-                    if (etSearch != null) {
-                        etSearch.setTextColor(tokens.getTextPrimaryColor());
-                        etSearch.setHintTextColor(tokens.getTextTertiaryColor());
-                    }
-                    View promptTitle = view.findViewById(R.id.layoutPrompt);
-                    if (promptTitle != null) {
-                        TextView tv1 = promptTitle.findViewById(R.id.tvSectionHeader);
-                        TextView tv2 = promptTitle.findViewById(R.id.tvNoResults);
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                            .applyToSearchInput(tilSearch, etSearch, tokens);
+
+                    if (layoutPrompt != null) {
+                        TextView promptTitle = layoutPrompt.findViewById(R.id.tvPromptTitle);
+                        TextView promptSub = layoutPrompt.findViewById(R.id.tvPromptSubtitle);
+                        android.widget.ImageView promptIcon = layoutPrompt.findViewById(R.id.ivPromptIcon);
+                        if (promptTitle != null) promptTitle.setTextColor(tokens.getTextPrimaryColor());
+                        if (promptSub != null) promptSub.setTextColor(tokens.getTextSecondaryColor());
+                        if (promptIcon != null) promptIcon.setColorFilter(tokens.getTextTertiaryColor());
                     }
                     if (tvNoResults != null) tvNoResults.setTextColor(tokens.getTextSecondaryColor());
                     if (progressBar != null && progressBar instanceof ProgressBar) {
                         ((ProgressBar) progressBar).setIndeterminateTintList(
                                 android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
                     }
+                    searchAdapter.notifyDataSetChanged();
                 });
 
         observeData();
