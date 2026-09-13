@@ -42,14 +42,19 @@ public class FavoritesViewModel extends AndroidViewModel {
             List<Song> songs = new ArrayList<>();
             if (list != null) {
                 for (FavoriteSong item : list) {
+                    Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(item.id);
+                    long dur = item.duration > 0 ? item.duration : (canonical != null ? canonical.getDuration() : 0);
+                    long albumId = item.albumId != 0 ? item.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                     songs.add(new Song(
                             item.id,
                             item.title,
                             item.artist,
                             item.album,
-                            item.albumId,
-                            item.duration,
-                            0, 0, 0
+                            albumId,
+                            dur,
+                            canonical != null ? canonical.getTrackNumber() : 0,
+                            canonical != null ? canonical.getYear() : 0,
+                            item.favoritedAt
                     ));
                 }
             }
