@@ -1,6 +1,7 @@
 package com.psthetech.swara.ui.playlists;
 
 import android.app.AlertDialog;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,9 @@ import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -20,7 +24,9 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.imageview.ShapeableImageView;
 import com.psthetech.swara.R;
+import com.psthetech.swara.data.repository.PlaylistArtworkStore;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.adapter.SongAdapter;
 import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
@@ -28,6 +34,7 @@ import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
+import com.psthetech.swara.util.PlaylistArtworkHelper;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +62,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
     private TextView playlistTitle;
     private TextView playlistMeta;
+    private ShapeableImageView ivPlaylistDetailArtwork;
     private RecyclerView recyclerView;
     private View layoutEmpty;
     private SongAdapter songAdapter;
@@ -62,6 +70,31 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     private long playlistId = -1;
     private String playlistName = "Playlist";
     private List<Song> currentSongs = new ArrayList<>();
+
+    // Image picker — registered before fragment is started
+    private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
+    private ActivityResultLauncher<String> pickMediaFallback;
+
+    @Nullable
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Register image picker launchers before the fragment starts
+        pickMedia = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                uri -> {
+                    if (uri != null && playlistId > 0) {
+                        onArtworkPicked(uri);
+                    }
+                });
+        pickMediaFallback = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null && playlistId > 0) {
+                        onArtworkPicked(uri);
+                    }
+                });
+    }
 
     @Nullable
     @Override
@@ -87,6 +120,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
         playlistTitle = view.findViewById(R.id.playlistTitle);
         playlistMeta  = view.findViewById(R.id.playlistMeta);
+        ivPlaylistDetailArtwork = view.findViewById(R.id.ivPlaylistDetailArtwork);
         recyclerView  = view.findViewById(R.id.recyclerView);
         layoutEmpty   = view.findViewById(R.id.layoutEmpty);
 
@@ -120,6 +154,15 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
             btnAddSongs.setOnClickListener(v -> showAddSongsSheet());
         }
 
+        // --- Hero artwork tap → change artwork ---
+        if (ivPlaylistDetailArtwork != null) {
+            ivPlaylistDetailArtwork.setOnClickListener(v -> showArtworkOptions());
+        }
+        ImageView editBadge = view.findViewById(R.id.ivArtworkEditBadge);
+        if (editBadge != null) {
+            editBadge.setOnClickListener(v -> showArtworkOptions());
+        }
+
         // --- Song list ---
         songAdapter = new SongAdapter(this);
         songAdapter.setShowRemoveFromPlaylist(true);
@@ -130,7 +173,97 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         ItemTouchHelper touchHelper = new ItemTouchHelper(new ReorderCallback());
         touchHelper.attachToRecyclerView(recyclerView);
 
+        // Observe design tokens
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), this::applyDesignTokens);
+
         observeData();
+    }
+
+    private void applyDesignTokens(com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        View v = getView();
+        if (v == null || tokens == null) return;
+        v.setBackground(tokens.createAmbientDrawable());
+        float density = v.getContext().getResources().getDisplayMetrics().density;
+
+        if (playlistTitle != null) playlistTitle.setTextColor(tokens.getTextPrimaryColor());
+        if (playlistMeta != null) playlistMeta.setTextColor(tokens.getTextSecondaryColor());
+
+        // Back button
+        ImageView backBtn = v.findViewById(R.id.backButton);
+        if (backBtn != null) backBtn.setColorFilter(tokens.getTextPrimaryColor());
+
+        // Overflow button
+        ImageView overflow = v.findViewById(R.id.btnPlaylistOverflow);
+        if (overflow != null) overflow.setColorFilter(tokens.getIconSecondaryColor());
+
+        // Add songs button
+        ImageView addSongs = v.findViewById(R.id.btnAddSongs);
+        if (addSongs != null) {
+            android.graphics.drawable.GradientDrawable addBg = new android.graphics.drawable.GradientDrawable();
+            addBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            addBg.setColor(tokens.isNightMode() ? tokens.getSurfaceElevatedColor() : tokens.getSurfaceColor());
+            addBg.setStroke(Math.max(1, Math.round(density)), tokens.getStrokeColor());
+            addSongs.setBackground(addBg);
+            addSongs.setColorFilter(tokens.getAccentColor());
+        }
+
+        // Artwork frame & edit badge (Artwork itself remains authentic, never tinted)
+        if (ivPlaylistDetailArtwork != null) {
+            ivPlaylistDetailArtwork.setColorFilter(null);
+            ivPlaylistDetailArtwork.setStrokeColor(android.content.res.ColorStateList.valueOf(tokens.getStrokeColor()));
+            ivPlaylistDetailArtwork.setStrokeWidth(Math.max(1, Math.round(density)));
+        }
+        ImageView editBadge = v.findViewById(R.id.ivArtworkEditBadge);
+        if (editBadge != null) {
+            android.graphics.drawable.GradientDrawable editBg = new android.graphics.drawable.GradientDrawable();
+            editBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            editBg.setColor(tokens.getAccentColor());
+            editBadge.setBackground(editBg);
+            editBadge.setColorFilter(tokens.getButtonTextColor());
+        }
+
+        // Primary Play action vs Secondary Shuffle action hierarchy
+        Button btnPlay = v.findViewById(R.id.btnPlayAll);
+        if (btnPlay != null) {
+            btnPlay.setTextColor(tokens.getButtonTextColor());
+            android.graphics.drawable.GradientDrawable playBg = new android.graphics.drawable.GradientDrawable();
+            playBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            playBg.setColor(tokens.getAccentColor());
+            playBg.setCornerRadius(tokens.getCornerRadiusDp() * density);
+            btnPlay.setBackground(playBg);
+        }
+
+        Button btnShuffle = v.findViewById(R.id.btnShuffle);
+        if (btnShuffle != null) {
+            btnShuffle.setTextColor(tokens.getTextPrimaryColor());
+            android.graphics.drawable.GradientDrawable shuffleBg = new android.graphics.drawable.GradientDrawable();
+            shuffleBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            shuffleBg.setColor(tokens.isNightMode() ? tokens.getSurfaceElevatedColor() : tokens.getSurfaceColor());
+            shuffleBg.setStroke(Math.max(1, Math.round(density)), tokens.getStrokeColor());
+            shuffleBg.setCornerRadius(tokens.getCornerRadiusDp() * density);
+            btnShuffle.setBackground(shuffleBg);
+        }
+
+        // Empty state styling
+        if (layoutEmpty instanceof ViewGroup) {
+            ViewGroup emptyGroup = (ViewGroup) layoutEmpty;
+            for (int i = 0; i < emptyGroup.getChildCount(); i++) {
+                View child = emptyGroup.getChildAt(i);
+                if (child instanceof android.widget.TextView) {
+                    android.widget.TextView tv = (android.widget.TextView) child;
+                    if (tv.getText().equals(getString(R.string.playlist_empty_title))) {
+                        tv.setTextColor(tokens.getTextPrimaryColor());
+                    } else {
+                        tv.setTextColor(tokens.getTextSecondaryColor());
+                    }
+                } else if (child instanceof ImageView) {
+                    ((ImageView) child).setColorFilter(tokens.getTextTertiaryColor());
+                }
+            }
+        }
+
+        if (songAdapter != null) songAdapter.notifyDataSetChanged();
     }
 
     private void observeData() {
@@ -138,6 +271,15 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
             if (ids != null) songAdapter.setFavorites(new HashSet<>(ids));
         });
 
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            if (songAdapter != null) {
+                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
+            }
+        });
+        // Load hero artwork
+        loadHeroArtwork();
+
+        // When songs change, reload artwork (collage may need regenerating)
         playlistViewModel.getSongsForPlaylist(playlistId).observe(getViewLifecycleOwner(), songs -> {
             currentSongs = songs != null ? songs : new ArrayList<>();
             songAdapter.submitList(new ArrayList<>(currentSongs));
@@ -157,7 +299,68 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
             if (layoutEmpty != null) {
                 layoutEmpty.setVisibility(currentSongs.isEmpty() ? View.VISIBLE : View.GONE);
             }
+
+            // Invalidate collage if needed (songs changed)
+            PlaylistArtworkStore store = playlistViewModel.getPlaylistArtworkStore();
+            if (!store.hasCustomArtwork(playlistId)) {
+                PlaylistArtworkHelper.invalidatePlaylistCollage(
+                        requireContext(), playlistId, store);
+                loadHeroArtwork();
+            }
         });
+    }
+
+    // ===== Artwork =====
+
+    private void loadHeroArtwork() {
+        if (ivPlaylistDetailArtwork == null || playlistId <= 0) return;
+        PlaylistArtworkStore store = playlistViewModel.getPlaylistArtworkStore();
+        // Build album ID list from current songs for collage generation
+        List<Long> albumIds = new ArrayList<>();
+        for (Song s : currentSongs) {
+            albumIds.add(s.getAlbumId());
+        }
+        // We need a minimal Playlist object with artworkPath for the helper
+        com.psthetech.swara.data.db.entity.Playlist fakePlaylist =
+                new com.psthetech.swara.data.db.entity.Playlist("", 0, 0);
+        fakePlaylist.id = playlistId;
+        PlaylistArtworkHelper.loadPlaylistArt(
+                requireContext(), fakePlaylist, store, albumIds, ivPlaylistDetailArtwork);
+    }
+
+    private void showArtworkOptions() {
+        PlaylistArtworkStore store = playlistViewModel.getPlaylistArtworkStore();
+        boolean hasCustom = store.hasCustomArtwork(playlistId);
+
+        String[] options = hasCustom
+                ? new String[]{getString(R.string.change_artwork), getString(R.string.remove_artwork)}
+                : new String[]{getString(R.string.change_artwork)};
+
+        com.psthetech.swara.ui.theme.ThemedDialogHelper.showItemPickerDialog(
+                requireContext(),
+                getString(R.string.playlist_artwork),
+                options,
+                which -> {
+                    if (which == 0) {
+                        launchImagePicker();
+                    } else if (which == 1 && hasCustom) {
+                        playlistViewModel.removePlaylistArtwork(playlistId, this::loadHeroArtwork);
+                    }
+                });
+    }
+
+    private void onArtworkPicked(Uri uri) {
+        playlistViewModel.setPlaylistArtwork(playlistId, uri, this::loadHeroArtwork);
+    }
+
+    private void launchImagePicker() {
+        if (ActivityResultContracts.PickVisualMedia.isPhotoPickerAvailable(requireContext())) {
+            pickMedia.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build());
+        } else {
+            pickMediaFallback.launch("image/*");
+        }
     }
 
     // ===== Playback =====
@@ -218,22 +421,39 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
         List<Song> toAdd = new ArrayList<>();
 
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.add_songs)
-                .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> {
-                    if (isChecked) {
-                        toAdd.add(allSongs.get(which));
-                    } else {
-                        toAdd.remove(allSongs.get(which));
-                    }
-                })
-                .setPositiveButton(R.string.done, (dialog, which) -> {
-                    if (!toAdd.isEmpty()) {
-                        playlistViewModel.addSongsToPlaylist(playlistId, toAdd);
-                    }
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        com.google.android.material.dialog.MaterialAlertDialogBuilder builder =
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.add_songs)
+                        .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> {
+                            if (isChecked) {
+                                toAdd.add(allSongs.get(which));
+                            } else {
+                                toAdd.remove(allSongs.get(which));
+                            }
+                        })
+                        .setPositiveButton(R.string.done, (dialog, which) -> {
+                            if (!toAdd.isEmpty()) {
+                                playlistViewModel.addSongsToPlaylist(playlistId, toAdd);
+                            }
+                        })
+                        .setNegativeButton(R.string.cancel, null);
+
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                if (dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE) != null) {
+                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                            .setTextColor(tokens.getAccentColor());
+                }
+                if (dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE) != null) {
+                    dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)
+                            .setTextColor(tokens.getTextSecondaryColor());
+                }
+            }
+        });
+        dialog.show();
     }
 
     // ===== Overflow menu =====
@@ -253,37 +473,26 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     }
 
     private void showRenameDialog() {
-        EditText input = new EditText(getContext());
-        input.setText(playlistName);
-        input.selectAll();
-        int margin = (int) (16 * getResources().getDisplayMetrics().density);
-        input.setPadding(margin, margin, margin, margin);
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.rename_playlist)
-                .setView(input)
-                .setPositiveButton(R.string.rename, (dialog, which) -> {
-                    String newName = input.getText().toString().trim();
-                    if (!newName.isEmpty()) {
-                        playlistName = newName;
-                        if (playlistTitle != null) playlistTitle.setText(newName);
-                        playlistViewModel.renamePlaylist(playlistId, newName);
-                    }
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        com.psthetech.swara.ui.theme.ThemedDialogHelper.showRenamePlaylistDialog(
+                requireContext(),
+                playlistName,
+                newName -> {
+                    playlistName = newName;
+                    if (playlistTitle != null) playlistTitle.setText(newName);
+                    playlistViewModel.renamePlaylist(playlistId, newName);
+                });
     }
 
     private void confirmDelete() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.confirm_delete_playlist)
-                .setMessage(playlistName)
-                .setPositiveButton(R.string.delete, (dialog, which) -> {
+        com.psthetech.swara.ui.theme.ThemedDialogHelper.showConfirmationDialog(
+                requireContext(),
+                getString(R.string.confirm_delete_playlist),
+                playlistName,
+                getString(R.string.delete),
+                () -> {
                     playlistViewModel.deletePlaylist(playlistId);
                     Navigation.findNavController(requireView()).navigateUp();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+                });
     }
 
     // ===== SongAdapter.Listener =====
