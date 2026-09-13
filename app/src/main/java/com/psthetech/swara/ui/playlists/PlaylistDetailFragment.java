@@ -69,6 +69,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
     private long playlistId = -1;
     private String playlistName = "Playlist";
+    private com.psthetech.swara.data.db.entity.Playlist currentPlaylist;
     private List<Song> currentSongs = new ArrayList<>();
 
     // Image picker — registered before fragment is started
@@ -276,7 +277,21 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
-        // Load hero artwork
+        // Observe playlist metadata (name, custom artwork path)
+        playlistViewModel.getPlaylists().observe(getViewLifecycleOwner(), playlists -> {
+            if (playlists == null) return;
+            for (com.psthetech.swara.data.db.entity.Playlist p : playlists) {
+                if (p.id == playlistId) {
+                    currentPlaylist = p;
+                    playlistName = p.name;
+                    if (playlistTitle != null) playlistTitle.setText(playlistName);
+                    loadHeroArtwork();
+                    break;
+                }
+            }
+        });
+
+        // Load hero artwork initially
         loadHeroArtwork();
 
         // When songs change, reload artwork (collage may need regenerating)
@@ -315,17 +330,13 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     private void loadHeroArtwork() {
         if (ivPlaylistDetailArtwork == null || playlistId <= 0) return;
         PlaylistArtworkStore store = playlistViewModel.getPlaylistArtworkStore();
-        // Build album ID list from current songs for collage generation
-        List<Long> albumIds = new ArrayList<>();
-        for (Song s : currentSongs) {
-            albumIds.add(s.getAlbumId());
+        com.psthetech.swara.data.db.entity.Playlist target = currentPlaylist;
+        if (target == null) {
+            target = new com.psthetech.swara.data.db.entity.Playlist(playlistName, 0, 0);
+            target.id = playlistId;
         }
-        // We need a minimal Playlist object with artworkPath for the helper
-        com.psthetech.swara.data.db.entity.Playlist fakePlaylist =
-                new com.psthetech.swara.data.db.entity.Playlist("", 0, 0);
-        fakePlaylist.id = playlistId;
         PlaylistArtworkHelper.loadPlaylistArt(
-                requireContext(), fakePlaylist, store, albumIds, ivPlaylistDetailArtwork);
+                requireContext(), target, store, ivPlaylistDetailArtwork);
     }
 
     private void showArtworkOptions() {
@@ -533,6 +544,13 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     public void onEditArtwork(Song song) {
         if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
+        }
+    }
+
+    @Override
+    public void onEditSongInfo(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
         }
     }
 

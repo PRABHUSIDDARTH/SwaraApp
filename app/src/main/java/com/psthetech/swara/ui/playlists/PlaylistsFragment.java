@@ -130,38 +130,10 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             }
         });
 
-        // Load song counts for all playlists and push to adapter
-        observeSongCounts();
-    }
-
-    /**
-     * Loads song counts for visible playlists.
-     * Calls getPlaylistSongsLive() for each playlist and aggregates into a map.
-     * This re-subscribes when the playlists list changes.
-     */
-    private void observeSongCounts() {
-        playlistViewModel.getAllPlaylists().observe(getViewLifecycleOwner(), playlists -> {
-            if (playlists == null || playlists.isEmpty()) return;
-
-            final Map<Long, Integer> counts = new HashMap<>();
-            final Map<Long, java.util.List<Long>> albumIdsMap = new HashMap<>();
-            final int[] pending = {playlists.size()};
-
-            for (com.psthetech.swara.data.db.entity.Playlist p : playlists) {
-                playlistViewModel.getSongsForPlaylist(p.id)
-                        .observe(getViewLifecycleOwner(), songs -> {
-                            counts.put(p.id, songs != null ? songs.size() : 0);
-                            // Collect albumIds for collage generation
-                            java.util.List<Long> albumIds = new java.util.ArrayList<>();
-                            if (songs != null) {
-                                for (com.psthetech.swara.domain.model.Song s : songs) {
-                                    albumIds.add(s.getAlbumId());
-                                }
-                            }
-                            albumIdsMap.put(p.id, albumIds);
-                            playlistAdapter.setSongCounts(new HashMap<>(counts));
-                            playlistAdapter.setPlaylistAlbumIds(new HashMap<>(albumIdsMap));
-                        });
+        // Load song counts for all playlists reactively
+        playlistViewModel.getSongCountsMapLive().observe(getViewLifecycleOwner(), counts -> {
+            if (playlistAdapter != null && counts != null) {
+                playlistAdapter.setSongCounts(counts);
             }
         });
     }
