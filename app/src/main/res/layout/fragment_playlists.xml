@@ -2,8 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/swara_night">
+    android:orientation="vertical">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal" android:padding="@dimen/dp_16" android:gravity="center_vertical">
@@ -13,7 +12,7 @@
         <ImageView android:id="@+id/btnNewPlaylist" android:layout_width="@dimen/btn_min_touch_target"
             android:layout_height="@dimen/btn_min_touch_target" android:src="@drawable/ic_add"
             android:scaleType="center" android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_gold" android:contentDescription="@string/new_playlist"/>
+            android:tint="@color/swara_text_secondary" android:contentDescription="@string/new_playlist"/>
     </LinearLayout>
 
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
@@ -24,7 +23,7 @@
             android:layout_height="wrap_content" android:layout_gravity="center"
             android:orientation="vertical" android:gravity="center" android:padding="@dimen/dp_32" android:visibility="gone">
             <ImageView android:layout_width="72dp" android:layout_height="72dp"
-                android:src="@drawable/ic_queue_music" android:alpha="0.3" android:tint="@color/swara_lavender"/>
+                android:src="@drawable/ic_queue_music" android:alpha="0.3" android:id="@+id/ivEmptyIcon"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/playlists_empty_title" android:textSize="@dimen/text_title_md"
                 android:textColor="@color/swara_text_primary" android:fontFamily="sans-serif-medium"
