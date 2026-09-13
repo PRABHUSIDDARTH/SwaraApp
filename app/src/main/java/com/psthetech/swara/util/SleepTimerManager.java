@@ -8,6 +8,8 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * SleepTimerManager — Singleton sleep timer for Swara.
  *
@@ -41,13 +43,22 @@ public class SleepTimerManager {
     private final MutableLiveData<Long>    remainingMs   = new MutableLiveData<>(0L);
     private final MutableLiveData<Boolean> active        = new MutableLiveData<>(false);
 
+    // Plain atomic flag for isActive() so JVM unit tests don't require a Looper
+    private final AtomicBoolean activeState = new AtomicBoolean(false);
+
     @Nullable private CountDownTimer countDownTimer;
     @Nullable private OnTimerFinishedListener listener;
 
     private boolean sleepAfterSong = false;
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private Handler mainHandler;
 
-    private SleepTimerManager() {}
+    private SleepTimerManager() {
+        try {
+            mainHandler = new Handler(Looper.getMainLooper());
+        } catch (Throwable t) {
+            mainHandler = null;
+        }
+    }
 
     // ===== Public API =====
 
@@ -61,13 +72,18 @@ public class SleepTimerManager {
         countDownTimer = new CountDownTimer(durationMs, 1000L) {
             @Override
             public void onTick(long millisUntilFinished) {
-                remainingMs.postValue(millisUntilFinished);
+                if (mainHandler != null) {
+                    remainingMs.postValue(millisUntilFinished);
+                }
             }
 
             @Override
             public void onFinish() {
-                remainingMs.postValue(0L);
-                active.postValue(false);
+                activeState.set(false);
+                if (mainHandler != null) {
+                    remainingMs.postValue(0L);
+                    active.postValue(false);
+                }
                 countDownTimer = null;
                 if (SleepTimerManager.this.listener != null) {
                     SleepTimerManager.this.listener.onSleepTimerFinished();
@@ -75,7 +91,10 @@ public class SleepTimerManager {
             }
         }.start();
 
-        active.setValue(true);
+        activeState.set(true);
+        if (mainHandler != null) {
+            active.postValue(true);
+        }
     }
 
     /** Request sleep at the end of the current song. */
@@ -83,9 +102,12 @@ public class SleepTimerManager {
         cancelTimer();
         this.listener = listener;
         this.sleepAfterSong = true;
-        // Show a symbolic "99:00" as remaining to indicate end-of-song mode
-        remainingMs.setValue(-1L);
-        active.setValue(true);
+        activeState.set(true);
+        if (mainHandler != null) {
+            // Show a symbolic "-1" as remaining to indicate end-of-song mode
+            remainingMs.postValue(-1L);
+            active.postValue(true);
+        }
     }
 
     /**
@@ -96,7 +118,11 @@ public class SleepTimerManager {
         if (!sleepAfterSong) return;
         cancelTimer();
         if (listener != null) {
-            mainHandler.post(() -> listener.onSleepTimerFinished());
+            if (mainHandler != null) {
+                mainHandler.post(() -> listener.onSleepTimerFinished());
+            } else {
+                listener.onSleepTimerFinished();
+            }
         }
     }
 
@@ -107,13 +133,16 @@ public class SleepTimerManager {
             countDownTimer = null;
         }
         sleepAfterSong = false;
+        activeState.set(false);
         listener = null;
-        remainingMs.postValue(0L);
-        active.postValue(false);
+        if (mainHandler != null) {
+            remainingMs.postValue(0L);
+            active.postValue(false);
+        }
     }
 
     public boolean isActive() {
-        return Boolean.TRUE.equals(active.getValue());
+        return activeState.get();
     }
 
     public boolean isSleepAfterSong() {

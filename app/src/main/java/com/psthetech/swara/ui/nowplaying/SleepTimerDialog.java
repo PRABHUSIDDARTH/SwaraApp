@@ -62,6 +62,11 @@ public class SleepTimerDialog extends BottomSheetDialogFragment {
             view.setBackgroundColor(tokens.getSurfaceColor());
             TextView title = view.findViewById(R.id.tvTimerTitle);
             if (title != null) title.setTextColor(tokens.getTextPrimaryColor());
+            int[] optionIds = {R.id.option15, R.id.option30, R.id.option45, R.id.option60, R.id.optionEndOfSong};
+            for (int id : optionIds) {
+                TextView tv = view.findViewById(id);
+                if (tv != null) tv.setTextColor(tokens.getTextPrimaryColor());
+            }
         }
 
         SleepTimerManager.OnTimerFinishedListener finishedListener = () -> {
