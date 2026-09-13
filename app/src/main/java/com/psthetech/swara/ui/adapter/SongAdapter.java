@@ -1,6 +1,7 @@
 package com.psthetech.swara.ui.adapter;
 
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,21 +16,24 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.ui.theme.DesignTokens;
+import com.psthetech.swara.ui.theme.MorphismThemeManager;
 import com.psthetech.swara.util.ArtworkHelper;
+import com.psthetech.swara.util.FavoriteAnimationHelper;
 
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * SongAdapter V2 — a ListAdapter using DiffUtil for efficient updates.
+ * SongAdapter V2.2 — Liquid Glass + Color Themes + Playback Glow + Favorite Animation.
  *
  * Features:
- * - DiffUtil for O(n) diff instead of notifyDataSetChanged
- * - Album artwork loaded via Glide (async, cached)
- * - Favorite state driven from outside (set via setFavorites)
- * - Context menu: Play Next, Add to Queue, Add to Playlist, Favorite, Remove
- * - No main-thread DB access — favorites are injected via setFavorites()
- * - View recycling cleanup via onViewRecycled
+ * - DiffUtil for efficient updates
+ * - Live semantic DesignTokens consumed per bind — responds to theme changes
+ * - Playback glow: subtle accent-tinted background + border for currently playing row
+ * - Favorite micro-animation: scale-pulse on add, alpha-fade on remove
+ * - RecyclerView safety: glow + animations fully reset in onViewRecycled
+ * - Context menu: Play Next, Add to Queue, Add to Playlist, Favorite, Remove, Edit Artwork, Delete, Share
  */
 public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
 
@@ -47,6 +51,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
     private Listener listener;
     private Set<Long> favoriteSongIds = new HashSet<>();
     private boolean showRemoveFromPlaylist = false;
+    private long currentPlayingSongId = -1L;
 
     public SongAdapter(@NonNull Listener listener) {
         super(DIFF_CALLBACK);
@@ -62,6 +67,25 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         this.showRemoveFromPlaylist = show;
     }
 
+    /**
+     * Update the currently playing song. Only the affected rows are rebound.
+     * Call from fragment's currentSong observer.
+     */
+    public void setCurrentPlayingSongId(long songId) {
+        long previous = this.currentPlayingSongId;
+        this.currentPlayingSongId = songId;
+
+        // Rebind previous (clear glow) and new (apply glow)
+        for (int i = 0; i < getItemCount(); i++) {
+            Song item = getItem(i);
+            if (item.getId() == previous || item.getId() == songId) {
+                notifyItemChanged(i, "PLAYBACK_STATE_CHANGED"); // payload to avoid full re-bind flicker
+            }
+        }
+    }
+
+    // ===== RecyclerView.Adapter =====
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -74,62 +98,127 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Song song = getItem(position);
         Context ctx = holder.itemView.getContext();
+        boolean isCurrentlyPlaying = song.getId() == currentPlayingSongId && currentPlayingSongId != -1L;
 
+        DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+
+        // ===== Text =====
         holder.tvTitle.setText(song.getTitle());
         holder.tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
 
-        // Load artwork asynchronously via Glide
-        ArtworkHelper.loadSongArt(ctx, song, holder.ivArtwork);
-
-        com.psthetech.swara.ui.theme.DesignTokens tokens =
-                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
-
         if (tokens != null) {
-            holder.tvTitle.setTextColor(tokens.getTextPrimaryColor());
+            // Currently playing rows: title uses readable accent color; others use primary text
+            holder.tvTitle.setTextColor(
+                    isCurrentlyPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
             holder.tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
             holder.ivMore.setColorFilter(tokens.getIconSecondaryColor());
+            holder.ivArtwork.setBackgroundColor(tokens.getSurfaceVariantColor());
         }
+        holder.tvTitle.setTypeface(null, isCurrentlyPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
 
-        // Favorite state (no DB query — driven by injected set)
+        // ===== Artwork =====
+        ArtworkHelper.loadSongArt(ctx, song, holder.ivArtwork);
+
+        // ===== Playback Glow =====
+        applyPlaybackGlow(holder, isCurrentlyPlaying, tokens);
+
+        // ===== Favorite =====
         boolean isFav = favoriteSongIds.contains(song.getId());
         updateFavoriteIcon(holder.ivFavorite, isFav, tokens);
         holder.ivFavorite.setContentDescription(ctx.getString(
                 isFav ? R.string.cd_favorite_filled : R.string.cd_favorite_empty));
 
-        // Tap: play song
+        // ===== Click Listeners =====
         holder.itemView.setOnClickListener(v -> listener.onSongClick(song, holder.getAdapterPosition()));
 
-        // Favorite toggle
         holder.ivFavorite.setOnClickListener(v -> {
             boolean fav = favoriteSongIds.contains(song.getId());
             listener.onFavoriteToggle(song, fav);
             // Optimistic UI update
             if (fav) {
                 favoriteSongIds.remove(song.getId());
+                FavoriteAnimationHelper.animateFavoriteRemove(holder.ivFavorite);
             } else {
                 favoriteSongIds.add(song.getId());
+                FavoriteAnimationHelper.animateFavoriteAdd(
+                        holder.ivFavorite, tokens != null ? tokens.getFavoriteActiveColor() : 0xFFC9A84C);
             }
             updateFavoriteIcon(holder.ivFavorite, !fav, tokens);
         });
 
-        // Overflow / context menu
         holder.ivMore.setOnClickListener(v -> showContextMenu(v, song, ctx));
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position,
+                                  @NonNull java.util.List<Object> payloads) {
+        if (!payloads.isEmpty() && payloads.contains("PLAYBACK_STATE_CHANGED")) {
+            // Lightweight rebind: only update glow + title color + bold typeface
+            Song song = getItem(position);
+            boolean isCurrentlyPlaying = song.getId() == currentPlayingSongId && currentPlayingSongId != -1L;
+            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                holder.tvTitle.setTextColor(
+                        isCurrentlyPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
+            }
+            holder.tvTitle.setTypeface(null, isCurrentlyPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+            applyPlaybackGlow(holder, isCurrentlyPlaying, tokens);
+            return;
+        }
+        super.onBindViewHolder(holder, position, payloads);
     }
 
     @Override
     public void onViewRecycled(@NonNull ViewHolder holder) {
         super.onViewRecycled(holder);
-        // Clear Glide load to prevent image bleeding between items
+        // Clear Glide load to prevent image bleeding
         ArtworkHelper.clear(holder.itemView.getContext(), holder.ivArtwork);
+        holder.ivArtwork.setImageDrawable(null);
+        // Reset playback glow and typeface
+        holder.itemView.setBackground(null);
+        holder.tvTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
+        // Reset scale and alpha
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        holder.itemView.setAlpha(1.0f);
+        holder.itemView.setTranslationX(0f);
+        holder.itemView.setTranslationY(0f);
+        // Reset favorite animation state — prevent animation leakage to recycled rows
+        FavoriteAnimationHelper.cancelFavoriteAnimation(holder.ivFavorite);
     }
 
-    private void updateFavoriteIcon(ImageView iv, boolean isFav, com.psthetech.swara.ui.theme.DesignTokens tokens) {
-        iv.setImageResource(isFav ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
-        int tintColor = isFav
-                ? (tokens != null ? tokens.getAccentColor() : iv.getContext().getColor(R.color.swara_gold))
-                : (tokens != null ? tokens.getIconSecondaryColor() : iv.getContext().getColor(R.color.swara_lavender));
-        iv.setColorFilter(tintColor);
+    // ===== Glow helpers =====
+
+    private void applyPlaybackGlow(ViewHolder holder, boolean isPlaying, DesignTokens tokens) {
+        if (isPlaying && tokens != null) {
+            // Subtle tinted glass surface for the playing row
+            GradientDrawable glow = new GradientDrawable();
+            glow.setShape(GradientDrawable.RECTANGLE);
+            glow.setColor(tokens.getPlaybackHighlightColor());
+            float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
+            glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
+            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+            holder.itemView.setBackground(glow);
+        } else {
+            // Always clear glow for non-playing rows (RecyclerView safety)
+            holder.itemView.setBackground(null);
+        }
     }
+
+    // ===== Favorite icon =====
+
+    private void updateFavoriteIcon(ImageView iv, boolean isFav, DesignTokens tokens) {
+        iv.setImageResource(isFav ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
+        if (tokens != null) {
+            iv.setColorFilter(isFav ? tokens.getFavoriteActiveColor() : tokens.getFavoriteInactiveColor());
+        } else {
+            iv.setColorFilter(isFav
+                    ? iv.getContext().getColor(R.color.swara_gold)
+                    : iv.getContext().getColor(R.color.swara_lavender));
+        }
+    }
+
+    // ===== Context menu =====
 
     private void showContextMenu(View anchor, Song song, Context ctx) {
         PopupMenu popup = new PopupMenu(ctx, anchor);
@@ -155,7 +244,6 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
                 case 6: listener.onEditArtwork(song); return true;
                 case 7: listener.onDeleteSong(song); return true;
                 case 8:
-                    // Share song info via Android share sheet
                     android.content.Intent shareIntent = new android.content.Intent(
                             android.content.Intent.ACTION_SEND);
                     shareIntent.setType("text/plain");
