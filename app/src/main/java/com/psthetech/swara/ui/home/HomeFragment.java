@@ -226,9 +226,15 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             if (playlists != null && !playlists.isEmpty()) {
                 if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.VISIBLE);
                 playlistAdapter.submitList(playlists);
-                observePlaylistSongCounts(playlists);
             } else {
                 if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.GONE);
+            }
+        });
+
+        // Reactive playlist song counts
+        playlistViewModel.getSongCountsMapLive().observe(getViewLifecycleOwner(), counts -> {
+            if (playlistAdapter != null && counts != null) {
+                playlistAdapter.setSongCounts(counts);
             }
         });
     }
@@ -238,26 +244,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         super.onResume();
         if (playlistAdapter != null) {
             playlistAdapter.notifyDataSetChanged();
-        }
-    }
-
-    private void observePlaylistSongCounts(List<Playlist> playlists) {
-        final Map<Long, Integer> counts = new HashMap<>();
-        final Map<Long, List<Long>> albumIdsMap = new HashMap<>();
-        for (Playlist p : playlists) {
-            playlistViewModel.getSongsForPlaylist(p.id)
-                    .observe(getViewLifecycleOwner(), songs -> {
-                        counts.put(p.id, songs != null ? songs.size() : 0);
-                        List<Long> albumIds = new ArrayList<>();
-                        if (songs != null) {
-                            for (Song s : songs) {
-                                albumIds.add(s.getAlbumId());
-                            }
-                        }
-                        albumIdsMap.put(p.id, albumIds);
-                        playlistAdapter.setSongCounts(new HashMap<>(counts));
-                        playlistAdapter.setPlaylistAlbumIds(new HashMap<>(albumIdsMap));
-                    });
         }
     }
 

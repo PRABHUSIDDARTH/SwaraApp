@@ -220,6 +220,13 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
     }
 
     @Override
+    public void onEditSongInfo(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
+        }
+    }
+
+    @Override
     public void onDeleteSong(Song song) {
         if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
