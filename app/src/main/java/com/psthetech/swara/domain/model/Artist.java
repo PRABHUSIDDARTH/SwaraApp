@@ -29,21 +29,11 @@ public class Artist {
     public List<Song> getSongs() { return songs; }
 
     public static String getCanonicalKey(String rawName) {
-        if (rawName == null) return "unknown artist";
-        String trimmed = rawName.trim();
-        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("<unknown>")) {
-            return "unknown artist";
-        }
-        return trimmed.toLowerCase(java.util.Locale.ROOT);
+        return com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(rawName);
     }
 
     public static String normalizeDisplayName(String rawName) {
-        if (rawName == null) return "Unknown Artist";
-        String trimmed = rawName.trim();
-        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("<unknown>")) {
-            return "Unknown Artist";
-        }
-        return trimmed;
+        return com.psthetech.swara.util.ArtistIdentityHelper.normalizeDisplayName(rawName);
     }
 
     public String getCanonicalName() {
