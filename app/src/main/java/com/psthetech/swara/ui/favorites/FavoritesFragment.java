@@ -81,10 +81,41 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-                    view.setBackgroundColor(tokens.getBackgroundColor());
+                    applyDesignTokens(tokens);
                 });
 
         observeData();
+    }
+
+    private void applyDesignTokens(com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        View v = getView();
+        if (v == null || tokens == null) return;
+        v.setBackground(tokens.createAmbientDrawable());
+
+        // Empty state
+        android.widget.TextView tvEmptyTitle = v.findViewById(R.id.tvEmptyTitle);
+        if (tvEmptyTitle != null) tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
+        android.widget.TextView tvEmptySubtitle = v.findViewById(R.id.tvEmptySubtitle);
+        if (tvEmptySubtitle != null) tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
+
+        // Play-all and Shuffle buttons
+        applyButtonTokens(btnPlayAllFavorites, tokens);
+        applyButtonTokens(btnShuffleFavorites, tokens);
+
+        if (songAdapter != null) songAdapter.notifyDataSetChanged();
+    }
+
+    private void applyButtonTokens(View btn, com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        if (btn == null) return;
+        if (btn instanceof android.widget.TextView) {
+            ((android.widget.TextView) btn).setTextColor(tokens.getButtonTextColor());
+        }
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        bg.setColor(tokens.getAccentColor());
+        float dp = btn.getContext().getResources().getDisplayMetrics().density;
+        bg.setCornerRadius(tokens.getCornerRadiusDp() * dp);
+        btn.setBackground(bg);
     }
 
     private void observeData() {
@@ -106,6 +137,12 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
+            }
+        });
+
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            if (songAdapter != null) {
+                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
     }
