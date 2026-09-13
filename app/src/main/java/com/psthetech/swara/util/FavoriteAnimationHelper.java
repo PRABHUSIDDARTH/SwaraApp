@@ -19,9 +19,12 @@ public final class FavoriteAnimationHelper {
 
     private FavoriteAnimationHelper() {}
 
+    public static final float FAVORITE_ADD_SCALE = 1.12f;
+    public static final float FAVORITE_ADD_OVERSHOOT = 1.2f;
+
     /**
      * Play a satisfying "add to favorites" scale-pulse animation.
-     * Scale up with overshoot, then settle back to 1.0.
+     * Scale up with subtle overshoot, then settle back to 1.0.
      * Duration: ~280ms total.
      *
      * @param iv          The favorite ImageView.
@@ -35,12 +38,12 @@ public final class FavoriteAnimationHelper {
         iv.setScaleY(1f);
         iv.setAlpha(1f);
 
-        // Phase 1: scale up quickly with overshoot feel
+        // Phase 1: scale up quickly with subtle overshoot feel
         iv.animate()
-                .scaleX(1.35f)
-                .scaleY(1.35f)
+                .scaleX(FAVORITE_ADD_SCALE)
+                .scaleY(FAVORITE_ADD_SCALE)
                 .setDuration(150)
-                .setInterpolator(new OvershootInterpolator(2.5f))
+                .setInterpolator(new OvershootInterpolator(FAVORITE_ADD_OVERSHOOT))
                 .withEndAction(() -> {
                     // Phase 2: settle back to normal
                     iv.animate()

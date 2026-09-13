@@ -90,10 +90,17 @@ public class PlaylistArtworkHelper {
         long playlistId = playlist.id;
         into.setTag(R.id.ivPlaylistArtwork, playlistId);
 
-        // Priority 1: Custom artwork
-        if (store.hasCustomArtwork(playlistId)) {
+        // Priority 1: Custom artwork override
+        File customFile = store.getCustomArtworkFile(playlistId);
+        boolean hasCustom = store.hasCustomArtwork(playlistId)
+                || (playlist.artworkPath != null && new File(playlist.artworkPath).exists() && new File(playlist.artworkPath).length() > 0);
+        if (hasCustom) {
             Uri customUri = store.getCustomArtworkUri(playlistId);
-            ObjectKey sig = signatureForFile(store.getCustomArtworkFile(playlistId));
+            if (customUri == null && playlist.artworkPath != null) {
+                customFile = new File(playlist.artworkPath);
+                customUri = Uri.fromFile(customFile);
+            }
+            ObjectKey sig = signatureForFile(customFile);
             Glide.with(ctx)
                     .load(customUri)
                     .signature(sig)
@@ -115,15 +122,35 @@ public class PlaylistArtworkHelper {
         }
 
         // Priority 3: Generate collage (async) → then load, or fallback if no songs
+        final Context appContext = ctx.getApplicationContext();
         final PlaylistArtworkStore finalStore = store;
-        if (songAlbumIds != null && !songAlbumIds.isEmpty()) {
-            generateCollageAsync(ctx, playlistId, finalStore, songAlbumIds, () -> {
+        COLLAGE_EXECUTOR.execute(() -> {
+            List<com.psthetech.swara.data.db.entity.PlaylistSong> songs = null;
+            try {
+                songs = com.psthetech.swara.data.db.AppDatabase.getInstance(appContext)
+                        .playlistDao()
+                        .getPlaylistSongs(playlistId);
+            } catch (Exception e) {
+                // Ignore DB error
+            }
+
+            if (songs == null || songs.isEmpty()) {
+                into.post(() -> {
+                    Object tag = into.getTag(R.id.ivPlaylistArtwork);
+                    if (tag instanceof Long && (Long) tag == playlistId) {
+                        into.setImageResource(R.drawable.ic_playlist);
+                    }
+                });
+                return;
+            }
+
+            generateCollageFromSongsInternal(appContext, playlistId, finalStore, songs, () -> {
                 into.post(() -> {
                     Object tag = into.getTag(R.id.ivPlaylistArtwork);
                     if (tag instanceof Long && (Long) tag == playlistId) {
                         if (finalStore.hasCollage(playlistId)) {
-                            ObjectKey sig = signatureForFile(collageFile);
-                            Glide.with(ctx)
+                            ObjectKey sig = signatureForFile(finalStore.getCollageFile(playlistId));
+                            Glide.with(appContext)
                                     .load(finalStore.getCollageFile(playlistId))
                                     .signature(sig)
                                     .apply(PLAYLIST_OPTIONS)
@@ -134,52 +161,7 @@ public class PlaylistArtworkHelper {
                     }
                 });
             });
-        } else if (songAlbumIds == null) {
-            COLLAGE_EXECUTOR.execute(() -> {
-                List<Long> albumIds = new ArrayList<>();
-                try {
-                    List<com.psthetech.swara.data.db.entity.PlaylistSong> songs =
-                            com.psthetech.swara.data.db.AppDatabase.getInstance(ctx.getApplicationContext())
-                                    .playlistDao()
-                                    .getPlaylistSongs(playlistId);
-                    if (songs != null) {
-                        for (com.psthetech.swara.data.db.entity.PlaylistSong s : songs) {
-                            albumIds.add(s.albumId);
-                        }
-                    }
-                } catch (Exception e) {
-                    // Fallback to empty if DB query fails
-                }
-                if (!albumIds.isEmpty()) {
-                    generateCollageAsync(ctx, playlistId, finalStore, albumIds, () -> {
-                        into.post(() -> {
-                            Object tag = into.getTag(R.id.ivPlaylistArtwork);
-                            if (tag instanceof Long && (Long) tag == playlistId) {
-                                if (finalStore.hasCollage(playlistId)) {
-                                    ObjectKey sig = signatureForFile(collageFile);
-                                    Glide.with(ctx)
-                                            .load(finalStore.getCollageFile(playlistId))
-                                            .signature(sig)
-                                            .apply(PLAYLIST_OPTIONS)
-                                            .into(into);
-                                } else {
-                                    into.setImageResource(R.drawable.ic_playlist);
-                                }
-                            }
-                        });
-                    });
-                } else {
-                    into.post(() -> {
-                        Object tag = into.getTag(R.id.ivPlaylistArtwork);
-                        if (tag instanceof Long && (Long) tag == playlistId) {
-                            into.setImageResource(R.drawable.ic_playlist);
-                        }
-                    });
-                }
-            });
-        } else {
-            into.setImageResource(R.drawable.ic_playlist);
-        }
+        });
     }
 
     /**
@@ -205,6 +187,105 @@ public class PlaylistArtworkHelper {
 
     // ===== Collage Generation =====
 
+    private static void generateCollageFromSongsInternal(
+            Context appContext,
+            long playlistId,
+            PlaylistArtworkStore store,
+            List<com.psthetech.swara.data.db.entity.PlaylistSong> songs,
+            Runnable onComplete) {
+
+        // Select up to 4 unique songs
+        List<com.psthetech.swara.data.db.entity.PlaylistSong> uniqueSongs = new ArrayList<>();
+        List<Long> seenSongIds = new ArrayList<>();
+        for (com.psthetech.swara.data.db.entity.PlaylistSong s : songs) {
+            if (s != null && s.songId > 0 && !seenSongIds.contains(s.songId)) {
+                seenSongIds.add(s.songId);
+                uniqueSongs.add(s);
+                if (uniqueSongs.size() == 4) break;
+            }
+        }
+
+        try {
+            if (uniqueSongs.isEmpty()) {
+                if (onComplete != null) onComplete.run();
+                return;
+            }
+
+            List<Bitmap> bitmaps = new ArrayList<>();
+            int cellSize = COLLAGE_SIZE_PX / 2;
+
+            for (com.psthetech.swara.data.db.entity.PlaylistSong s : uniqueSongs) {
+                Bitmap bmp = null;
+                // Try embedded artwork from audio content URI first (supported on Android 10, 11, 12, 13, 14)
+                if (s.songId > 0) {
+                    Uri songUri = ArtworkRepository.getSongUri(s.songId);
+                    if (songUri != null) {
+                        try {
+                            bmp = Glide.with(appContext)
+                                    .asBitmap()
+                                    .load(songUri)
+                                    .apply(new RequestOptions()
+                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                            .centerCrop()
+                                            .override(cellSize, cellSize))
+                                    .submit(cellSize, cellSize)
+                                    .get();
+                        } catch (Exception ignored) {}
+                    }
+                }
+                // Fallback to MediaStore album artwork URI if song content URI failed
+                if (bmp == null && s.albumId > 0) {
+                    Uri albumUri = ArtworkRepository.getAlbumArtUri(s.albumId);
+                    if (albumUri != null) {
+                        try {
+                            bmp = Glide.with(appContext)
+                                    .asBitmap()
+                                    .load(albumUri)
+                                    .apply(new RequestOptions()
+                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                            .centerCrop()
+                                            .override(cellSize, cellSize))
+                                    .submit(cellSize, cellSize)
+                                    .get();
+                        } catch (Exception ignored) {}
+                    }
+                }
+                if (bmp != null) bitmaps.add(bmp);
+            }
+
+            if (bitmaps.isEmpty()) {
+                if (onComplete != null) onComplete.run();
+                return;
+            }
+
+            Bitmap collage = Bitmap.createBitmap(COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(collage);
+
+            if (bitmaps.size() == 1) {
+                Bitmap scaled = Bitmap.createScaledBitmap(bitmaps.get(0), COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
+                canvas.drawBitmap(scaled, 0, 0, null);
+            } else {
+                int[][] positions = {
+                        {0, 0}, {cellSize, 0}, {0, cellSize}, {cellSize, cellSize}
+                };
+                for (int i = 0; i < 4; i++) {
+                    Bitmap src = bitmaps.get(i % bitmaps.size());
+                    Bitmap cell = Bitmap.createScaledBitmap(src, cellSize, cellSize, true);
+                    canvas.drawBitmap(cell, positions[i][0], positions[i][1], null);
+                    if (!cell.isRecycled()) cell.recycle();
+                }
+            }
+
+            store.saveCollageArtwork(playlistId, collage);
+            collage.recycle();
+
+        } catch (Exception e) {
+            android.util.Log.e("PlaylistArtworkHelper", "Collage generation failed", e);
+        }
+
+        if (onComplete != null) onComplete.run();
+    }
+
     /**
      * Generates a 2×2 album art collage asynchronously and saves it to the store.
      * onComplete is called on a background thread after the file is written.
@@ -216,33 +297,45 @@ public class PlaylistArtworkHelper {
             List<Long> albumIds,
             Runnable onComplete) {
 
-        // Use up to 4 unique album IDs for the collage
-        List<Long> uniqueIds = new ArrayList<>();
-        for (Long id : albumIds) {
-            if (id != null && id > 0 && !uniqueIds.contains(id)) {
-                uniqueIds.add(id);
-                if (uniqueIds.size() == 4) break;
-            }
-        }
-        List<Long> collageIds = new ArrayList<>(uniqueIds);
-
+        final Context appContext = ctx.getApplicationContext();
         COLLAGE_EXECUTOR.execute(() -> {
+            List<com.psthetech.swara.data.db.entity.PlaylistSong> songs = null;
             try {
-                int count = collageIds.size();
-                if (count == 0) {
+                songs = com.psthetech.swara.data.db.AppDatabase.getInstance(appContext)
+                        .playlistDao()
+                        .getPlaylistSongs(playlistId);
+            } catch (Exception ignored) {}
+
+            if (songs != null && !songs.isEmpty()) {
+                generateCollageFromSongsInternal(appContext, playlistId, store, songs, onComplete);
+                return;
+            }
+
+            // Fallback for legacy calls with only albumIds
+            List<Long> uniqueIds = new ArrayList<>();
+            if (albumIds != null) {
+                for (Long id : albumIds) {
+                    if (id != null && id > 0 && !uniqueIds.contains(id)) {
+                        uniqueIds.add(id);
+                        if (uniqueIds.size() == 4) break;
+                    }
+                }
+            }
+
+            try {
+                if (uniqueIds.isEmpty()) {
                     if (onComplete != null) onComplete.run();
                     return;
                 }
 
-                // Load bitmaps synchronously (we are on a background thread)
                 List<Bitmap> bitmaps = new ArrayList<>();
                 int cellSize = COLLAGE_SIZE_PX / 2;
 
-                for (Long albumId : collageIds) {
+                for (Long albumId : uniqueIds) {
                     Uri uri = ArtworkRepository.getAlbumArtUri(albumId);
                     if (uri == null) continue;
                     try {
-                        Bitmap bmp = Glide.with(ctx)
+                        Bitmap bmp = Glide.with(appContext)
                                 .asBitmap()
                                 .load(uri)
                                 .apply(new RequestOptions()
@@ -252,41 +345,27 @@ public class PlaylistArtworkHelper {
                                 .submit(cellSize, cellSize)
                                 .get();
                         if (bmp != null) bitmaps.add(bmp);
-                    } catch (Exception e) {
-                        // Skip failed album art, continue with others
+                    } catch (Exception ignored) {}
+                }
+
+                if (!bitmaps.isEmpty()) {
+                    Bitmap collage = Bitmap.createBitmap(COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, Bitmap.Config.ARGB_8888);
+                    Canvas canvas = new Canvas(collage);
+                    if (bitmaps.size() == 1) {
+                        Bitmap scaled = Bitmap.createScaledBitmap(bitmaps.get(0), COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
+                        canvas.drawBitmap(scaled, 0, 0, null);
+                    } else {
+                        int[][] positions = {{0, 0}, {cellSize, 0}, {0, cellSize}, {cellSize, cellSize}};
+                        for (int i = 0; i < 4; i++) {
+                            Bitmap src = bitmaps.get(i % bitmaps.size());
+                            Bitmap cell = Bitmap.createScaledBitmap(src, cellSize, cellSize, true);
+                            canvas.drawBitmap(cell, positions[i][0], positions[i][1], null);
+                            if (!cell.isRecycled()) cell.recycle();
+                        }
                     }
+                    store.saveCollageArtwork(playlistId, collage);
+                    collage.recycle();
                 }
-
-                if (bitmaps.isEmpty()) {
-                    if (onComplete != null) onComplete.run();
-                    return;
-                }
-
-                Bitmap collage = Bitmap.createBitmap(COLLAGE_SIZE_PX, COLLAGE_SIZE_PX,
-                        Bitmap.Config.ARGB_8888);
-                Canvas canvas = new Canvas(collage);
-
-                if (bitmaps.size() == 1) {
-                    // Single album art — fill the whole canvas
-                    Bitmap scaled = Bitmap.createScaledBitmap(bitmaps.get(0),
-                            COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
-                    canvas.drawBitmap(scaled, 0, 0, null);
-                } else {
-                    // 2×2 grid — fill with up to 4 bitmaps, repeating if fewer than 4
-                    int[][] positions = {
-                        {0, 0}, {cellSize, 0}, {0, cellSize}, {cellSize, cellSize}
-                    };
-                    for (int i = 0; i < 4; i++) {
-                        Bitmap src = bitmaps.get(i % bitmaps.size());
-                        Bitmap cell = Bitmap.createScaledBitmap(src, cellSize, cellSize, true);
-                        canvas.drawBitmap(cell, positions[i][0], positions[i][1], null);
-                        if (!cell.isRecycled()) cell.recycle();
-                    }
-                }
-
-                store.saveCollageArtwork(playlistId, collage);
-                collage.recycle();
-
             } catch (Exception e) {
                 android.util.Log.e("PlaylistArtworkHelper", "Collage generation failed", e);
             }
