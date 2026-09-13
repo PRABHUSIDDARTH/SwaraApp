@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Night theme is same as day — Swara is always dark -->
+    <!-- ===== NIGHT APPLICATION THEME ===== -->
     <style name="Theme.Swara" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/swara_purple</item>
         <item name="colorOnPrimary">@color/swara_cream</item>
@@ -8,7 +8,10 @@
         <item name="colorOnPrimaryContainer">@color/swara_cream</item>
         <item name="colorSecondary">@color/swara_gold</item>
         <item name="colorOnSecondary">@color/swara_night</item>
+        <item name="colorSecondaryContainer">@color/swara_gold_alpha_20</item>
+        <item name="colorOnSecondaryContainer">@color/swara_cream</item>
         <item name="colorTertiary">@color/swara_lavender</item>
+        <item name="colorOnTertiary">@color/swara_night</item>
         <item name="android:colorBackground">@color/swara_night</item>
         <item name="colorSurface">@color/swara_surface_1</item>
         <item name="colorOnSurface">@color/swara_cream</item>
@@ -22,5 +25,75 @@
         <item name="android:navigationBarColor">@color/swara_night</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowBackground">@color/swara_night</item>
+    </style>
+
+    <!-- ===== NIGHT BOTTOM SHEET ===== -->
+    <style name="Theme.Swara.BottomSheet" parent="Theme.Material3.DayNight.BottomSheetDialog">
+        <item name="android:colorBackground">@color/swara_surface_2</item>
+        <item name="colorPrimary">@color/swara_gold</item>
+        <item name="colorOnSurface">@color/swara_cream</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/swara_surface_2</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="bottomSheetStyle">@style/Widget.Swara.BottomSheet</item>
+    </style>
+
+    <style name="Widget.Swara.BottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="backgroundTint">@color/swara_surface_2</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Swara.BottomSheet</item>
+    </style>
+
+    <!-- ===== NIGHT CARD STYLES ===== -->
+    <style name="Widget.Swara.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/swara_surface_2</item>
+        <item name="cardElevation">@dimen/elevation_1</item>
+        <item name="cardCornerRadius">@dimen/radius_md</item>
+        <item name="strokeColor">@color/swara_glass_stroke</item>
+        <item name="strokeWidth">@dimen/border_regular</item>
+    </style>
+
+    <style name="Widget.Swara.Card.Flat" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/swara_surface_1</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardCornerRadius">@dimen/radius_md</item>
+        <item name="strokeColor">@color/swara_glass_stroke</item>
+        <item name="strokeWidth">@dimen/border_thin</item>
+    </style>
+
+    <!-- ===== NIGHT TEXT FIELD STYLE ===== -->
+    <style name="Widget.Swara.TextField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@color/swara_surface_2</item>
+        <item name="boxStrokeColor">@color/swara_glass_stroke</item>
+        <item name="hintTextColor">@color/swara_text_hint</item>
+        <item name="android:textColorHint">@color/swara_text_hint</item>
+        <item name="android:textColor">@color/swara_cream</item>
+        <item name="boxCornerRadiusTopStart">@dimen/radius_md</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_md</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_md</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_md</item>
+    </style>
+
+    <!-- ===== NIGHT TAB LAYOUT ===== -->
+    <style name="Widget.Swara.TabLayout" parent="Widget.Material3.TabLayout">
+        <item name="tabSelectedTextColor">@color/swara_gold</item>
+        <item name="tabTextColor">@color/swara_lavender</item>
+        <item name="tabIndicatorColor">@color/swara_gold</item>
+        <item name="tabBackground">@android:color/transparent</item>
+        <item name="android:background">@color/swara_surface_1</item>
+    </style>
+
+    <!-- ===== NIGHT DIALOG ===== -->
+    <style name="Theme.Swara.Dialog" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:colorBackground">@color/swara_surface_2</item>
+        <item name="colorPrimary">@color/swara_gold</item>
+        <item name="colorOnSurface">@color/swara_cream</item>
+        <item name="android:textColorPrimary">@color/swara_cream</item>
+        <item name="android:textColorSecondary">@color/swara_lavender</item>
+    </style>
+
+    <!-- ===== NIGHT POPUP MENU ===== -->
+    <style name="Widget.Swara.PopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@color/swara_surface_2</item>
+        <item name="android:textColor">@color/swara_cream</item>
     </style>
 </resources>
