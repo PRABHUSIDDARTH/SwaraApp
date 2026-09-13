@@ -237,7 +237,7 @@
 
     </LinearLayout>
 
-    <!-- Secondary controls row: Sleep Timer + Equalizer -->
+    <!-- Secondary controls row: Sleep Timer + Audio Output + Equalizer -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -254,6 +254,17 @@
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/sleep_timer" />
+
+        <!-- Audio Output -->
+        <ImageView
+            android:id="@+id/btnAudioOutput"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="20dp"
+            android:src="@drawable/ic_speaker"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="Audio Output" />
 
         <!-- Equalizer -->
         <ImageView

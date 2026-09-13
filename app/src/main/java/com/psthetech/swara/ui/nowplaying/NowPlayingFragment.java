@@ -19,6 +19,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.psthetech.swara.R;
+import com.psthetech.swara.util.AudioOutputManager;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
@@ -49,6 +50,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnCollapse;
     private ImageView btnSleepTimer;
     private ImageView btnEqualizer;
+    private ImageView btnAudioOutput;
 
     private boolean isUserSeeking = false;
     private Song currentSong;
@@ -100,6 +102,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnCollapse   = view.findViewById(R.id.btnCollapse);
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
+        btnAudioOutput = view.findViewById(R.id.btnAudioOutput);
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
@@ -168,6 +171,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     EqualizerManager.openSystemEqualizer(
                             getActivity(), playbackViewModel.getAudioSessionId());
                 }
+            });
+        }
+
+        if (btnAudioOutput != null) {
+            btnAudioOutput.setOnClickListener(v -> {
+                AudioOutputBottomSheet sheet = AudioOutputBottomSheet.newInstance();
+                sheet.show(getParentFragmentManager(), AudioOutputBottomSheet.TAG);
             });
         }
 
@@ -261,6 +271,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             }
         });
 
+        AudioOutputManager.getInstance(requireContext()).getCurrentOutput().observe(getViewLifecycleOwner(), device -> {
+            if (btnAudioOutput != null && device != null) {
+                btnAudioOutput.setImageResource(device.getIconResId());
+                btnAudioOutput.setContentDescription(device.getDisplayName());
+            }
+        });
+
         // Observe Morphism design tokens for Now Playing styling
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
@@ -285,6 +302,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     btnNext.setColorFilter(tokens.getAccentColor());
                     btnFavorite.setColorFilter(tokens.getAccentColor());
                     btnQueue.setColorFilter(tokens.getAccentColor());
+                    if (btnAudioOutput != null) btnAudioOutput.setColorFilter(tokens.getIconSecondaryColor());
+                    if (btnEqualizer != null) btnEqualizer.setColorFilter(tokens.getIconSecondaryColor());
                     if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
                 });
     }
