@@ -31,16 +31,13 @@ public class SettingsFragment extends Fragment {
     private TextView tvSettingsTitle;
     private TextView tvThemeHeader;
     private TextView tvColorThemeHeader;
-    private TextView tvMorphismHeader;
     private MaterialCardView cardThemeContainer;
     private RadioGroup rgTheme;
     private RadioButton rbThemeDark;
     private RadioButton rbThemeSystem;
     private RadioButton rbThemeLight;
     private RecyclerView rvColorThemes;
-    private RecyclerView rvMorphismStyles;
 
-    private MorphismPreviewAdapter morphismAdapter;
     private ColorThemePreviewAdapter colorThemeAdapter;
     private boolean isUpdatingRadioState = false;
 
@@ -59,27 +56,23 @@ public class SettingsFragment extends Fragment {
         tvSettingsTitle = view.findViewById(R.id.tvSettingsTitle);
         tvThemeHeader = view.findViewById(R.id.tvThemeHeader);
         tvColorThemeHeader = view.findViewById(R.id.tvColorThemeHeader);
-        tvMorphismHeader = view.findViewById(R.id.tvMorphismHeader);
         cardThemeContainer = view.findViewById(R.id.cardThemeContainer);
         rgTheme = view.findViewById(R.id.rgTheme);
         rbThemeDark = view.findViewById(R.id.rbThemeDark);
         rbThemeSystem = view.findViewById(R.id.rbThemeSystem);
         rbThemeLight = view.findViewById(R.id.rbThemeLight);
         rvColorThemes = view.findViewById(R.id.rvColorThemes);
-        rvMorphismStyles = view.findViewById(R.id.rvMorphismStyles);
 
         btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
 
         rvColorThemes.setLayoutManager(new LinearLayoutManager(requireContext()));
-        rvMorphismStyles.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         MorphismThemeManager manager = MorphismThemeManager.getInstance();
 
         ThemeMode initialThemeMode = manager.getActiveThemeMode().getValue();
         if (initialThemeMode == null) initialThemeMode = ThemeMode.DARK;
 
-        MorphismStyle initialStyle = manager.getActiveStyle().getValue();
-        if (initialStyle == null) initialStyle = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle initialStyle = MorphismStyle.LIQUID_GLASS;
 
         ColorTheme initialColorTheme = manager.getActiveColorTheme().getValue();
         if (initialColorTheme == null) initialColorTheme = ColorTheme.SWARA;
@@ -88,11 +81,6 @@ public class SettingsFragment extends Fragment {
             manager.setColorTheme(requireContext(), selectedColorTheme);
         });
         rvColorThemes.setAdapter(colorThemeAdapter);
-
-        morphismAdapter = new MorphismPreviewAdapter(initialStyle, initialThemeMode, selectedStyle -> {
-            manager.setMorphismStyle(requireContext(), selectedStyle);
-        });
-        rvMorphismStyles.setAdapter(morphismAdapter);
 
         updateRadioSelection(initialThemeMode);
 
@@ -110,7 +98,6 @@ public class SettingsFragment extends Fragment {
         });
 
         manager.getDesignTokens().observe(getViewLifecycleOwner(), this::applyDesignTokens);
-        manager.getActiveStyle().observe(getViewLifecycleOwner(), style -> updateAdaptersState());
         manager.getActiveThemeMode().observe(getViewLifecycleOwner(), mode -> {
             updateRadioSelection(mode);
             updateAdaptersState();
@@ -123,17 +110,13 @@ public class SettingsFragment extends Fragment {
         ThemeMode mode = manager.getActiveThemeMode().getValue();
         if (mode == null) mode = ThemeMode.DARK;
 
-        MorphismStyle style = manager.getActiveStyle().getValue();
-        if (style == null) style = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle style = MorphismStyle.LIQUID_GLASS;
 
         ColorTheme colorTheme = manager.getActiveColorTheme().getValue();
         if (colorTheme == null) colorTheme = ColorTheme.SWARA;
 
         if (colorThemeAdapter != null) {
             colorThemeAdapter.updateState(colorTheme, mode, style);
-        }
-        if (morphismAdapter != null) {
-            morphismAdapter.updateState(style, mode);
         }
     }
 
@@ -155,11 +138,26 @@ public class SettingsFragment extends Fragment {
         tvSettingsTitle.setTextColor(tokens.getTextPrimaryColor());
         tvThemeHeader.setTextColor(tokens.getAccentColor());
         if (tvColorThemeHeader != null) tvColorThemeHeader.setTextColor(tokens.getAccentColor());
-        tvMorphismHeader.setTextColor(tokens.getAccentColor());
         btnBack.setColorFilter(tokens.getTextPrimaryColor());
+
+        // Dynamic radio button tint — checked = accent, unchecked = primary text
+        android.content.res.ColorStateList radioTint = new android.content.res.ColorStateList(
+                new int[][]{
+                        new int[]{android.R.attr.state_checked},
+                        new int[]{}
+                },
+                new int[]{
+                        tokens.getAccentColor(),
+                        tokens.getTextPrimaryColor()
+                }
+        );
         rbThemeDark.setTextColor(tokens.getTextPrimaryColor());
         rbThemeSystem.setTextColor(tokens.getTextPrimaryColor());
         rbThemeLight.setTextColor(tokens.getTextPrimaryColor());
+        rbThemeDark.setButtonTintList(radioTint);
+        rbThemeSystem.setButtonTintList(radioTint);
+        rbThemeLight.setButtonTintList(radioTint);
+
         MorphismThemeManager.getInstance().applyToCard(cardThemeContainer, tokens);
     }
 }

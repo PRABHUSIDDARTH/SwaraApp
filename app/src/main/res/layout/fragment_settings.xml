@@ -4,8 +4,7 @@
     android:id="@+id/layoutSettingsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/swara_night">
+    android:orientation="vertical">
 
     <!-- Top Bar Header -->
     <LinearLayout
@@ -90,8 +89,7 @@
                         android:text="@string/theme_dark"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12"
-                        android:buttonTint="@color/swara_gold" />
+                        android:padding="@dimen/dp_12" />
 
                     <RadioButton
                         android:id="@+id/rbThemeSystem"
@@ -100,8 +98,7 @@
                         android:text="@string/theme_system"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12"
-                        android:buttonTint="@color/swara_gold" />
+                        android:padding="@dimen/dp_12" />
 
                     <RadioButton
                         android:id="@+id/rbThemeLight"
@@ -110,8 +107,7 @@
                         android:text="@string/theme_light"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12"
-                        android:buttonTint="@color/swara_gold" />
+                        android:padding="@dimen/dp_12" />
 
                 </RadioGroup>
 
@@ -132,27 +128,6 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvColorThemes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:overScrollMode="never"
-                android:layout_marginBottom="@dimen/dp_16" />
-
-            <!-- Section 3: Morphism Language -->
-            <TextView
-                android:id="@+id/tvMorphismHeader"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/morphism_title"
-                android:textSize="@dimen/text_title_md"
-                android:textColor="@color/swara_gold"
-                android:fontFamily="sans-serif-medium"
-                android:paddingHorizontal="@dimen/dp_24"
-                android:paddingTop="@dimen/dp_8"
-                android:paddingBottom="@dimen/dp_8" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvMorphismStyles"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
