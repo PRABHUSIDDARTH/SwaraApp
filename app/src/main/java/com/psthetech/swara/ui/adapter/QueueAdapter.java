@@ -159,10 +159,10 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
         if (isPlaying && tokens != null) {
             GradientDrawable glow = new GradientDrawable();
             glow.setShape(GradientDrawable.RECTANGLE);
-            glow.setColor(tokens.getPlaybackHighlightColor());
+            glow.setColor(tokens.getPlaybackSurfaceColor());
             float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
             glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
-            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
             holder.itemView.setBackground(glow);
         } else {
             holder.itemView.setBackground(null);
@@ -202,7 +202,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
                         isPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
                 queueSongArtist.setTextColor(tokens.getTextSecondaryColor());
                 if (queuePlayingIndicator != null) {
-                    queuePlayingIndicator.setColorFilter(tokens.getAccentColor());
+                    queuePlayingIndicator.setColorFilter(tokens.getPlaybackIconColor());
                 }
                 if (ivDragHandle != null) {
                     ivDragHandle.setColorFilter(tokens.getTextSecondaryColor());

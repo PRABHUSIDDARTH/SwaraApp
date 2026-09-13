@@ -88,6 +88,12 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
                     .transition(DrawableTransitionOptions.withCrossFade())
                     .into(artistImage);
 
+            itemView.setScaleX(1.0f);
+            itemView.setScaleY(1.0f);
+            itemView.setAlpha(1.0f);
+            itemView.setTranslationX(0f);
+            itemView.setTranslationY(0f);
+
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onArtistClick(artist);
@@ -100,5 +106,11 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
     public void onViewRecycled(@NonNull ArtistViewHolder holder) {
         super.onViewRecycled(holder);
         ArtworkHelper.clear(holder.itemView.getContext(), holder.artistImage);
+        holder.artistImage.setImageDrawable(null);
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        holder.itemView.setAlpha(1.0f);
+        holder.itemView.setTranslationX(0f);
+        holder.itemView.setTranslationY(0f);
     }
 }
