@@ -122,7 +122,16 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         btnFavorite.setOnClickListener(v -> {
             if (currentSong != null) {
+                boolean wasFavorite = Boolean.TRUE.equals(favoritesViewModel.isFavorite(currentSong.getId()).getValue());
                 favoritesViewModel.toggleFavorite(currentSong);
+                com.psthetech.swara.ui.theme.DesignTokens tokens =
+                        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+                if (!wasFavorite) {
+                    com.psthetech.swara.util.FavoriteAnimationHelper.animateFavoriteAdd(btnFavorite,
+                            tokens != null ? tokens.getFavoriteActiveColor() : 0xFFC9A84C);
+                } else {
+                    com.psthetech.swara.util.FavoriteAnimationHelper.animateFavoriteRemove(btnFavorite);
+                }
             }
         });
 
@@ -285,6 +294,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             boolean favorite = Boolean.TRUE.equals(isFav);
             btnFavorite.setImageResource(favorite ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
             btnFavorite.setAlpha(favorite ? 1.0f : 0.7f);
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                btnFavorite.setColorFilter(favorite ? tokens.getFavoriteActiveColor() : tokens.getFavoriteInactiveColor());
+            }
         });
     }
 }

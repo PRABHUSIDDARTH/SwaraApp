@@ -39,7 +39,6 @@
             android:src="@drawable/ic_arrow_back"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:rotation="-90"
             android:contentDescription="@string/close" />
 
@@ -65,7 +64,6 @@
             android:src="@drawable/ic_queue_music"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/queue" />
 
     </LinearLayout>
@@ -139,7 +137,6 @@
             android:src="@drawable/ic_favorite_border"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/cd_favorite_empty" />
 
     </LinearLayout>
@@ -149,10 +146,7 @@
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/dp_20"
-        android:progressTint="@color/swara_gold"
-        android:thumbTint="@color/swara_gold"
-        android:progressBackgroundTint="@color/swara_surface_3" />
+        android:layout_marginTop="@dimen/dp_20" />
 
     <!-- Time labels -->
     <LinearLayout
@@ -197,7 +191,6 @@
             android:src="@drawable/ic_shuffle"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/shuffle" />
 
         <!-- Previous -->
@@ -208,7 +201,6 @@
             android:src="@drawable/ic_skip_prev"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_cream"
             android:contentDescription="@string/previous" />
 
         <!-- Entire glass control is the playback touch target. -->
@@ -220,7 +212,6 @@
                 android:background="@drawable/bg_play_button"
                 android:src="@drawable/ic_play"
                 android:scaleType="center"
-                android:tint="@color/swara_night"
                 android:contentDescription="@string/play_pause" />
 
 
@@ -232,7 +223,6 @@
             android:src="@drawable/ic_skip_next"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_cream"
             android:contentDescription="@string/next" />
 
         <!-- Repeat -->
@@ -243,7 +233,6 @@
             android:src="@drawable/ic_repeat"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/repeat" />
 
     </LinearLayout>
@@ -264,7 +253,6 @@
             android:src="@drawable/ic_timer"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/sleep_timer" />
 
         <!-- Equalizer -->
@@ -275,7 +263,6 @@
             android:src="@drawable/ic_equalizer"
             android:scaleType="center"
             android:background="@drawable/ripple_circle"
-            android:tint="@color/swara_lavender"
             android:contentDescription="@string/equalizer" />
 
     </LinearLayout>
