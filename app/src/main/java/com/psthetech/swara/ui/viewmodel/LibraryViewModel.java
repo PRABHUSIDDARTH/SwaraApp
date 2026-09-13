@@ -71,8 +71,15 @@ public class LibraryViewModel extends AndroidViewModel {
             int limit = Math.min(historyList.size(), 20);
             for (int i = 0; i < limit; i++) {
                 PlayHistory h = historyList.get(i);
+                com.psthetech.swara.domain.model.Song canonical =
+                        com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(h.songId);
+                long dur = h.duration > 0 ? h.duration : (canonical != null ? canonical.getDuration() : 0);
+                long albumId = h.albumId != 0 ? h.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                 songs.add(new Song(h.songId, h.title, h.artist, h.album,
-                        h.albumId, h.duration, 0, 0, h.playedAt));
+                        albumId, dur,
+                        canonical != null ? canonical.getTrackNumber() : 0,
+                        canonical != null ? canonical.getYear() : 0,
+                        h.playedAt));
             }
             return songs;
         });
