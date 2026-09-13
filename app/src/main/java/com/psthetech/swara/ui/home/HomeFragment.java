@@ -25,6 +25,7 @@ import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,6 +95,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         rvRecentlyAdded.setAdapter(recentlyAddedAdapter);
 
         playlistAdapter = new HomePlaylistAdapter(this::onPlaylistClick);
+        playlistAdapter.setArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         rvPlaylists.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvPlaylists.setAdapter(playlistAdapter);
@@ -124,6 +126,28 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     if (tvSeeAllPlaylists != null && tvSeeAllPlaylists instanceof TextView) {
                         ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getAccentColor());
                     }
+                    // Section headers — find title TextViews within section containers
+                    int[] sectionIds = {
+                            R.id.sectionRecentlyPlayed,
+                            R.id.sectionRecentlyAdded,
+                            R.id.sectionPlaylists
+                    };
+                    for (int sid : sectionIds) {
+                        View sec = view.findViewById(sid);
+                        if (sec instanceof android.view.ViewGroup) {
+                            android.view.ViewGroup secGroup = (android.view.ViewGroup) sec;
+                            for (int c = 0; c < secGroup.getChildCount(); c++) {
+                                View child = secGroup.getChildAt(c);
+                                if (child instanceof TextView) {
+                                    ((TextView) child).setTextColor(tokens.getTextPrimaryColor());
+                                    break; // Only style first (title) TextView
+                                }
+                            }
+                        }
+                    }
+                    if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.notifyDataSetChanged();
+                    if (recentlyAddedAdapter != null) recentlyAddedAdapter.notifyDataSetChanged();
+                    if (playlistAdapter != null) playlistAdapter.notifyDataSetChanged();
                 });
 
         observeData();
@@ -132,12 +156,12 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         View btnClearHistory = view.findViewById(R.id.btnClearHistory);
         if (btnClearHistory != null) {
             btnClearHistory.setOnClickListener(v -> {
-                new android.app.AlertDialog.Builder(requireContext())
-                        .setMessage(R.string.clear_history_confirm)
-                        .setPositiveButton(android.R.string.ok, (d, w) ->
-                                libraryViewModel.clearPlayHistory())
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
+                com.psthetech.swara.ui.theme.ThemedDialogHelper.showConfirmationDialog(
+                        requireContext(),
+                        getString(R.string.clear_history_confirm),
+                        null,
+                        getString(android.R.string.ok),
+                        () -> libraryViewModel.clearPlayHistory());
             });
         }
     }
@@ -166,6 +190,12 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 recentlyPlayedAdapter.setFavorites(favoriteSongIds);
                 recentlyAddedAdapter.setFavorites(favoriteSongIds);
             }
+        });
+
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            long id = song != null ? song.getId() : -1L;
+            if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.setCurrentPlayingSongId(id);
+            if (recentlyAddedAdapter != null) recentlyAddedAdapter.setCurrentPlayingSongId(id);
         });
 
         // Recently Added
@@ -203,13 +233,30 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         });
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (playlistAdapter != null) {
+            playlistAdapter.notifyDataSetChanged();
+        }
+    }
+
     private void observePlaylistSongCounts(List<Playlist> playlists) {
         final Map<Long, Integer> counts = new HashMap<>();
+        final Map<Long, List<Long>> albumIdsMap = new HashMap<>();
         for (Playlist p : playlists) {
             playlistViewModel.getSongsForPlaylist(p.id)
                     .observe(getViewLifecycleOwner(), songs -> {
                         counts.put(p.id, songs != null ? songs.size() : 0);
+                        List<Long> albumIds = new ArrayList<>();
+                        if (songs != null) {
+                            for (Song s : songs) {
+                                albumIds.add(s.getAlbumId());
+                            }
+                        }
+                        albumIdsMap.put(p.id, albumIds);
                         playlistAdapter.setSongCounts(new HashMap<>(counts));
+                        playlistAdapter.setPlaylistAlbumIds(new HashMap<>(albumIdsMap));
                     });
         }
     }
