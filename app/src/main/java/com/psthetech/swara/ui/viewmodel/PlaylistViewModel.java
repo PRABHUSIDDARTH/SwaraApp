@@ -1,6 +1,7 @@
 package com.psthetech.swara.ui.viewmodel;
 
 import android.app.Application;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -12,6 +13,7 @@ import com.psthetech.swara.SwaraApplication;
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.data.db.entity.Playlist;
 import com.psthetech.swara.data.db.entity.PlaylistSong;
+import com.psthetech.swara.data.repository.PlaylistArtworkStore;
 import com.psthetech.swara.data.repository.PlaylistRepository;
 import com.psthetech.swara.domain.model.Song;
 
@@ -21,12 +23,14 @@ import java.util.List;
 public class PlaylistViewModel extends AndroidViewModel {
 
     private final PlaylistRepository repository;
+    private final PlaylistArtworkStore artworkStore;
     private final LiveData<List<Playlist>> playlists;
 
     public PlaylistViewModel(@NonNull Application application) {
         super(application);
         AppDatabase db = AppDatabase.getInstance(application);
         repository = new PlaylistRepository(db);
+        artworkStore = new PlaylistArtworkStore(application);
         playlists = repository.getAllPlaylistsLive();
     }
 
@@ -84,12 +88,50 @@ public class PlaylistViewModel extends AndroidViewModel {
 
     public void deletePlaylist(Playlist playlist) {
         if (playlist != null) {
-            repository.deletePlaylist(playlist.id);
+            repository.deletePlaylistWithArtwork(playlist.id, artworkStore);
         }
     }
 
     public void deletePlaylist(long playlistId) {
-        repository.deletePlaylist(playlistId);
+        repository.deletePlaylistWithArtwork(playlistId, artworkStore);
+    }
+
+    // ===== Playlist Artwork =====
+
+    /** Returns the shared PlaylistArtworkStore (used by adapters for loading artwork). */
+    public PlaylistArtworkStore getPlaylistArtworkStore() {
+        return artworkStore;
+    }
+
+    /**
+     * Saves a user-selected image URI as custom artwork for a playlist.
+     * Runs on a background thread; calls onComplete on the main thread.
+     */
+    public void setPlaylistArtwork(long playlistId, Uri imageUri, Runnable onComplete) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            boolean saved = artworkStore.saveCustomArtwork(playlistId, imageUri);
+            if (saved) {
+                String path = artworkStore.getCustomArtworkFile(playlistId).getAbsolutePath();
+                repository.setArtworkPath(playlistId, path);
+            }
+            if (onComplete != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
+            }
+        });
+    }
+
+    /**
+     * Removes the custom artwork for a playlist, reverting to collage/default.
+     * Runs on a background thread; calls onComplete on the main thread.
+     */
+    public void removePlaylistArtwork(long playlistId, Runnable onComplete) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            artworkStore.removeCustomArtwork(playlistId);
+            repository.clearArtworkPath(playlistId);
+            if (onComplete != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
+            }
+        });
     }
 
     // ===== Song management =====
