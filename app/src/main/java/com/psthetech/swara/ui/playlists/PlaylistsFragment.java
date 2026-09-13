@@ -186,8 +186,11 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
             List<Song> songs = new ArrayList<>();
             for (PlaylistSong ps : entries) {
+                Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(ps.songId);
+                long dur = ps.duration > 0 ? ps.duration : (canonical != null ? canonical.getDuration() : 0);
+                long albumId = ps.albumId != 0 ? ps.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                 songs.add(new Song(ps.songId, ps.title, ps.artist, ps.album,
-                        ps.albumId, ps.duration, ps.position, 0, 0));
+                        albumId, dur, ps.position, canonical != null ? canonical.getYear() : 0, 0));
             }
 
             if (!songs.isEmpty()) {
