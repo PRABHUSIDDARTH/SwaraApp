@@ -28,16 +28,38 @@ public class Artist {
     public long getRepresentativeAlbumId() { return representativeAlbumId; }
     public List<Song> getSongs() { return songs; }
 
+    public static String getCanonicalKey(String rawName) {
+        if (rawName == null) return "unknown artist";
+        String trimmed = rawName.trim();
+        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("<unknown>")) {
+            return "unknown artist";
+        }
+        return trimmed.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    public static String normalizeDisplayName(String rawName) {
+        if (rawName == null) return "Unknown Artist";
+        String trimmed = rawName.trim();
+        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("<unknown>")) {
+            return "Unknown Artist";
+        }
+        return trimmed;
+    }
+
+    public String getCanonicalName() {
+        return getCanonicalKey(name);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Artist)) return false;
         Artist artist = (Artist) o;
-        return name.equals(artist.name);
+        return getCanonicalKey(name).equals(getCanonicalKey(artist.name));
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return getCanonicalKey(name).hashCode();
     }
 }
