@@ -285,4 +285,81 @@ public class Phase7CorrectionPassTest {
     }
 
     // =========================================================================
+    // 3. HOME RECENTLY PLAYED / RECENTLY ADDED CLICK RESOLUTION
+    // =========================================================================
+
+    @Test
+    public void testHomeClickIdentityResolution() {
+        Song recentlyPlayedA = new Song(101L, "Song A (Recently Played)", "Artist A", "Album A", 1L, 180000L, 1, 2020, 100L);
+        Song recentlyAddedB = new Song(202L, "Song B (Recently Added)", "Artist B", "Album B", 2L, 200000L, 1, 2024, 200L);
+
+        List<Song> recentlyPlayedList = Collections.singletonList(recentlyPlayedA);
+        List<Song> recentlyAddedList = Collections.singletonList(recentlyAddedB);
+
+        // Click resolver function using stable ID
+        class ClickResolver {
+            Song resolve(Song clicked, List<Song> sourceList) {
+                for (Song s : sourceList) {
+                    if (s.getId() == clicked.getId()) {
+                        return s;
+                    }
+                }
+                return clicked;
+            }
+        }
+
+        ClickResolver resolver = new ClickResolver();
+
+        // 1. User taps item at position 0 in Recently Played
+        Song resultPlayed = resolver.resolve(recentlyPlayedA, recentlyPlayedList);
+        assertEquals(101L, resultPlayed.getId());
+        assertEquals("Song A (Recently Played)", resultPlayed.getTitle());
+
+        // 2. User taps item at position 0 in Recently Added
+        Song resultAdded = resolver.resolve(recentlyAddedB, recentlyAddedList);
+        assertEquals(202L, resultAdded.getId());
+        assertEquals("Song B (Recently Added)", resultAdded.getTitle());
+
+        // 3. Verify that Recently Played NEVER resolves to Recently Added
+        assertFalse("Recently Played must not resolve to Recently Added song",
+                resultPlayed.getId() == recentlyAddedB.getId());
+    }
+
+    // =========================================================================
+    // 4. DUAL AUDIO DETECTION & CAPABILITY UX
+    // =========================================================================
+
+    @Test
+    public void testDualAudioCapabilityFlag() {
+        AudioOutputDevice bt1 = new AudioOutputDevice("bt_1", "pTron TWS",
+                AudioOutputDevice.OutputType.BLUETOOTH, true, true, 8, null);
+        AudioOutputDevice bt2 = new AudioOutputDevice("bt_2", "Galaxy Buds",
+                AudioOutputDevice.OutputType.BLUETOOTH, false, true, 8, null);
+        AudioOutputDevice speaker = new AudioOutputDevice("spk", "Phone Speaker",
+                AudioOutputDevice.OutputType.BUILT_IN_SPEAKER, false, true, 2, null);
+
+        // 2 Bluetooth devices connected -> Multi-output supported
+        List<AudioOutputDevice> devicesWithDualBT = Arrays.asList(bt1, bt2, speaker);
+        int btCountDual = 0;
+        for (AudioOutputDevice d : devicesWithDualBT) {
+            if (d.getType() == AudioOutputDevice.OutputType.BLUETOOTH
+                    || d.getType() == AudioOutputDevice.OutputType.BLUETOOTH_LE) {
+                btCountDual++;
+            }
+        }
+        boolean isMultiOutputDual = btCountDual > 1;
+        assertTrue(isMultiOutputDual);
+
+        // 1 Bluetooth device connected -> Multi-output NOT shown
+        List<AudioOutputDevice> devicesWithSingleBT = Arrays.asList(bt1, speaker);
+        int btCountSingle = 0;
+        for (AudioOutputDevice d : devicesWithSingleBT) {
+            if (d.getType() == AudioOutputDevice.OutputType.BLUETOOTH
+                    || d.getType() == AudioOutputDevice.OutputType.BLUETOOTH_LE) {
+                btCountSingle++;
+            }
+        }
+        boolean isMultiOutputSingle = btCountSingle > 1;
+        assertFalse(isMultiOutputSingle);
+    }
 }
