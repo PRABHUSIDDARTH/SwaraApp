@@ -248,4 +248,24 @@
     <string name="remove_artwork">Remove artwork</string>
     <string name="playlist_artwork">Playlist artwork</string>
 
+    <!-- Metadata Editor -->
+    <string name="edit_song_info">Edit Song Info</string>
+    <string name="save">Save</string>
+    <string name="metadata_saved">Song info updated</string>
+    <string name="metadata_save_failed">Failed to update song info</string>
+    <string name="field_title">Title</string>
+    <string name="field_artist">Artist</string>
+    <string name="field_album">Album</string>
+    <string name="field_album_artist">Album Artist</string>
+    <string name="field_genre">Genre</string>
+    <string name="field_year">Year</string>
+    <string name="field_track">Track Number</string>
+    <string name="field_disc">Disc Number</string>
+    <string name="field_composer">Composer</string>
+    <string name="field_comment">Comment</string>
+    <string name="field_title_required">Title cannot be empty</string>
+    <string name="invalid_year">Enter a valid year (1800–2100)</string>
+    <string name="invalid_track">Enter a valid track number (1–999)</string>
+    <string name="invalid_disc">Enter a valid disc number (1–99)</string>
+
 </resources>

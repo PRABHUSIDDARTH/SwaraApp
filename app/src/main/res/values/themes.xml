@@ -70,6 +70,16 @@
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
 
+    <style name="ShapeAppearance.Swara.RoundedCorner.12dp" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Swara.RoundedCorner.10dp" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+
     <!-- ===== CARD STYLES ===== -->
     <style name="Widget.Swara.Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/swara_light_surface</item>
