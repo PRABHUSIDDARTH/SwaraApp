@@ -262,9 +262,9 @@ public final class ThemedDialogHelper {
             float density = view.getContext().getResources().getDisplayMetrics().density;
             GradientDrawable highlight = new GradientDrawable();
             highlight.setShape(GradientDrawable.RECTANGLE);
-            highlight.setColor(tokens.getPlaybackHighlightColor());
+            highlight.setColor(tokens.getPlaybackSurfaceColor());
             highlight.setCornerRadius(tokens.getCornerRadiusDp() * density);
-            highlight.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+            highlight.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
             view.setBackground(highlight);
 
             view.postDelayed(() -> {
