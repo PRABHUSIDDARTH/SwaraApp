@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/swara_night"
     android:orientation="vertical">
 
     <!-- Header row: back + title/meta + overflow menu -->
@@ -21,8 +20,7 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/back"
             android:padding="12dp"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="@color/swara_lavender" />
+            android:src="@drawable/ic_arrow_back" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -58,10 +56,42 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/more_options"
             android:padding="12dp"
-            android:src="@drawable/ic_more_vert"
-            app:tint="@color/swara_lavender" />
+            android:src="@drawable/ic_more_vert" />
 
     </LinearLayout>
+
+    <!-- Hero playlist artwork — tap to change -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="16dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivPlaylistDetailArtwork"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_playlist"
+            android:elevation="@dimen/elevation_2"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
+
+        <!-- Camera badge for artwork editing -->
+        <ImageView
+            android:id="@+id/ivArtworkEditBadge"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center|bottom"
+            android:layout_marginBottom="4dp"
+            android:layout_marginStart="116dp"
+            android:src="@drawable/ic_camera"
+            android:background="@drawable/bg_rounded_gold_alpha"
+            android:padding="6dp"
+            android:elevation="@dimen/elevation_3"
+            android:contentDescription="@string/change_artwork" />
+
+    </FrameLayout>
 
     <!-- Action bar: Play, Shuffle, Add Songs -->
     <LinearLayout
@@ -98,8 +128,7 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/add_songs"
             android:padding="10dp"
-            android:src="@drawable/ic_add"
-            app:tint="@color/swara_gold" />
+            android:src="@drawable/ic_add" />
 
     </LinearLayout>
 
@@ -131,8 +160,7 @@
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:alpha="0.3"
-                android:src="@drawable/ic_queue_music"
-                android:tint="@color/swara_lavender" />
+                android:src="@drawable/ic_queue_music" />
 
             <TextView
                 android:layout_width="wrap_content"
