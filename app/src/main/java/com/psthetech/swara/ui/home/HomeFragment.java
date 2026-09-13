@@ -323,16 +323,29 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         }
     }
 
+    private void playSongFromList(Song clickedSong, List<Song> list) {
+        if (clickedSong == null) return;
+        if (list != null && !list.isEmpty()) {
+            int targetIndex = -1;
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).getId() == clickedSong.getId()) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+            if (targetIndex != -1) {
+                playbackViewModel.playSongs(list, targetIndex);
+                return;
+            }
+        }
+        playbackViewModel.playSong(clickedSong);
+    }
+
     // ===== SongAdapter.Listener =====
 
     @Override
     public void onSongClick(Song song, int position) {
-        List<Song> currentList = recentlyAddedAdapter.getCurrentList();
-        if (!currentList.isEmpty()) {
-            playbackViewModel.playSongs(currentList, position);
-        } else {
-            playbackViewModel.playSong(song);
-        }
+        playSongFromList(song, recentlyAddedAdapter.getCurrentList());
     }
 
     @Override
