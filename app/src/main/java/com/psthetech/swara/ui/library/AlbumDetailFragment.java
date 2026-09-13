@@ -106,9 +106,26 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
                     .into(albumArt);
         }
 
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    getView().setBackground(tokens.createAmbientDrawable());
+                    if (albumTitle != null) albumTitle.setTextColor(tokens.getTextPrimaryColor());
+                    if (albumMeta != null) albumMeta.setTextColor(tokens.getTextSecondaryColor());
+                    ImageView backButton = getView().findViewById(R.id.backButton);
+                    if (backButton != null) backButton.setColorFilter(tokens.getTextPrimaryColor());
+                    if (songAdapter != null) songAdapter.notifyDataSetChanged();
+                });
+
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
+            }
+        });
+
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            if (songAdapter != null) {
+                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
 
