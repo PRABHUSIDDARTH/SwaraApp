@@ -16,3 +16,9 @@ local.properties
 # OS files
 .DS_Store
 Thumbs.db
+
+# Documentation / Scratch
+walkthrough.md
+
+# VSCode
+.vscode/
