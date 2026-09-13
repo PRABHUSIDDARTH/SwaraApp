@@ -1,304 +1,299 @@
-<img width="1918" height="952" alt="Swara App" src="https://github.com/user-attachments/assets/b6fd1711-7e4e-4621-9834-d3b6c854216a" />
+# 🎵 Swara V2.2 — Premium Offline Android Music Player
 
-# Swara V2.1
-
-> A modern, offline-first Android music player built entirely in Java — no Kotlin, no compromises.
+> **An exquisite, offline-first Android music player engineered purely in modern Java — zero Kotlin, zero bloat, uncompromising craftsmanship.**
 
 [![Android CI](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml/badge.svg)](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml)
-[![API](https://img.shields.io/badge/API-24%2B-brightgreen)](https://android-arsenal.com/api?level=24)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![API](https://img.shields.io/badge/API-24%2B%20(Android%207.0%2B)-brightgreen.svg?style=flat-square)](https://android-arsenal.com/api?level=24)
+[![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue.svg?style=flat-square)](https://developer.android.com/about/versions/14)
+[![Media3](https://img.shields.io/badge/Jetpack-Media3%201.2.1-orange.svg?style=flat-square)](https://developer.android.com/media/media3)
+[![Room](https://img.shields.io/badge/Room-v3%20Migration-purple.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
 
 ---
 
-## Table of Contents
+## 📑 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Build & Run](#build--run)
-- [Known Issues & Fixes](#known-issues--fixes)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-Swara V2.1 is a production-ready offline Android music player that reads from the device's `MediaStore`,
-plays audio through Jetpack Media3 ExoPlayer, and persists user data (playlists, favourites, play
-history) with Room. The UI is a **single-activity** architecture driven entirely by the Jetpack
-Navigation Component.
-
-The design language is *Royal Purple & Obsidian Gold* — dark-mode first, edge-to-edge, with smooth
-Material 3 transitions.
+- [Overview](#-overview)
+- [Design System & Themes](#-design-system--themes)
+  - [Liquid Glass Morphism](#liquid-glass-morphism)
+  - [The 7 ColorThemes](#the-7-colorthemes)
+  - [Light Mode & Dark Mode Semantic Tokens](#light-mode--dark-mode-semantic-tokens)
+- [Key Features](#-key-features)
+- [Core Architecture](#-core-architecture)
+  - [MVVM + Repository Layering](#mvvm--repository-layering)
+  - [Authoritative Media3 Audio Engine](#authoritative-media3-audio-engine)
+  - [Room Database & Schema v3 Migration](#room-database--schema-v3-migration)
+- [Specialized Subsystems](#-specialized-subsystems)
+  - [Authoritative Playlist Artwork Engine](#authoritative-playlist-artwork-engine)
+  - [Themed Dialog System & Entrance Animations](#themed-dialog-system--entrance-animations)
+  - [Accessible Current-Playing Indicator](#accessible-current-playing-indicator)
+  - [RecyclerView Recycling Safety Contract](#recyclerview-recycling-safety-contract)
+- [Project Directory Structure](#-project-directory-structure)
+- [Building & Installation](#-building--installation)
+- [Test Suite & Quality Verification](#-test-suite--quality-verification)
+- [License](#-license)
 
 ---
 
-## Features
+## 🌟 Overview
 
-| Feature | Detail |
-|---|---|
-| **Audio playback** | Jetpack Media3 ExoPlayer with `MediaSessionService` — background playback survives app backgrounding and screen-off |
-| **Lock-screen & notification controls** | System media notification with play/pause/skip, artwork, and seek bar via `MediaSession` |
-| **MediaStore discovery** | Automatic indexing of all on-device audio files; album art extracted from embedded tags via `ContentResolver` |
-| **Mini-Player** | Persistent collapsible bar with live progress line, artwork crossfade animation, and controls |
-| **Now Playing** | Full-screen bottom-sheet dialog with swipe-down dismiss gesture, seek bar, repeat/shuffle, sleep timer, equalizer |
-| **Queue management** | Drag-to-reorder via `ItemTouchHelper` and swipe-to-remove, backed by `PlaybackViewModel` |
-| **Sleep Timer** | Singleton count-down (15, 30, 45, 60 minutes) and automatic **End-of-Song** sleep mode |
-| **Library Sorting** | Multi-attribute sorting for songs: Title (A-Z / Z-A), Artist (A-Z), Duration, and Date Added |
-| **Equalizer Integration** | System AudioEffect intent integration with fallback |
-| **Favourites** | One-tap toggle with Play All & Shuffle buttons, persisted in Room `FavoriteSong` table |
-| **Custom Playlists** | Full CRUD — create, rename, delete, add/remove songs, drag reorder, total playlist duration formatting |
-| **Play History** | Threshold-based (30s / 40% duration) automatic timestamp recording with a **Clear Play History** option |
-| **Search** | Real-time multi-criteria search across songs, albums, artists, and custom playlists |
-| **Library tabs** | Songs · Albums · Artists with Play All & Shuffle detail screens |
+**Swara** is a production-grade offline music player for Android designed to deliver an audiophile-grade playback experience wrapped in an authentic **Liquid Glass** aesthetic. 
+
+Built strictly using modern Java 17, Swara leverages Android Jetpack architecture components (Media3, Navigation, Room, LiveData, ViewModel, DiffUtil) without relying on heavy third-party framework overhead. Every animation, dialog, color token, and RecyclerView cell is crafted with strict performance and memory recycling guarantees.
 
 ---
 
-## Architecture
+## 🎨 Design System & Themes
 
-Swara V2 follows the **MVVM + Repository** pattern recommended by Android Jetpack.
+### Liquid Glass Morphism
+Swara’s signature interface is built on **Liquid Glass**:
+- Translucent, soft-lit surfaces with subtle accent strokes.
+- Controlled background blurs and atmospheric glows.
+- Authentic materials that preserve content integrity (e.g. user album and playlist artwork are never artificially tinted).
+- Elevation and corner radii calibrated dynamically for each device DPI.
+
+### The 7 ColorThemes
+Swara V2 introduces seven curated color themes, each offering tailored Light Mode and Dark Mode palettes:
+
+| ColorTheme | Accent | Mood / Identity | Light Accent & Distinction | Dark Obsidian Tone |
+|---|---|---|---|---|
+| **SWARA** | Royal Gold (`#E6A23C`) | Signature imperial purple & obsidian gold | Warm Bronze Gold (`#946E14`) | Deep Obsidian Violet (`#0D0B14`) |
+| **MIDNIGHT** | Sky Cyan (`#38BDF8`) | Deep navy glass, modern cyber aesthetic | Ocean Azure (`#0284C7`) | Abyss Slate (`#070B12`) |
+| **LAVENDER** | Amethyst (`#C084FC`) | Soft violet dream, royal and calm | Royal Purple (`#7E22CE`) | Nightshade Black (`#0C0714`) |
+| **CHAMPAGNE**| Amber Gold (`#FBBF24`) | Warm candlelight, vintage sophistication | Rich Warm Amber (`#B45309`) | Smoked Espresso (`#120D06`) |
+| **ROSE** | Blush Rose (`#F472B6`) | Velvet crimson, high contrast & luxury | Deep Crimson Rose (`#C2185B`) | Midnight Wine (`#14070B`) |
+| **OCEAN** | Seafoam Teal (`#2DD4BF`) | Coastal depths, crisp and refreshing | Deep Sea Teal (`#0D9488`) | Mariana Obsidian (`#051012`) |
+| **FOREST** | Emerald Mint (`#34D399`) | Lush botanical, serene organic tones | Deep Pine Emerald (`#059669`)| Deep Woods Black (`#051209`) |
+
+### Light Mode & Dark Mode Semantic Tokens
+Every screen element references dynamic semantic tokens from `DesignTokens` and `MorphismThemeManager`.
+- **WCAG AAA Compliance:** Primary text contrast exceeds **7.0:1** on both light and dark surfaces across all seven themes.
+- **Selective Hierarchy:** Accents are reserved for primary calls-to-action (e.g. "Play All", dialog confirms, active sliders), leaving body text crisp and readable.
+- **Surface Variant Blending:** Light mode surfaces use soft pastel variants (`#EDE6F7`, `#FCE4EC`, `#DCF0E3`) rather than harsh stark whites, reducing eye strain.
+
+---
+
+## ⚡ Key Features
+
+- **Media3 Playback Core:** Continuous background playback powered by `MediaSessionService` and ExoPlayer. Survives device orientation, lock screen, and process backgrounding.
+- **Lockscreen & Notification Media Controls:** High-resolution notification seekbar, artwork, playback actions, and favorite toggling via Android `MediaSession`.
+- **MediaStore Discovery:** Automatic indexing of on-device audio files with real-time metadata parsing and album art caching.
+- **Collapsible Mini-Player:** Edge-to-edge floating glass bar with live progress tracker, play/pause toggle, and gesture-driven bottom sheet expansion.
+- **Now Playing Experience:** Full-screen dialog with swipe-down dismissal, fluid waveform/progress scrubbing, repeat/shuffle modes, equalizer intent launch, and sleep timer.
+- **Playlist Management & Custom Artwork:** Full CRUD support, track reordering with `ItemTouchHelper`, custom photo picker artwork, automatic 2x2 collage generation, and instant runtime UI refresh.
+- **Queue System:** Live queue with drag-to-reorder, swipe-to-delete, play next, and queue clearing.
+- **Sleep Timer:** Countdown presets (15, 30, 45, 60 minutes) or intelligent **End-of-Song** sleep mode.
+- **Multi-Attribute Search:** Real-time multi-criteria filtering across songs, albums, artists, and user playlists.
+- **Favorite Songs:** Fluid heart bounce micro-animation with immediate Room persistence and quick Play/Shuffle all.
+
+---
+
+## 🏛 Core Architecture
+
+### MVVM + Repository Layering
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          UI Layer                                   │
-│  MainActivity (NavHost) ── NavController ── Fragments               │
-│  MiniPlayerFragment │ NowPlayingFragment │ QueueFragment            │
-│  HomeFragment │ LibraryFragment │ SearchFragment                    │
-│  FavoritesFragment │ PlaylistsFragment │ PlaylistDetailFragment      │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ observes LiveData
-┌──────────────────────────────▼──────────────────────────────────────┐
-│                       ViewModel Layer                               │
-│  PlaybackViewModel │ LibraryViewModel │ FavoritesViewModel          │
-│  PlaylistViewModel                                                  │
-└──────────┬───────────────────────┬──────────────────────────────────┘
-           │ MediaController       │ Repository calls
-┌──────────▼──────────┐  ┌────────▼─────────────────────────────────┐
-│ SwaraPlaybackService│  │           Repository Layer                │
-│ (MediaSessionService│  │  MusicRepository    │ ArtworkRepository   │
-│  + ExoPlayer)       │  │  FavoritesRepository│ PlaylistRepository  │
-└─────────────────────┘  │  PlayHistoryRepository                    │
-                         └──────────────────┬──────────────────────────┘
-                                            │
-                         ┌──────────────────▼──────────────────────────┐
-                         │              Data Layer                     │
-                         │  Room AppDatabase                           │
-                         │  FavoriteDao │ PlaylistDao │ PlayHistoryDao │
-                         │  MediaStore ContentResolver                 │
-                         └─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                                 UI Layer                                 │
+│  MainActivity ── NavHostFragment ── NavController                        │
+│  HomeFragment │ LibraryFragment │ SearchFragment │ FavoritesFragment     │
+│  PlaylistsFragment │ PlaylistDetailFragment │ QueueFragment              │
+│  MiniPlayerFragment │ NowPlayingFragment │ SettingsFragment              │
+└────────────────────────────────────┬─────────────────────────────────────┘
+                                     │ observes LiveData
+┌────────────────────────────────────▼─────────────────────────────────────┐
+│                             ViewModel Layer                              │
+│  PlaybackViewModel │ LibraryViewModel │ FavoritesViewModel               │
+│  PlaylistViewModel                                                       │
+└────────────┬───────────────────────────────────┬─────────────────────────┘
+             │ MediaController                   │ Repository calls
+┌────────────▼──────────────┐      ┌─────────────▼─────────────────────────┐
+│   SwaraPlaybackService    │      │           Repository Layer            │
+│  (MediaSessionService +   │      │  MusicRepository │ ArtworkRepository  │
+│   ExoPlayer Engine)       │      │  PlaylistRepository │ FavRepository   │
+└───────────────────────────┘      │  PlaylistArtworkStore │ HistoryRepo   │
+                                   └─────────────┬─────────────────────────┘
+                                                 │
+                                   ┌─────────────▼─────────────────────────┐
+                                   │              Data Layer               │
+                                   │  Room AppDatabase (v3 Schema)         │
+                                   │  PlaylistDao │ FavoriteDao │ History  │
+                                   │  MediaStore ContentResolver           │
+                                   └───────────────────────────────────────┘
 ```
 
-### Key Design Decisions
+### Authoritative Media3 Audio Engine
+- Playback state is strictly centralized in `SwaraPlaybackService`.
+- All fragments and adapters observe `PlaybackViewModel.getCurrentSong()` and `PlaybackViewModel.getPlaybackState()`.
+- State updates dispatch atomically; no UI component maintains its own decoupled playing state.
 
-- **Single-Activity**: `MainActivity` is the sole `Activity`. All screen transitions are
-  `FragmentTransaction`s managed by `NavController`. The back stack is owned by Navigation Component.
-
-- **NavHostFragment retrieval**: `Navigation.findNavController(Activity, id)` is **incompatible**
-  with `FragmentContainerView` hosts (Navigation ≥ 2.3). The `NavController` is attached to the
-  `NavHostFragment`'s child view, not the container. `MainActivity` and `MiniPlayerFragment` both
-  use `getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment)` to obtain the
-  `NavController` synchronously after `setContentView()`.
-
-- **No Kotlin**: The entire codebase is Java 11. No KTX extensions, no Safe Args plugin (which
-  generates Kotlin), no coroutines.
-
-- **Background playback**: `SwaraPlaybackService` extends `MediaSessionService`. The
-  `foregroundServiceType="mediaPlayback"` manifest declaration satisfies Android 14's
-  foreground-service restrictions.
-
-- **Artwork loading**: `ArtworkHelper` resolves album art URIs from `MediaStore` and loads them
-  into `ImageView`s via Glide with disk-LRU caching.
+### Room Database & Schema v3 Migration
+- Seamless migration from schema version 2 to 3:
+  ```sql
+  ALTER TABLE playlists ADD COLUMN artworkPath TEXT DEFAULT NULL;
+  ```
+- Added `modifiedAt` timestamp column with automatic `touchModifiedAt(playlistId)` on every artwork and song list change to facilitate `DiffUtil` detection and Glide cache busting.
 
 ---
 
-## Tech Stack
+## 🛠 Specialized Subsystems
 
-| Component | Library | Version |
-|---|---|---|
-| Language | Java | 11 (source/target) |
-| Min SDK / Target SDK | Android | 24 / 36 |
-| Build toolchain | Android Gradle Plugin | 9.2.0 |
-| Playback engine | Jetpack Media3 ExoPlayer | 1.4.1 |
-| Media session | Jetpack Media3 MediaSession | 1.4.1 |
-| Architecture | Lifecycle ViewModel + LiveData | 2.8.7 |
-| Navigation | Navigation Component (fragment + ui) | 2.8.9 |
-| Persistence | Room Runtime + Compiler | 2.6.1 |
-| Image loading | Glide | 4.16.0 |
-| UI | Material Components | 1.12.0 |
-| UI | ConstraintLayout | 2.2.1 |
-| UI | RecyclerView | 1.4.0 |
-| UI | ViewPager2 | 1.1.0 |
-| UI | Core SplashScreen | 1.0.1 |
-| Testing | JUnit 4 | 4.13.2 |
-| Testing (Android) | AndroidX Test / Espresso | 1.2.1 / 3.6.1 |
-| CI | GitHub Actions | — |
+### Authoritative Playlist Artwork Engine
+Every playlist UI surface (Home cards, Playlists tab, Playlist Detail header, Search results) resolves artwork via `PlaylistArtworkHelper`:
+
+$$\mathbf{Priority\ 1:\ Custom\ Artwork} \longrightarrow \mathbf{Priority\ 2:\ 2\times2\ Collage} \longrightarrow \mathbf{Priority\ 3:\ Fallback\ Icon}$$
+
+1. **Custom Artwork:** User-selected image stored in internal application sandbox (`filesDir/playlist_artwork/<id>.jpg`). Never tinted or modified.
+2. **Dynamic 2x2 Collage:** Automatically constructed from the album art of the first four songs in the playlist.
+3. **Swara Fallback:** High-definition vector fallback icon (`ic_playlist`).
+4. **Instant Invalidation:** Handled through Glide signature keys:
+   ```java
+   .signature(new ObjectKey(file.lastModified() + "_" + playlist.modifiedAt))
+   ```
+   Ensures changes are immediately visible across all screens without restarting the app.
+
+### Themed Dialog System & Entrance Animations
+Centralized in `ThemedDialogHelper`:
+- **Liquid Glass Container:** Dynamically styled background with rounded corners, elevated theme background, and accent-derived stroke.
+- **Visual Input Focus:** Input text container with responsive focus listeners that highlight the border with the active theme accent on user touch.
+- **Entrance Animation:** Subtle scale ($0.95 \to 1.0$) and opacity ($0 \to 1.0$) entrance transition using a decelerate curve over 220ms.
+- **Button Contrast:** Positive actions render with solid theme accent and high-contrast text; negative actions render in muted secondary typography.
+
+### Accessible Current-Playing Indicator
+Designed to overcome visibility issues on high-brightness AMOLED displays:
+- **Light Mode Highlight:** Blends 18% theme accent into `surfaceVariantColor` ($>1.32:1$ card separation from background, $>10:1$ WCAG AAA text contrast).
+- **Light Mode Glow Stroke:** High-definition 55% alpha (`0x8C`) border stroke.
+- **Dark Mode Highlight:** 14% accent blended into `surfaceElevatedColor` with soft 31% alpha glow.
+- **Non-Motion Accessible Cue:** The playing track title automatically switches to `Typeface.BOLD`, providing instant identification even under extreme ambient sunlight.
+- **State Invariance:** Indicator remains clearly visible when playback is paused.
+
+### RecyclerView Recycling Safety Contract
+To prevent visual leakage, ghost glows, or stale artwork when scrolling rapidly:
+```java
+@Override
+public void onViewRecycled(@NonNull ViewHolder holder) {
+    super.onViewRecycled(holder);
+    // 1. Clear Glide image decoding tasks
+    Glide.with(holder.itemView).clear(holder.ivArtwork);
+    holder.ivArtwork.setImageDrawable(null);
+    
+    // 2. Reset view transformations
+    holder.itemView.setScaleX(1.0f);
+    holder.itemView.setScaleY(1.0f);
+    holder.itemView.setAlpha(1.0f);
+    holder.itemView.setTranslationX(0f);
+    holder.itemView.setTranslationY(0f);
+    
+    // 3. Clear playback highlights & reset typography
+    holder.itemView.setBackground(defaultBackgroundDrawable);
+    holder.tvTitle.setTypeface(Typeface.DEFAULT);
+}
+```
 
 ---
 
-## Project Structure
+## 📂 Project Directory Structure
 
 ```
 SwaraApp/
-├── app/src/main/
-│   ├── AndroidManifest.xml
-│   └── java/com/psthetech/swara/
-│       ├── SwaraApplication.java           # Application entry point
-│       ├── service/
-│       │   └── SwaraPlaybackService.java   # Media3 MediaSessionService + ExoPlayer
-│       ├── data/
-│       │   ├── db/
-│       │   │   ├── AppDatabase.java        # Room database singleton
-│       │   │   ├── dao/                    # FavoriteDao, PlaylistDao, PlayHistoryDao
-│       │   │   └── entity/                # FavoriteSong, Playlist, PlaylistSong, PlayHistory
-│       │   └── repository/                # MusicRepository, FavoritesRepository,
-│       │                                  # PlaylistRepository, PlayHistoryRepository,
-│       │                                  # ArtworkRepository
-│       ├── domain/model/                  # Song, Album, Artist (pure Java POJOs)
-│       ├── ui/
-│       │   ├── MainActivity.java          # Single Activity — NavHost, BottomNav, MiniPlayer
-│       │   ├── adapter/                   # SongAdapter, AlbumAdapter, ArtistAdapter,
-│       │   │                              # PlaylistAdapter, QueueAdapter, LibraryPagerAdapter
-│       │   ├── home/HomeFragment.java
-│       │   ├── library/                   # LibraryFragment, SongsFragment, AlbumsFragment,
-│       │   │                              # ArtistsFragment, AlbumDetailFragment, ArtistDetailFragment
-│       │   ├── search/SearchFragment.java
-│       │   ├── favorites/FavoritesFragment.java
-│       │   ├── playlists/                 # PlaylistsFragment, PlaylistDetailFragment
-│       │   ├── queue/QueueFragment.java
-│       │   ├── nowplaying/NowPlayingFragment.java
-│       │   ├── miniplayer/MiniPlayerFragment.java
-│       │   └── viewmodel/                 # PlaybackViewModel, LibraryViewModel,
-│       │                                  # FavoritesViewModel, PlaylistViewModel
-│       └── util/
-│           ├── ArtworkHelper.java         # Glide-backed artwork loading
-│           ├── PermissionHelper.java      # READ_MEDIA_AUDIO / READ_EXTERNAL_STORAGE
-│           └── TimeFormatter.java         # ms → mm:ss formatting
-├── app/src/main/res/
-│   ├── layout/                           # activity_main, fragment_*, item_*
-│   ├── navigation/nav_graph.xml          # Single nav graph — all destinations
-│   ├── menu/menu_bottom_nav.xml          # Bottom nav items (IDs match nav graph)
-│   └── values/                           # colors, strings, themes, dimens
-├── gradle/libs.versions.toml             # Version catalog
-├── gradle.properties                     # org.gradle.java.home, JVM args
-└── .github/workflows/gradle.yml          # CI: test + assembleDebug on every push/PR
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/psthetech/swara/
+│   │   │   │   ├── data/
+│   │   │   │   │   ├── db/              # Room database, DAOs, entities, migrations
+│   │   │   │   │   ├── preference/      # ThemePreferences, ColorThemes
+│   │   │   │   │   └── repository/      # MusicRepo, PlaylistRepo, PlaylistArtworkStore
+│   │   │   │   ├── domain/              # Models (Song, Album, Artist, ColorTheme)
+│   │   │   │   ├── service/             # SwaraPlaybackService (Media3 MediaSessionService)
+│   │   │   │   ├── ui/
+│   │   │   │   │   ├── adapter/         # SongAdapter, PlaylistAdapter, QueueAdapter, SearchAdapter
+│   │   │   │   │   ├── home/            # HomeFragment, HomePlaylistAdapter
+│   │   │   │   │   ├── library/         # SongsFragment, AlbumsFragment, ArtistsFragment
+│   │   │   │   │   ├── playlists/       # PlaylistsFragment, PlaylistDetailFragment, Dialogs
+│   │   │   │   │   ├── nowplaying/      # NowPlayingFragment, SleepTimerDialog
+│   │   │   │   │   ├── miniplayer/      # MiniPlayerFragment
+│   │   │   │   │   ├── theme/           # DesignTokens, MorphismThemeManager, ThemedDialogHelper
+│   │   │   │   │   └── viewmodel/       # Playback, Library, Playlist, Favorites ViewModels
+│   │   │   │   └── util/                # PlaylistArtworkHelper, FavoriteAnimationHelper
+│   │   │   └── res/
+│   │   │       ├── layout/              # All Liquid Glass XML screens & custom dialogs
+│   │   │       ├── values/              # Semantic colors, strings, themes
+│   │   │       └── values-night/        # Obsidian night mode themes
+│   │   └── test/java/com/psthetech/swara/
+│   │       ├── PlaylistPolishPass2Test.java       # 12-criteria comprehensive test suite
+│   │       ├── ThemeContrastAndSemanticsTest.java # WCAG AA/AAA contrast validation
+│   │       ├── PlaylistArtworkTest.java           # Artwork priority, collage & cache invalidation
+│   │       ├── MorphismThemeTest.java             # ColorTheme & Liquid Glass tokens test
+│   │       └── SearchLogicTest.java               # Search filtering verification
+└── gradle/                                        # Gradle wrapper and version catalog
 ```
 
 ---
 
-## Build & Run
+## 🚀 Building & Installation
 
 ### Prerequisites
+- **JDK:** Java 17 or higher
+- **Android SDK:** Platform 34 (Android 14)
+- **Build Tools:** 34.0.0
+- **Gradle:** 8.4+
 
-| Requirement | Minimum version |
-|---|---|
-| Android Studio | Ladybug (2024.2) or later |
-| JDK | 17+ with full JDK tools (not just JRE) |
-| Android SDK | compileSdk 36, minSdk 24 |
-| Android device / emulator | API 24+ |
-
-> **`jlink` requirement:** AGP 9.x + compileSdk 36 generates a JDK image during compilation and
-> requires the `jlink` tool, which ships with a **full JDK** but not with a standalone JRE.
-> If `./gradlew` fails with:
-> ```
-> jlink executable … does not exist
-> ```
-> set `org.gradle.java.home` in `gradle.properties` to point at your full JDK installation, e.g.:
-> ```properties
-> org.gradle.java.home=/usr/lib/jvm/java-17-openjdk
-> ```
-> The project already ships this property configured for the build environment.
-
-### Clone
-
+### Command-Line Build
 ```bash
-git clone git@github.com:PRABHUSIDDARTH/SwaraApp.git
+# Clone repository
+git clone https://github.com/PRABHUSIDDARTH/SwaraApp.git
 cd SwaraApp
-```
 
-### Command-line build
-
-```bash
-# Run unit tests
+# Run complete unit test suite
 ./gradlew test
 
 # Build debug APK
-# Output: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew assembleDebug
 
-# Build release APK
-./gradlew assembleRelease
-```
-
-### Install on a connected device or emulator
-
-```bash
+# Install directly to connected device (e.g. Samsung Galaxy S21+)
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Open in Android Studio
+---
 
-1. **File → Open** → select the `SwaraApp/` directory.
-2. Wait for the Gradle sync to complete.
-3. Select the `app` run configuration and press **Run ▶**.
+## 🧪 Test Suite & Quality Verification
 
-### Runtime permissions
+Swara V2 includes extensive unit testing across all layers:
+- **`PlaylistPolishPass2Test`**: Verifies 12 critical criteria:
+  1. Multi-tier artwork resolution priority
+  2. Custom artwork precedence over collage
+  3. Dynamic collage generation fallback
+  4. Home playlist adapter wiring & album ID lookup
+  5. Artwork refresh and Glide signature cache busting
+  6. Light Mode playback colors and contrast ratios ($>1.32:1$)
+  7. Dark Mode obsidian playback colors and luminance
+  8. All 7 ColorThemes contrast compliance
+  9. Create Playlist theme semantics and button contrast
+  10. Playlist Detail visual hierarchy (Play vs Shuffle)
+  11. RecyclerView cell recycling safety contract
+  12. Media3 playing/paused state lifecycle invariants
+- **`ThemeContrastAndSemanticsTest`**: Formulaic WCAG AAA verification across all light and dark palettes.
+- **`PlaylistArtworkTest`**: File lifecycle, collision avoidance, and disk cleanup verification.
 
-On first launch Swara requests **`READ_MEDIA_AUDIO`** (API 33+) or **`READ_EXTERNAL_STORAGE`**
-(API ≤ 32). The permission must be granted to allow `MediaStore` to discover on-device audio files.
+All tests run cleanly via `./gradlew test` with zero warnings or failures.
 
 ---
 
-## Known Issues & Fixes
-
-### `IllegalStateException: Activity does not have a NavController set on nav_host_fragment`
-
-**Observed on:** Samsung Galaxy S21+ (Android 13/14), Navigation Component 2.8.9
-
-**Root cause:** `Navigation.findNavController(Activity, @IdRes int)` is incompatible with
-`FragmentContainerView` hosts when using Navigation Component ≥ 2.3. The `NavController` is
-attached to the `NavHostFragment`'s child view, not to the container view itself. Calling the
-Activity-scoped lookup immediately after `setContentView()` finds no controller and throws.
-
-**Fix applied** — retrieve the `NavController` via `FragmentManager` instead:
-
-```java
-// MainActivity.java — correct pattern for FragmentContainerView hosts (Navigation ≥ 2.3)
-NavHostFragment navHostFragment = (NavHostFragment)
-        getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-navController = navHostFragment.getNavController();
-```
-
-The same pattern was corrected in `MiniPlayerFragment.java`, which also navigated using the
-incompatible `Navigation.findNavController(requireActivity(), id)` overload.
-
----
-
-## Contributing
-
-1. Fork the repository and create a feature branch from `main`.
-2. Follow the existing code style: Java 11, no Kotlin, `@NonNull`/`@Nullable` annotations,
-   Javadoc on public API.
-3. Keep `MainActivity` and `SwaraPlaybackService` decoupled — all playback state flows through
-   `PlaybackViewModel → MediaController`.
-4. Run `./gradlew test` before opening a PR. All unit tests must pass.
-5. Open a pull request with a clear description of what changed and why.
-
-### Commit message convention
+## 📄 License
 
 ```
-<type>(<scope>): <short summary>
+Copyright (C) 2026 PRABHUSIDDARTH (PSTHEECH)
 
-type  = fix | feat | refactor | test | docs | ci | chore
-scope = ui | nav | playback | db | repo | util | build | readme
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
-
----
-
-## License
-
-Copyright 2024 PRABHUSIDDARTH
-
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.
