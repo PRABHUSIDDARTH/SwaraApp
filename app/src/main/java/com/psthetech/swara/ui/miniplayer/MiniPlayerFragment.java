@@ -83,10 +83,10 @@ public class MiniPlayerFragment extends Fragment {
                     if (tokens == null || getView() == null) return;
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                             .applyToView(rootView, true, tokens);
-                    tvTitle.setTextColor(tokens.getPrimaryTextColor());
-                    tvArtist.setTextColor(tokens.getSecondaryTextColor());
+                    tvTitle.setTextColor(tokens.getTextPrimaryColor());
+                    tvArtist.setTextColor(tokens.getTextSecondaryColor());
                     btnPlayPause.setBackground(tokens.createCardDrawable(requireContext()));
-                    btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
+                    btnPlayPause.setColorFilter(tokens.getTextPrimaryColor());
                     btnNext.setColorFilter(tokens.getAccentColor());
                     if (progressLine != null) {
                         progressLine.setBackgroundColor(tokens.getAccentColor());
