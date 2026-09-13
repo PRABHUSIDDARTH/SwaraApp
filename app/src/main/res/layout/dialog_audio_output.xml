@@ -126,35 +126,68 @@
         android:layout_height="wrap_content"
         android:overScrollMode="never" />
 
-    <!-- Multi-output capability hint banner -->
+    <!-- Multi-output / Samsung Dual Audio capability banner -->
     <LinearLayout
         android:id="@+id/layoutMultiOutputBanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="12dp"
+        android:orientation="vertical"
+        android:padding="16dp"
         android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="16dp"
         android:visibility="gone">
 
-        <ImageView
-            android:id="@+id/ivMultiOutputIcon"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:src="@drawable/ic_bluetooth"
-            app:tint="@color/swara_lavender"
-            android:contentDescription="@null" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/ivMultiOutputIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_bluetooth"
+                app:tint="@color/swara_gold"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/tvMultiOutputHeader"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="Multiple Bluetooth outputs detected"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/swara_text_primary" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvMultiOutputText"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:text="Multiple Bluetooth outputs detected. Use Samsung Dual Audio in Quick Panel to stream to multiple devices."
-            android:textSize="11sp"
+            android:layout_marginTop="8dp"
+            android:text="Samsung Dual Audio can play to two Bluetooth devices simultaneously.\n\nUse Samsung Media Output to select multiple devices."
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
             android:textColor="@color/swara_text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenMediaOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Open Media Output"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_bluetooth"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            style="@style/Widget.MaterialComponents.Button" />
 
     </LinearLayout>
 
