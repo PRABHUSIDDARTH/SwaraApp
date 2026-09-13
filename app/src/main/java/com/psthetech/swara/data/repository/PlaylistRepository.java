@@ -131,10 +131,7 @@ public class PlaylistRepository {
     public void addSongToPlaylist(long playlistId, Song song) {
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
             int nextPos = dao.getSongCount(playlistId); // 0-based: count is next free index
-            PlaylistSong ps = new PlaylistSong(
-                    playlistId, song.getId(), nextPos,
-                    song.getTitle(), song.getArtist(), song.getAlbum(),
-                    song.getAlbumId(), song.getDuration());
+            PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos);
             dao.addSongToPlaylist(ps);
             touchModifiedAt(playlistId);
         });
@@ -154,10 +151,7 @@ public class PlaylistRepository {
                 }
             } else {
                 int nextPos = dao.getSongCount(playlistId);
-                PlaylistSong ps = new PlaylistSong(
-                        playlistId, song.getId(), nextPos,
-                        song.getTitle(), song.getArtist(), song.getAlbum(),
-                        song.getAlbumId(), song.getDuration());
+                PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos);
                 dao.addSongToPlaylist(ps);
                 touchModifiedAt(playlistId);
                 if (callback != null) {
@@ -174,10 +168,7 @@ public class PlaylistRepository {
             Playlist playlist = new Playlist(name, now, now);
             long id = dao.createPlaylist(playlist);
             // Add song at position 0
-            PlaylistSong ps = new PlaylistSong(
-                    id, song.getId(), 0,
-                    song.getTitle(), song.getArtist(), song.getAlbum(),
-                    song.getAlbumId(), song.getDuration());
+            PlaylistSong ps = createPlaylistSongEntity(id, song, 0);
             dao.addSongToPlaylist(ps);
             dao.renamePlaylist(id, name, System.currentTimeMillis());
             if (callback != null) {
@@ -192,15 +183,22 @@ public class PlaylistRepository {
             int nextPos = dao.getSongCount(playlistId);
             for (Song song : songs) {
                 if (!dao.isSongInPlaylist(playlistId, song.getId())) {
-                    PlaylistSong ps = new PlaylistSong(
-                            playlistId, song.getId(), nextPos++,
-                            song.getTitle(), song.getArtist(), song.getAlbum(),
-                            song.getAlbumId(), song.getDuration());
+                    PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos++);
                     dao.addSongToPlaylist(ps);
                 }
             }
             touchModifiedAt(playlistId);
         });
+    }
+
+    private PlaylistSong createPlaylistSongEntity(long playlistId, Song song, int position) {
+        Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
+        long duration = song.getDuration() > 0 ? song.getDuration() : (canonical != null ? canonical.getDuration() : 0);
+        long albumId = song.getAlbumId() != 0 ? song.getAlbumId() : (canonical != null ? canonical.getAlbumId() : 0);
+        return new PlaylistSong(
+                playlistId, song.getId(), position,
+                song.getTitle(), song.getArtist(), song.getAlbum(),
+                albumId, duration);
     }
 
     public void removeSongFromPlaylist(long playlistId, long songId) {
