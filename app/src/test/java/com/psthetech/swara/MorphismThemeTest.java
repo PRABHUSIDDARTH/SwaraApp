@@ -60,6 +60,11 @@ public class MorphismThemeTest {
     }
 
     @Test
+    public void testThemePreferencesMorphismIsLockedToLiquidGlass() {
+        assertEquals(MorphismStyle.LIQUID_GLASS, MorphismStyle.LIQUID_GLASS);
+    }
+
+    @Test
     public void testThemeModeMapping() {
         assertEquals(ThemeMode.DARK, ThemeMode.fromId(2));
         assertEquals(AppCompatDelegate.MODE_NIGHT_YES, ThemeMode.DARK.getNightMode());

@@ -20,9 +20,9 @@ public class LibrarySortOrderTest {
     @Before
     public void setUp() {
         sampleSongs = new ArrayList<>();
-        sampleSongs.add(new Song(1L, "Zebra Song", "Artist B", "Album 1", 300000L, 1L, 2024, 0, 1000L));
-        sampleSongs.add(new Song(2L, "Alpha Song", "Artist A", "Album 1", 180000L, 1L, 2024, 0, 2000L));
-        sampleSongs.add(new Song(3L, "Beta Song", "Artist C", "Album 1", 240000L, 1L, 2024, 0, 1500L));
+        sampleSongs.add(new Song(1L, "Zebra Song", "Artist B", "Album 1", 1L, 300000L, 2024, 0, 1000L));
+        sampleSongs.add(new Song(2L, "Alpha Song", "Artist A", "Album 1", 1L, 180000L, 2024, 0, 2000L));
+        sampleSongs.add(new Song(3L, "Beta Song", "Artist C", "Album 1", 1L, 240000L, 2024, 0, 1500L));
     }
 
     @Test
@@ -44,9 +44,9 @@ public class LibrarySortOrderTest {
     @Test
     public void testSortDurationAscending() {
         sortSongs(sampleSongs, SortOrder.DURATION_ASC);
-        assertEquals(180000L, sampleSongs.get(0).getDurationMs());
-        assertEquals(240000L, sampleSongs.get(1).getDurationMs());
-        assertEquals(300000L, sampleSongs.get(2).getDurationMs());
+        assertEquals(180000L, sampleSongs.get(0).getDuration());
+        assertEquals(240000L, sampleSongs.get(1).getDuration());
+        assertEquals(300000L, sampleSongs.get(2).getDuration());
     }
 
     @Test
@@ -67,7 +67,7 @@ public class LibrarySortOrderTest {
                 comp = (a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist());
                 break;
             case DURATION_ASC:
-                comp = Comparator.comparingLong(Song::getDurationMs);
+                comp = Comparator.comparingLong(Song::getDuration);
                 break;
             case TITLE_ASC:
             default:
