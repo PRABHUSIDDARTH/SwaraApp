@@ -1,6 +1,7 @@
 package com.psthetech.swara.ui.adapter;
 
 import android.annotation.SuppressLint;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -144,6 +145,28 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
     public void onViewRecycled(@NonNull QueueViewHolder holder) {
         super.onViewRecycled(holder);
         ArtworkHelper.clear(holder.itemView.getContext(), holder.queueSongArt);
+        holder.queueSongArt.setImageDrawable(null);
+        holder.itemView.setBackground(null);
+        holder.queueSongTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        holder.itemView.setAlpha(1.0f);
+        holder.itemView.setTranslationX(0f);
+        holder.itemView.setTranslationY(0f);
+    }
+
+    private static void applyPlaybackGlow(QueueViewHolder holder, boolean isPlaying, DesignTokens tokens) {
+        if (isPlaying && tokens != null) {
+            GradientDrawable glow = new GradientDrawable();
+            glow.setShape(GradientDrawable.RECTANGLE);
+            glow.setColor(tokens.getPlaybackHighlightColor());
+            float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
+            glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
+            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackGlowColor());
+            holder.itemView.setBackground(glow);
+        } else {
+            holder.itemView.setBackground(null);
+        }
     }
 
     // ===== ViewHolder =====
@@ -171,11 +194,12 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
 
             queueSongTitle.setText(song.getTitle());
             queueSongArtist.setText(song.getArtist());
+            queueSongTitle.setTypeface(null, isPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
 
             DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
             if (tokens != null) {
                 queueSongTitle.setTextColor(
-                        isPlaying ? tokens.getAccentColor() : tokens.getTextPrimaryColor());
+                        isPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
                 queueSongArtist.setTextColor(tokens.getTextSecondaryColor());
                 if (queuePlayingIndicator != null) {
                     queuePlayingIndicator.setColorFilter(tokens.getAccentColor());
@@ -184,6 +208,8 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
                     ivDragHandle.setColorFilter(tokens.getTextSecondaryColor());
                 }
             }
+
+            applyPlaybackGlow(this, isPlaying, tokens);
 
             if (queuePlayingIndicator != null) {
                 queuePlayingIndicator.setVisibility(isPlaying ? View.VISIBLE : View.GONE);
