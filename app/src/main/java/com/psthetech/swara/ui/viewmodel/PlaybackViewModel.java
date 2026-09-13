@@ -155,6 +155,13 @@ public class PlaybackViewModel extends AndroidViewModel {
             durationMs.postValue(dur);
         } else if (song != null && song.getDuration() > 0) {
             durationMs.postValue(song.getDuration());
+        } else if (song != null) {
+            Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
+            if (canonical != null && canonical.getDuration() > 0) {
+                durationMs.postValue(canonical.getDuration());
+            } else {
+                durationMs.postValue(0L);
+            }
         } else {
             durationMs.postValue(0L);
         }
@@ -455,6 +462,12 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     private MediaItem songToMediaItem(Song song) {
         if (song != null) {
+            if (song.getDuration() <= 0) {
+                Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
+                if (canonical != null && canonical.getDuration() > 0) {
+                    song = canonical;
+                }
+            }
             songCache.put(song.getId(), song);
         }
         android.os.Bundle extras = new android.os.Bundle();
