@@ -68,6 +68,19 @@ public class QueueFragment extends BottomSheetDialogFragment
             btnClearQueue.setOnClickListener(v -> playbackViewModel.clearQueue());
         }
 
+        // Apply design tokens to queue sheet
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
+                    if (tokens == null || getView() == null) return;
+                    getView().setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+                    // Clear queue button
+                    if (btnClearQueue instanceof android.widget.TextView) {
+                        ((android.widget.TextView) btnClearQueue).setTextColor(tokens.getAccentColor());
+                    } else if (btnClearQueue instanceof android.widget.ImageView) {
+                        ((android.widget.ImageView) btnClearQueue).setColorFilter(tokens.getAccentColor());
+                    }
+                });
+
         playbackViewModel.getQueue().observe(getViewLifecycleOwner(), songs -> {
             if (songs != null) {
                 queueAdapter.submitList(songs);
