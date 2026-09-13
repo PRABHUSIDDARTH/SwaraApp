@@ -88,6 +88,15 @@ public class AudioOutputBottomSheet extends BottomSheetDialogFragment {
         rvAudioOutputs.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvAudioOutputs.setAdapter(adapter);
 
+        com.google.android.material.button.MaterialButton btnOpenMediaOutput =
+                view.findViewById(R.id.btnOpenMediaOutput);
+        if (btnOpenMediaOutput != null) {
+            btnOpenMediaOutput.setOnClickListener(v -> {
+                dismiss();
+                openMediaOutputPanel(requireContext());
+            });
+        }
+
         // Apply DesignTokens
         MorphismThemeManager.getInstance().getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
             if (tokens == null || getView() == null) return;
@@ -115,6 +124,64 @@ public class AudioOutputBottomSheet extends BottomSheetDialogFragment {
 
         // Force a fresh scan on open
         audioOutputManager.refreshAudioDevices();
+    }
+
+    public static void openMediaOutputPanel(@NonNull android.content.Context context) {
+        boolean launched = false;
+
+        // 1. Android 10+ Media Output Panel (API 29+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            try {
+                android.content.Intent panelIntent = new android.content.Intent("android.settings.panel.action.MEDIA_OUTPUT");
+                panelIntent.putExtra("com.android.settings.panel.extra.PACKAGE_NAME", context.getPackageName());
+                panelIntent.putExtra("android.provider.extra.PACKAGE_NAME", context.getPackageName());
+                panelIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(panelIntent);
+                launched = true;
+            } catch (Exception e) {
+                android.util.Log.d(TAG, "Standard Media Output panel not available: " + e.getMessage());
+            }
+        }
+
+        // 2. Samsung OneUI Media Output / Quickboard
+        if (!launched) {
+            String[][] samsungIntents = {
+                    {"com.samsung.android.mdx.quickboard", "com.samsung.android.mdx.quickboard.MediaOutputActivity"},
+                    {"com.android.settings", "com.android.settings.panel.MediaOutputPanelActivity"},
+                    {"com.samsung.android.app.soundalive", "com.samsung.android.app.soundalive.activity.MediaOutputActivity"}
+            };
+            for (String[] target : samsungIntents) {
+                try {
+                    android.content.Intent intent = new android.content.Intent();
+                    intent.setComponent(new android.content.ComponentName(target[0], target[1]));
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    launched = true;
+                    break;
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 3. Fallback: Bluetooth settings
+        if (!launched) {
+            try {
+                android.content.Intent btIntent = new android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS);
+                btIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(btIntent);
+                launched = true;
+            } catch (Exception e) {
+                try {
+                    android.content.Intent soundIntent = new android.content.Intent(android.provider.Settings.ACTION_SOUND_SETTINGS);
+                    soundIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(soundIntent);
+                    launched = true;
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (!launched) {
+            Toast.makeText(context, "Open Quick Panel to access Samsung Media Output & Dual Audio", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void bindActiveDevice(@NonNull AudioOutputDevice device) {
@@ -158,11 +225,20 @@ public class AudioOutputBottomSheet extends BottomSheetDialogFragment {
         viewActiveDot.setBackgroundTintList(ColorStateList.valueOf(tokens.getAccentColor()));
 
         if (layoutMultiOutputBanner != null) {
-            layoutMultiOutputBanner.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+            layoutMultiOutputBanner.setBackground(tokens.createCardDrawable(requireContext()));
+            TextView tvHeader = layoutMultiOutputBanner.findViewById(R.id.tvMultiOutputHeader);
+            if (tvHeader != null) tvHeader.setTextColor(tokens.getTextPrimaryColor());
             TextView tvMulti = layoutMultiOutputBanner.findViewById(R.id.tvMultiOutputText);
             if (tvMulti != null) tvMulti.setTextColor(tokens.getTextSecondaryColor());
             ImageView ivMulti = layoutMultiOutputBanner.findViewById(R.id.ivMultiOutputIcon);
             if (ivMulti != null) ivMulti.setColorFilter(tokens.getAccentColor());
+            com.google.android.material.button.MaterialButton btnOpen =
+                    layoutMultiOutputBanner.findViewById(R.id.btnOpenMediaOutput);
+            if (btnOpen != null) {
+                btnOpen.setBackgroundTintList(ColorStateList.valueOf(tokens.getAccentColor()));
+                btnOpen.setTextColor(tokens.getOnAccentColor());
+                btnOpen.setIconTint(ColorStateList.valueOf(tokens.getOnAccentColor()));
+            }
         }
 
         if (adapter != null) {
