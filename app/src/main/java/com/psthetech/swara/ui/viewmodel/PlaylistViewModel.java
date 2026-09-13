@@ -72,6 +72,11 @@ public class PlaylistViewModel extends AndroidViewModel {
         return repository.getSongCountLive(playlistId);
     }
 
+    /** Reactive map of playlistId -> song count for all playlists. */
+    public LiveData<java.util.Map<Long, Integer>> getSongCountsMapLive() {
+        return repository.getSongCountsMapLive();
+    }
+
     // ===== CRUD =====
 
     public void createPlaylist(String name) {
@@ -114,9 +119,12 @@ public class PlaylistViewModel extends AndroidViewModel {
                 String path = artworkStore.getCustomArtworkFile(playlistId).getAbsolutePath();
                 repository.setArtworkPath(playlistId, path);
             }
-            if (onComplete != null) {
-                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
-            }
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+            });
         });
     }
 
@@ -128,9 +136,12 @@ public class PlaylistViewModel extends AndroidViewModel {
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
             artworkStore.removeCustomArtwork(playlistId);
             repository.clearArtworkPath(playlistId);
-            if (onComplete != null) {
-                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
-            }
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+            });
         });
     }
 
@@ -138,7 +149,9 @@ public class PlaylistViewModel extends AndroidViewModel {
 
     /** Adds a song to a playlist (no duplicate check — use addSongToPlaylistChecked for UI). */
     public void addSongToPlaylist(long playlistId, Song song) {
+        artworkStore.invalidateCollage(playlistId);
         repository.addSongToPlaylist(playlistId, song);
+        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     /**
@@ -147,26 +160,48 @@ public class PlaylistViewModel extends AndroidViewModel {
      */
     public void addSongToPlaylistChecked(long playlistId, String playlistName,
                                          Song song, PlaylistRepository.AddSongCallback callback) {
-        repository.addSongToPlaylistChecked(playlistId, playlistName, song, callback);
+        repository.addSongToPlaylistChecked(playlistId, playlistName, song, new PlaylistRepository.AddSongCallback() {
+            @Override
+            public void onAdded(String pName) {
+                artworkStore.invalidateCollage(playlistId);
+                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
+                if (callback != null) callback.onAdded(pName);
+            }
+
+            @Override
+            public void onDuplicate(String pName) {
+                if (callback != null) callback.onDuplicate(pName);
+            }
+        });
     }
 
     /** Creates a new playlist and immediately adds the given song. */
     public void createPlaylistAndAddSong(String name, Song song,
                                          PlaylistRepository.CreateCallback callback) {
-        repository.createPlaylistAndAddSong(name, song, callback);
+        repository.createPlaylistAndAddSong(name, song, playlistId -> {
+            artworkStore.invalidateCollage(playlistId);
+            com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
+            if (callback != null) callback.onCreated(playlistId);
+        });
     }
 
     /** Bulk-adds songs to a playlist, skipping duplicates. */
     public void addSongsToPlaylist(long playlistId, List<Song> songs) {
+        artworkStore.invalidateCollage(playlistId);
         repository.addSongsToPlaylist(playlistId, songs);
+        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     public void removeSongFromPlaylist(long playlistId, long songId) {
+        artworkStore.invalidateCollage(playlistId);
         repository.removeSongFromPlaylist(playlistId, songId);
+        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     public void reorderSong(long playlistId, long songId, int newPosition) {
+        artworkStore.invalidateCollage(playlistId);
         repository.reorderSong(playlistId, songId, newPosition);
+        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     /**

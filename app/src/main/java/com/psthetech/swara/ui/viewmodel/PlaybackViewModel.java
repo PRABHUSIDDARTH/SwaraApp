@@ -386,6 +386,55 @@ public class PlaybackViewModel extends AndroidViewModel {
     }
 
     /**
+     * Updates metadata for a song in-place across current playing state, ExoPlayer timeline,
+     * MediaSession, and queue snapshot without interrupting playback or altering seek position.
+     */
+    public void updateSongMetadataInPlace(@NonNull Song updatedSong) {
+        long id = updatedSong.getId();
+        songCache.put(id, updatedSong);
+
+        // 1. Update active currentSong if matching
+        Song active = currentSong.getValue();
+        if (active != null && active.getId() == id) {
+            currentSong.setValue(updatedSong);
+
+            if (controller != null) {
+                int currentIndex = controller.getCurrentMediaItemIndex();
+                if (currentIndex >= 0 && currentIndex < controller.getMediaItemCount()) {
+                    MediaItem currentItem = controller.getMediaItemAt(currentIndex);
+                    if (currentItem != null && String.valueOf(id).equals(currentItem.mediaId)) {
+                        MediaItem newItem = songToMediaItem(updatedSong);
+                        controller.replaceMediaItem(currentIndex, newItem);
+                    }
+                }
+            }
+        }
+
+        // 2. Update queue snapshot
+        boolean queueChanged = false;
+        for (int i = 0; i < queueSnapshot.size(); i++) {
+            Song s = queueSnapshot.get(i);
+            if (s != null && s.getId() == id) {
+                queueSnapshot.set(i, updatedSong);
+                queueChanged = true;
+                if (controller != null && i < controller.getMediaItemCount()) {
+                    // Update timeline item in place if not current (current handled above)
+                    if (active == null || active.getId() != id) {
+                        MediaItem item = controller.getMediaItemAt(i);
+                        if (item != null && String.valueOf(id).equals(item.mediaId)) {
+                            controller.replaceMediaItem(i, songToMediaItem(updatedSong));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (queueChanged) {
+            currentQueue.setValue(new ArrayList<>(queueSnapshot));
+        }
+    }
+
+    /**
      * Returns ExoPlayer's audio session ID for the system equalizer.
      * Returns AudioEffect.ERROR_BAD_VALUE (= -6) if the controller is not yet connected.
      */

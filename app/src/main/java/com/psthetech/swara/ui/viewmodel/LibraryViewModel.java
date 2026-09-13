@@ -241,19 +241,21 @@ public class LibraryViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<Song>> getSongsForArtist(String artistName) {
-        MutableLiveData<List<Song>> artistSongs = new MutableLiveData<>();
-        musicRepository.loadSongsForArtist(artistName, new MusicRepository.Callback<List<Song>>() {
-            @Override
-            public void onResult(List<Song> result) {
-                artistSongs.setValue(result);
+        if (allSongs.getValue() == null || allSongs.getValue().isEmpty()) {
+            loadSongs();
+        }
+        return Transformations.map(allSongs, songs -> {
+            if (songs == null || songs.isEmpty()) return Collections.emptyList();
+            String canonicalKey = Artist.getCanonicalKey(artistName);
+            List<Song> matched = new ArrayList<>();
+            for (Song s : songs) {
+                if (Artist.getCanonicalKey(s.getArtist()).equals(canonicalKey)) {
+                    matched.add(s);
+                }
             }
-
-            @Override
-            public void onError(String message) {
-                artistSongs.setValue(Collections.emptyList());
-            }
+            matched.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+            return matched;
         });
-        return artistSongs;
     }
 
     /**
@@ -281,5 +283,25 @@ public class LibraryViewModel extends AndroidViewModel {
     public void clearPlayHistory() {
         historyRepository.clearHistory();
     }
-}
 
+    /**
+     * Updates an existing song in the loaded song list and re-emits,
+     * triggering sortedSongs recalculation, plus refreshing albums/artists.
+     */
+    public void onSongMetadataUpdated(@NonNull Song updatedSong) {
+        List<Song> current = allSongs.getValue();
+        if (current == null) return;
+
+        List<Song> updatedList = new ArrayList<>(current.size());
+        for (Song s : current) {
+            if (s.getId() == updatedSong.getId()) {
+                updatedList.add(updatedSong);
+            } else {
+                updatedList.add(s);
+            }
+        }
+        allSongs.setValue(updatedList);
+        loadAlbums();
+        loadArtists();
+    }
+}
