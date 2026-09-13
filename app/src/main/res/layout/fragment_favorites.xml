@@ -13,6 +13,7 @@
         android:gravity="center_vertical">
 
         <TextView
+            android:id="@+id/tvFavoritesTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -72,12 +73,14 @@
             android:visibility="gone">
 
             <ImageView
+                android:id="@+id/ivEmptyFavorites"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:src="@drawable/ic_nav_favorites"
-                android:alpha="0.3" />
+                android:alpha="0.4" />
 
             <TextView
+                android:id="@+id/tvEmptyTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/favorites_empty_title"
@@ -88,6 +91,7 @@
                 android:gravity="center" />
 
             <TextView
+                android:id="@+id/tvEmptySubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/favorites_empty_subtitle"

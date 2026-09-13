@@ -92,30 +92,51 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         if (v == null || tokens == null) return;
         v.setBackground(tokens.createAmbientDrawable());
 
+        // Header Title
+        android.widget.TextView tvFavoritesTitle = v.findViewById(R.id.tvFavoritesTitle);
+        if (tvFavoritesTitle != null) {
+            tvFavoritesTitle.setTextColor(tokens.getTextPrimaryColor());
+        }
+
         // Empty state
+        android.widget.ImageView ivEmptyFavorites = v.findViewById(R.id.ivEmptyFavorites);
+        if (ivEmptyFavorites != null) {
+            ivEmptyFavorites.setColorFilter(tokens.getTextSecondaryColor());
+        }
         android.widget.TextView tvEmptyTitle = v.findViewById(R.id.tvEmptyTitle);
-        if (tvEmptyTitle != null) tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
+        if (tvEmptyTitle != null) {
+            tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
+        }
         android.widget.TextView tvEmptySubtitle = v.findViewById(R.id.tvEmptySubtitle);
-        if (tvEmptySubtitle != null) tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
+        if (tvEmptySubtitle != null) {
+            tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
+        }
 
         // Play-all and Shuffle buttons
-        applyButtonTokens(btnPlayAllFavorites, tokens);
-        applyButtonTokens(btnShuffleFavorites, tokens);
+        float dp = v.getContext().getResources().getDisplayMetrics().density;
+        int cornerRadius = (int) (tokens.getCornerRadiusDp() * dp);
+
+        if (btnPlayAllFavorites instanceof com.google.android.material.button.MaterialButton) {
+            com.google.android.material.button.MaterialButton mbPlay =
+                    (com.google.android.material.button.MaterialButton) btnPlayAllFavorites;
+            mbPlay.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
+            mbPlay.setTextColor(tokens.getButtonTextColor());
+            mbPlay.setIconTint(android.content.res.ColorStateList.valueOf(tokens.getButtonTextColor()));
+            mbPlay.setCornerRadius(cornerRadius);
+        }
+
+        if (btnShuffleFavorites instanceof com.google.android.material.button.MaterialButton) {
+            com.google.android.material.button.MaterialButton mbShuffle =
+                    (com.google.android.material.button.MaterialButton) btnShuffleFavorites;
+            mbShuffle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getSurfaceVariantColor()));
+            mbShuffle.setTextColor(tokens.getTextPrimaryColor());
+            mbShuffle.setStrokeColor(android.content.res.ColorStateList.valueOf(tokens.getStrokeColor()));
+            mbShuffle.setStrokeWidth((int) (tokens.getStrokeWidthDp() * dp));
+            mbShuffle.setIconTint(android.content.res.ColorStateList.valueOf(tokens.getTextPrimaryColor()));
+            mbShuffle.setCornerRadius(cornerRadius);
+        }
 
         if (songAdapter != null) songAdapter.notifyDataSetChanged();
-    }
-
-    private void applyButtonTokens(View btn, com.psthetech.swara.ui.theme.DesignTokens tokens) {
-        if (btn == null) return;
-        if (btn instanceof android.widget.TextView) {
-            ((android.widget.TextView) btn).setTextColor(tokens.getButtonTextColor());
-        }
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        bg.setColor(tokens.getAccentColor());
-        float dp = btn.getContext().getResources().getDisplayMetrics().density;
-        bg.setCornerRadius(tokens.getCornerRadiusDp() * dp);
-        btn.setBackground(bg);
     }
 
     private void observeData() {
@@ -182,6 +203,13 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
     public void onEditArtwork(Song song) {
         if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
+        }
+    }
+
+    @Override
+    public void onEditSongInfo(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
         }
     }
 
