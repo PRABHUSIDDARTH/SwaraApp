@@ -84,12 +84,88 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
 
         setGreeting();
 
-        recentlyPlayedAdapter = new SongAdapter(this);
+        recentlyPlayedAdapter = new SongAdapter(new SongAdapter.Listener() {
+            @Override
+            public void onSongClick(Song song, int position) {
+                playSongFromList(song, recentlyPlayedAdapter.getCurrentList());
+            }
+
+            @Override
+            public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
+                HomeFragment.this.onFavoriteToggle(song, currentlyFavorite);
+            }
+
+            @Override
+            public void onPlayNext(Song song) {
+                HomeFragment.this.onPlayNext(song);
+            }
+
+            @Override
+            public void onAddToQueue(Song song) {
+                HomeFragment.this.onAddToQueue(song);
+            }
+
+            @Override
+            public void onAddToPlaylist(Song song) {
+                HomeFragment.this.onAddToPlaylist(song);
+            }
+
+            @Override
+            public void onRemoveFromPlaylist(Song song) {}
+
+            @Override
+            public void onEditArtwork(Song song) {
+                HomeFragment.this.onEditArtwork(song);
+            }
+
+            @Override
+            public void onDeleteSong(Song song) {
+                HomeFragment.this.onDeleteSong(song);
+            }
+        });
         rvRecentlyPlayed.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyPlayed.setAdapter(recentlyPlayedAdapter);
 
-        recentlyAddedAdapter = new SongAdapter(this);
+        recentlyAddedAdapter = new SongAdapter(new SongAdapter.Listener() {
+            @Override
+            public void onSongClick(Song song, int position) {
+                playSongFromList(song, recentlyAddedAdapter.getCurrentList());
+            }
+
+            @Override
+            public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
+                HomeFragment.this.onFavoriteToggle(song, currentlyFavorite);
+            }
+
+            @Override
+            public void onPlayNext(Song song) {
+                HomeFragment.this.onPlayNext(song);
+            }
+
+            @Override
+            public void onAddToQueue(Song song) {
+                HomeFragment.this.onAddToQueue(song);
+            }
+
+            @Override
+            public void onAddToPlaylist(Song song) {
+                HomeFragment.this.onAddToPlaylist(song);
+            }
+
+            @Override
+            public void onRemoveFromPlaylist(Song song) {}
+
+            @Override
+            public void onEditArtwork(Song song) {
+                HomeFragment.this.onEditArtwork(song);
+            }
+
+            @Override
+            public void onDeleteSong(Song song) {
+                HomeFragment.this.onDeleteSong(song);
+            }
+        });
         rvRecentlyAdded.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyAdded.setAdapter(recentlyAddedAdapter);
