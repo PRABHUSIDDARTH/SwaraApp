@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -106,6 +107,9 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
     // ===== Data observation =====
 
     private void observeData() {
+        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                .getDesignTokens().observe(getViewLifecycleOwner(), this::applyDesignTokens);
+
         libraryViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             if (progressBar != null) progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         });
@@ -113,6 +117,12 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
+            }
+        });
+
+        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            if (songAdapter != null) {
+                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
 
@@ -126,6 +136,46 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
                 songAdapter.submitList(songs);
             }
         });
+    }
+
+    private void applyDesignTokens(com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        View view = getView();
+        if (tokens == null || view == null) return;
+
+        view.setBackground(tokens.createAmbientDrawable());
+
+        View headerBar = view.findViewById(R.id.headerBar);
+        if (headerBar instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) headerBar;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child instanceof android.widget.TextView) {
+                    ((android.widget.TextView) child).setTextColor(tokens.getTextPrimaryColor());
+                }
+            }
+        }
+
+        if (btnSort != null) {
+            btnSort.setColorFilter(tokens.getAccentColor());
+        }
+
+        if (progressBar != null) {
+            progressBar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
+        }
+
+        TextView tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle);
+        if (tvEmptyTitle != null) {
+            tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
+        }
+
+        TextView tvEmptySubtitle = view.findViewById(R.id.tvEmptySubtitle);
+        if (tvEmptySubtitle != null) {
+            tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
+        }
+
+        if (songAdapter != null) {
+            songAdapter.notifyDataSetChanged();
+        }
     }
 
     // ===== SongAdapter.Listener =====
