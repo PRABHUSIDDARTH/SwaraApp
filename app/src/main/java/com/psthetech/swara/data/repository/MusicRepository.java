@@ -257,29 +257,15 @@ public class MusicRepository {
                             1, rep.getYear(), Collections.singletonList(rep)));
                 }
 
-                // Artists: distinct artists whose name matches query, deduplicated by canonical key
-                Map<String, List<Song>> artistSongsMap = new LinkedHashMap<>();
-                Map<String, String> artistDisplayNames = new HashMap<>();
-                for (Song s : allMatching) {
-                    String canonical = Artist.getCanonicalKey(s.getArtist());
-                    if (canonical.contains(q)) {
-                        artistSongsMap.computeIfAbsent(canonical, k -> new ArrayList<>()).add(s);
-                        String candidate = Artist.normalizeDisplayName(s.getArtist());
-                        if (!artistDisplayNames.containsKey(canonical)
-                                || (artistDisplayNames.get(canonical).equalsIgnoreCase("Unknown Artist")
-                                && !candidate.equalsIgnoreCase("Unknown Artist"))) {
-                            artistDisplayNames.put(canonical, candidate);
-                        }
-                    }
-                }
+                // Artists: distinct canonical artists whose name matches query, containing all their songs
+                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching);
                 List<Artist> artistResults = new ArrayList<>();
-                for (Map.Entry<String, List<Song>> e : artistSongsMap.entrySet()) {
-                    List<Song> aSongs = e.getValue();
-                    long distinctAlbums = aSongs.stream().map(Song::getAlbumId).distinct().count();
-                    long repAlbumId = aSongs.get(0).getAlbumId();
-                    String displayName = artistDisplayNames.getOrDefault(e.getKey(), "Unknown Artist");
-                    artistResults.add(new Artist(displayName, aSongs.size(), (int) distinctAlbums,
-                            repAlbumId, aSongs));
+                String canonicalQuery = com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(q);
+                for (Artist a : allArtistsFromMatching) {
+                    if (a.getName().toLowerCase(Locale.getDefault()).contains(q)
+                            || com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(a.getName()).contains(canonicalQuery)) {
+                        artistResults.add(a);
+                    }
                 }
 
                 final List<Song>   finalSongs   = songResults;
