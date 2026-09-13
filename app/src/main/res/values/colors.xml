@@ -38,9 +38,16 @@
     <color name="swara_nav_selected">#C9A84C</color>
     <color name="swara_nav_unselected">#9B7EC8</color>
 
-    <!-- ===== LIGHT SURFACE FALLBACKS (unused in V2 — dark only) ===== -->
-    <color name="swara_light_bg">#F7F4FC</color>
-    <color name="swara_light_surface">#EDE5F8</color>
+    <!-- ===== LIGHT SURFACE & TEXT PALETTE ===== -->
+    <color name="swara_light_bg">#F6F2FC</color>
+    <color name="swara_light_bg_secondary">#EDE6F7</color>
+    <color name="swara_light_surface">#FFFFFF</color>
+    <color name="swara_light_surface_variant">#EDE6F7</color>
+    <color name="swara_light_text_primary">#1F0F3D</color>
+    <color name="swara_light_text_secondary">#5B4380</color>
+    <color name="swara_light_text_dim">#7E69A3</color>
+    <color name="swara_light_text_hint">#7E69A3</color>
+    <color name="swara_light_stroke">#DCCDF2</color>
     <color name="ic_launcher_background">#3D1F7A</color>
 
     <!-- ===== SEMANTIC ALIASES ===== -->
