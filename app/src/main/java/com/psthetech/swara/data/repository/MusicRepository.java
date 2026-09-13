@@ -354,7 +354,9 @@ public class MusicRepository {
                     // Skip songs with id 0 (malformed entries)
                     if (id <= 0) continue;
 
-                    songs.add(new Song(id, title, artist, album, albumId, duration, track, year, dateAdded));
+                    Song song = new Song(id, title, artist, album, albumId, duration, track, year, dateAdded);
+                    canonicalSongMap.put(id, song);
+                    songs.add(song);
                 } catch (Exception rowEx) {
                     Log.w(TAG, "Skipping malformed MediaStore row", rowEx);
                 }
@@ -394,49 +396,6 @@ public class MusicRepository {
     }
 
     public static List<Artist> buildArtists(List<Song> songs) {
-        if (songs == null || songs.isEmpty()) {
-            return Collections.emptyList();
-        }
-        Map<String, List<Song>> artistMap = new LinkedHashMap<>();
-        Map<String, String> displayNames = new HashMap<>();
-
-        for (Song song : songs) {
-            String canonicalKey = Artist.getCanonicalKey(song.getArtist());
-            artistMap.computeIfAbsent(canonicalKey, k -> new ArrayList<>()).add(song);
-
-            String candidate = Artist.normalizeDisplayName(song.getArtist());
-            String currentDisplay = displayNames.get(canonicalKey);
-            if (currentDisplay == null) {
-                displayNames.put(canonicalKey, candidate);
-            } else if (!candidate.equalsIgnoreCase("Unknown Artist")) {
-                if (currentDisplay.equalsIgnoreCase("Unknown Artist") || hasMoreUppercase(candidate, currentDisplay)) {
-                    displayNames.put(canonicalKey, candidate);
-                }
-            }
-        }
-
-        List<Artist> artists = new ArrayList<>();
-        for (Map.Entry<String, List<Song>> entry : artistMap.entrySet()) {
-            String canonicalKey = entry.getKey();
-            List<Song> artistSongs = entry.getValue();
-            artistSongs.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
-            long distinctAlbums = artistSongs.stream()
-                    .map(Song::getAlbumId).distinct().count();
-            long repAlbumId = artistSongs.isEmpty() ? -1L : artistSongs.get(0).getAlbumId();
-            String displayName = displayNames.getOrDefault(canonicalKey, "Unknown Artist");
-            artists.add(new Artist(displayName, artistSongs.size(), (int) distinctAlbums,
-                    repAlbumId, artistSongs));
-        }
-
-        Collections.sort(artists, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        return artists;
-    }
-
-    private static boolean hasMoreUppercase(String candidate, String current) {
-        int countCand = 0;
-        for (char c : candidate.toCharArray()) { if (Character.isUpperCase(c)) countCand++; }
-        int countCur = 0;
-        for (char c : current.toCharArray()) { if (Character.isUpperCase(c)) countCur++; }
-        return countCand > countCur;
+        return com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
     }
 }
