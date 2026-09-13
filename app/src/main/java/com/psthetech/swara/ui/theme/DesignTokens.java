@@ -479,10 +479,47 @@ public class DesignTokens {
     }
 
     /**
-     * Soft accent glow color (with alpha) applied as the stroke of the currently
-     * playing song row.
+     * Semantic playback surface color for the currently playing item row background.
+     * In dark mode: mixes surfaceElevatedColor with accent at 14% for an atmospheric tinted glass feel.
+     * In light mode: mixes surfaceVariantColor with accent at 22% so it is immediately and clearly
+     * identifiable against light background surfaces while preserving WCAG AAA text contrast.
+     */
+    public int getPlaybackSurfaceColor() {
+        if (isNightMode) {
+            return mix(surfaceElevatedColor, accentColor, 0.14f);
+        } else {
+            return mix(surfaceVariantColor, accentColor, 0.22f);
+        }
+    }
+
+    /**
+     * Backward-compatible alias for getPlaybackSurfaceColor().
+     */
+    public int getPlaybackHighlightColor() {
+        return getPlaybackSurfaceColor();
+    }
+
+    /**
+     * Semantic playback stroke border color for currently playing rows.
+     * In dark mode: uses a restrained ~35% alpha accent border.
+     * In light mode: mixes accent with deep primary color at 20% to produce a crisp, readable,
+     * high-definition stroke that never washes out on light surfaces.
+     */
+    public int getPlaybackStrokeColor() {
+        if (isNightMode) {
+            int r = android.graphics.Color.red(accentColor);
+            int g = android.graphics.Color.green(accentColor);
+            int b = android.graphics.Color.blue(accentColor);
+            return android.graphics.Color.argb(90, r, g, b); // ~35% alpha
+        } else {
+            return mix(accentColor, primaryColor, 0.20f);
+        }
+    }
+
+    /**
+     * Soft accent glow color (with alpha) for ambient highlight cues.
      * In dark mode: uses ~31% alpha accent for atmospheric glow.
-     * In light mode: uses ~55% alpha accent for a crisp, readable, elegant stroke border.
+     * In light mode: uses ~47% alpha accent for controlled definition.
      */
     public int getPlaybackGlowColor() {
         int r = android.graphics.Color.red(accentColor);
@@ -491,23 +528,15 @@ public class DesignTokens {
         if (isNightMode) {
             return android.graphics.Color.argb(80, r, g, b); // ~31%
         } else {
-            return android.graphics.Color.argb(140, r, g, b); // ~55% for clean contrast in Light Mode
+            return android.graphics.Color.argb(120, r, g, b); // ~47%
         }
     }
 
     /**
-     * Surface highlight color for the currently playing song row background.
-     * In dark mode: mixes surfaceElevatedColor with accent at 14%.
-     * In light mode: mixes surfaceVariantColor with accent at 18% so it is clearly
-     * visible against light surfaces (including pure white or pastel background)
-     * without neon glare, maintaining high WCAG AAA text contrast.
+     * Semantic icon/accent tint for playback indicators.
      */
-    public int getPlaybackHighlightColor() {
-        if (isNightMode) {
-            return mix(surfaceElevatedColor, accentColor, 0.14f);
-        } else {
-            return mix(surfaceVariantColor, accentColor, 0.18f);
-        }
+    public int getPlaybackIconColor() {
+        return getReadableAccentColor();
     }
 
     /**
