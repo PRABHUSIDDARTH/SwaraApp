@@ -15,6 +15,7 @@ import com.psthetech.swara.domain.model.Song;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -116,10 +117,15 @@ public class MusicRepository {
     public void loadSongsForArtist(String artistName, Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
-                String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.ARTIST + " = ?";
-                String[] args = new String[]{artistName};
-                List<Song> songs = querySongs(selection, args, MediaStore.Audio.Media.TITLE + " ASC");
+                String canonicalKey = Artist.getCanonicalKey(artistName);
+                List<Song> allSongs = querySongs(null, null, null);
+                List<Song> songs = new ArrayList<>();
+                for (Song s : allSongs) {
+                    if (Artist.getCanonicalKey(s.getArtist()).equals(canonicalKey)) {
+                        songs.add(s);
+                    }
+                }
+                songs.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
                 mainHandler.post(() -> callback.onResult(songs));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load songs for artist", e);
@@ -229,18 +235,29 @@ public class MusicRepository {
                             1, rep.getYear(), Collections.singletonList(rep)));
                 }
 
-                // Artists: distinct artists whose name matches query
-                Map<String, Song> artistReps = new LinkedHashMap<>();
+                // Artists: distinct artists whose name matches query, deduplicated by canonical key
+                Map<String, List<Song>> artistSongsMap = new LinkedHashMap<>();
+                Map<String, String> artistDisplayNames = new HashMap<>();
                 for (Song s : allMatching) {
-                    if (s.getArtist().toLowerCase(Locale.getDefault()).contains(q)) {
-                        artistReps.putIfAbsent(s.getArtist(), s);
+                    String canonical = Artist.getCanonicalKey(s.getArtist());
+                    if (canonical.contains(q)) {
+                        artistSongsMap.computeIfAbsent(canonical, k -> new ArrayList<>()).add(s);
+                        String candidate = Artist.normalizeDisplayName(s.getArtist());
+                        if (!artistDisplayNames.containsKey(canonical)
+                                || (artistDisplayNames.get(canonical).equalsIgnoreCase("Unknown Artist")
+                                && !candidate.equalsIgnoreCase("Unknown Artist"))) {
+                            artistDisplayNames.put(canonical, candidate);
+                        }
                     }
                 }
                 List<Artist> artistResults = new ArrayList<>();
-                for (Map.Entry<String, Song> e : artistReps.entrySet()) {
-                    Song rep = e.getValue();
-                    artistResults.add(new Artist(rep.getArtist(), 1, 1,
-                            rep.getAlbumId(), Collections.singletonList(rep)));
+                for (Map.Entry<String, List<Song>> e : artistSongsMap.entrySet()) {
+                    List<Song> aSongs = e.getValue();
+                    long distinctAlbums = aSongs.stream().map(Song::getAlbumId).distinct().count();
+                    long repAlbumId = aSongs.get(0).getAlbumId();
+                    String displayName = artistDisplayNames.getOrDefault(e.getKey(), "Unknown Artist");
+                    artistResults.add(new Artist(displayName, aSongs.size(), (int) distinctAlbums,
+                            repAlbumId, aSongs));
                 }
 
                 final List<Song>   finalSongs   = songResults;
@@ -354,24 +371,50 @@ public class MusicRepository {
         return albums;
     }
 
-    private List<Artist> buildArtists(List<Song> songs) {
+    public static List<Artist> buildArtists(List<Song> songs) {
+        if (songs == null || songs.isEmpty()) {
+            return Collections.emptyList();
+        }
         Map<String, List<Song>> artistMap = new LinkedHashMap<>();
+        Map<String, String> displayNames = new HashMap<>();
+
         for (Song song : songs) {
-            artistMap.computeIfAbsent(song.getArtist(), k -> new ArrayList<>()).add(song);
+            String canonicalKey = Artist.getCanonicalKey(song.getArtist());
+            artistMap.computeIfAbsent(canonicalKey, k -> new ArrayList<>()).add(song);
+
+            String candidate = Artist.normalizeDisplayName(song.getArtist());
+            String currentDisplay = displayNames.get(canonicalKey);
+            if (currentDisplay == null) {
+                displayNames.put(canonicalKey, candidate);
+            } else if (!candidate.equalsIgnoreCase("Unknown Artist")) {
+                if (currentDisplay.equalsIgnoreCase("Unknown Artist") || hasMoreUppercase(candidate, currentDisplay)) {
+                    displayNames.put(canonicalKey, candidate);
+                }
+            }
         }
 
         List<Artist> artists = new ArrayList<>();
         for (Map.Entry<String, List<Song>> entry : artistMap.entrySet()) {
+            String canonicalKey = entry.getKey();
             List<Song> artistSongs = entry.getValue();
-            // Count distinct albums
+            artistSongs.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
             long distinctAlbums = artistSongs.stream()
                     .map(Song::getAlbumId).distinct().count();
-            long repAlbumId = artistSongs.get(0).getAlbumId();
-            artists.add(new Artist(entry.getKey(), artistSongs.size(), (int) distinctAlbums,
+            long repAlbumId = artistSongs.isEmpty() ? -1L : artistSongs.get(0).getAlbumId();
+            String displayName = displayNames.getOrDefault(canonicalKey, "Unknown Artist");
+            artists.add(new Artist(displayName, artistSongs.size(), (int) distinctAlbums,
                     repAlbumId, artistSongs));
         }
 
         Collections.sort(artists, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         return artists;
+    }
+
+    private static boolean hasMoreUppercase(String candidate, String current) {
+        int countCand = 0;
+        for (char c : candidate.toCharArray()) { if (Character.isUpperCase(c)) countCand++; }
+        int countCur = 0;
+        for (char c : current.toCharArray()) { if (Character.isUpperCase(c)) countCur++; }
+        return countCand > countCur;
     }
 }
