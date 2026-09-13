@@ -69,6 +69,45 @@ public class PlaylistRepository {
                 dao.deletePlaylist(playlistId));
     }
 
+    /**
+     * Deletes a playlist and its associated artwork files (custom + collage).
+     * All operations run on the background executor.
+     *
+     * @param playlistId  ID of the playlist to delete.
+     * @param artworkStore  PlaylistArtworkStore to clean up artwork files.
+     */
+    public void deletePlaylistWithArtwork(long playlistId, PlaylistArtworkStore artworkStore) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            dao.deletePlaylist(playlistId);
+            if (artworkStore != null) {
+                artworkStore.deleteAllArtwork(playlistId);
+            }
+        });
+    }
+
+    // ===== Playlist Artwork =====
+
+    /**
+     * Updates the artworkPath column for a playlist after saving custom artwork.
+     * Must be called AFTER the artwork file has already been written to disk.
+     */
+    public void setArtworkPath(long playlistId, String path) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            dao.updateArtworkPath(playlistId, path);
+            touchModifiedAt(playlistId);
+        });
+    }
+
+    /**
+     * Clears the artworkPath column for a playlist (user removed custom artwork).
+     */
+    public void clearArtworkPath(long playlistId) {
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            dao.clearArtworkPath(playlistId);
+            touchModifiedAt(playlistId);
+        });
+    }
+
     // ===== Song management =====
 
     /**
@@ -152,8 +191,10 @@ public class PlaylistRepository {
     }
 
     public void removeSongFromPlaylist(long playlistId, long songId) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() ->
-                dao.removeSongFromPlaylist(playlistId, songId));
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            dao.removeSongFromPlaylist(playlistId, songId);
+            touchModifiedAt(playlistId);
+        });
     }
 
     public void deleteSongFromAllPlaylists(long songId) {
