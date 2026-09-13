@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/containerAudioOutputSheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="28dp">
+
+    <!-- Drag Handle Pill -->
+    <View
+        android:id="@+id/dragPill"
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_rounded_gold_alpha" />
+
+    <!-- Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/tvSheetTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Audio Output"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:textColor="@color/swara_text_primary" />
+
+        <ImageView
+            android:id="@+id/btnCloseOutputSheet"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/close"
+            android:padding="8dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/swara_text_secondary" />
+
+    </RelativeLayout>
+
+    <!-- Active Output Hero Card -->
+    <LinearLayout
+        android:id="@+id/cardActiveOutput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="16dp"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/ivActiveDeviceIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_speaker"
+            app:tint="@color/swara_gold"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="14dp">
+
+            <TextView
+                android:id="@+id/tvActiveDeviceName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Phone Speaker"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/swara_text_primary" />
+
+            <TextView
+                android:id="@+id/tvActiveStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Active output • Playing audio"
+                android:textSize="12sp"
+                android:textColor="@color/swara_gold"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+        <View
+            android:id="@+id/viewActiveDot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/bg_active_dot" />
+
+    </LinearLayout>
+
+    <!-- Subtitle Header -->
+    <TextView
+        android:id="@+id/tvAvailableHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AVAILABLE OUTPUTS"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textColor="@color/swara_text_dim"
+        android:layout_marginStart="24dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Available Devices RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvAudioOutputs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never" />
+
+    <!-- Multi-output capability hint banner -->
+    <LinearLayout
+        android:id="@+id/layoutMultiOutputBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="12dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/ivMultiOutputIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_bluetooth"
+            app:tint="@color/swara_lavender"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/tvMultiOutputText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:text="Multiple Bluetooth outputs detected. Use Samsung Dual Audio in Quick Panel to stream to multiple devices."
+            android:textSize="11sp"
+            android:textColor="@color/swara_text_secondary" />
+
+    </LinearLayout>
+
+</LinearLayout>
