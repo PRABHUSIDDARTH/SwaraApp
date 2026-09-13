@@ -48,6 +48,28 @@ public class MusicRepository {
         void onError(String message);
     }
 
+    private static final Map<Long, Song> canonicalSongMap = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static Song getCanonicalSong(long songId) {
+        return canonicalSongMap.get(songId);
+    }
+
+    public Song getSongById(long songId) {
+        Song cached = canonicalSongMap.get(songId);
+        if (cached != null) return cached;
+        List<Song> single = querySongs(
+                MediaStore.Audio.Media._ID + " = ?",
+                new String[]{String.valueOf(songId)},
+                null
+        );
+        if (!single.isEmpty()) {
+            Song s = single.get(0);
+            canonicalSongMap.put(songId, s);
+            return s;
+        }
+        return null;
+    }
+
     public MusicRepository(Context context) {
         this.context = context.getApplicationContext();
     }
