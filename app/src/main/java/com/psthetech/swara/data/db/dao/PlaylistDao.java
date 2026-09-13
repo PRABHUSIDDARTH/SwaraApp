@@ -48,6 +48,14 @@ public interface PlaylistDao {
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
     Playlist getPlaylistById(long playlistId);
 
+    /** Updates the artworkPath for a playlist (called after saving custom artwork). */
+    @Query("UPDATE playlists SET artworkPath = :path WHERE id = :playlistId")
+    void updateArtworkPath(long playlistId, String path);
+
+    /** Clears the artworkPath (user removed custom artwork). */
+    @Query("UPDATE playlists SET artworkPath = NULL WHERE id = :playlistId")
+    void clearArtworkPath(long playlistId);
+
     // ===== PlaylistSong operations =====
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
