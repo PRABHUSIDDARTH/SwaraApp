@@ -616,23 +616,31 @@ public class PlaybackViewModel extends AndroidViewModel {
         try { id = Long.parseLong(item.mediaId); } catch (NumberFormatException ignored) {}
         
         Song cached = songCache.get(id);
-        if (cached != null) return cached;
+        if (cached != null && cached.getDuration() > 0) return cached;
+
+        Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
+        if (canonical != null && canonical.getDuration() > 0) {
+            songCache.put(id, canonical);
+            return canonical;
+        }
 
         MediaMetadata meta = item.mediaMetadata;
         android.os.Bundle extras = meta != null && meta.extras != null ? meta.extras : android.os.Bundle.EMPTY;
-        long albumId = extras.getLong("albumId", 0L);
-        long duration = extras.getLong("duration", 0L);
-        int trackNumber = extras.getInt("trackNumber", 0);
-        int year = extras.getInt("year", 0);
-        long dateAdded = extras.getLong("dateAdded", 0L);
+        long albumId = extras.getLong("albumId", canonical != null ? canonical.getAlbumId() : 0L);
+        long duration = extras.getLong("duration", canonical != null ? canonical.getDuration() : 0L);
+        int trackNumber = extras.getInt("trackNumber", canonical != null ? canonical.getTrackNumber() : 0);
+        int year = extras.getInt("year", canonical != null ? canonical.getYear() : 0);
+        long dateAdded = extras.getLong("dateAdded", canonical != null ? canonical.getDateAdded() : 0L);
 
-        return new Song(
+        Song resolved = new Song(
                 id,
-                meta != null && meta.title != null ? meta.title.toString() : "Unknown",
-                meta != null && meta.artist != null ? meta.artist.toString() : "Unknown",
-                meta != null && meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
+                meta != null && meta.title != null ? meta.title.toString() : (canonical != null ? canonical.getTitle() : "Unknown"),
+                meta != null && meta.artist != null ? meta.artist.toString() : (canonical != null ? canonical.getArtist() : "Unknown"),
+                meta != null && meta.albumTitle != null ? meta.albumTitle.toString() : (canonical != null ? canonical.getAlbum() : "Unknown"),
                 albumId, duration, trackNumber, year, dateAdded
         );
+        songCache.put(id, resolved);
+        return resolved;
     }
 
     private void rebuildQueueSnapshot() {
