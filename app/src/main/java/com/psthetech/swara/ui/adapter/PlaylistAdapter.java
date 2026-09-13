@@ -99,8 +99,7 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
     public void onBindViewHolder(@NonNull PlaylistViewHolder holder, int position) {
         Playlist playlist = getItem(position);
         int count = songCounts.containsKey(playlist.id) ? songCounts.get(playlist.id) : 0;
-        List<Long> albumIds = playlistAlbumIds.get(playlist.id);
-        holder.bind(playlist, count, albumIds, artworkStore, listener);
+        holder.bind(playlist, count, artworkStore, listener);
     }
 
     @Override
@@ -108,6 +107,7 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
         super.onViewRecycled(holder);
         PlaylistArtworkHelper.clear(holder.itemView.getContext(), holder.ivPlaylistArtwork);
         holder.ivPlaylistArtwork.setImageDrawable(null);
+        holder.itemView.setBackground(null);
         holder.itemView.setScaleX(1.0f);
         holder.itemView.setScaleY(1.0f);
         holder.itemView.setAlpha(1.0f);
@@ -129,8 +129,15 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
             playlistMenuButton = itemView.findViewById(R.id.playlistMenuButton);
         }
 
-        public void bind(Playlist playlist, int count, List<Long> albumIds,
+        public void bind(Playlist playlist, int count,
                          PlaylistArtworkStore store, OnPlaylistClickListener listener) {
+            // Explicitly reset any recycled state
+            itemView.setScaleX(1.0f);
+            itemView.setScaleY(1.0f);
+            itemView.setAlpha(1.0f);
+            itemView.setTranslationX(0f);
+            itemView.setTranslationY(0f);
+
             playlistName.setText(playlist.name);
 
             if (playlistSongCount != null) {
@@ -139,9 +146,9 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
                 playlistSongCount.setVisibility(View.VISIBLE);
             }
 
-            // Load artwork via priority chain
+            // Load artwork via authoritative priority chain
             PlaylistArtworkHelper.loadPlaylistArt(
-                    itemView.getContext(), playlist, store, albumIds, ivPlaylistArtwork);
+                    itemView.getContext(), playlist, store, ivPlaylistArtwork);
 
             com.psthetech.swara.ui.theme.DesignTokens tokens =
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();

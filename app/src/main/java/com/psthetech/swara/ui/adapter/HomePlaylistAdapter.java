@@ -66,8 +66,7 @@ public class HomePlaylistAdapter extends ListAdapter<Playlist, HomePlaylistAdapt
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Playlist playlist = getItem(position);
         int count = songCounts.containsKey(playlist.id) ? songCounts.get(playlist.id) : 0;
-        List<Long> albumIds = playlistAlbumIds.get(playlist.id);
-        holder.bind(playlist, count, albumIds, artworkStore, listener);
+        holder.bind(playlist, count, artworkStore, listener);
     }
 
     @Override
@@ -94,14 +93,21 @@ public class HomePlaylistAdapter extends ListAdapter<Playlist, HomePlaylistAdapt
             tvCount = v.findViewById(R.id.tvPlaylistCount);
         }
 
-        void bind(Playlist playlist, int count, List<Long> albumIds,
+        void bind(Playlist playlist, int count,
                   PlaylistArtworkStore store, Listener listener) {
+            // Explicitly reset any recycled state
+            itemView.setScaleX(1.0f);
+            itemView.setScaleY(1.0f);
+            itemView.setAlpha(1.0f);
+            itemView.setTranslationX(0f);
+            itemView.setTranslationY(0f);
+
             tvName.setText(playlist.name);
             tvCount.setText(count + (count == 1 ? " song" : " songs"));
 
-            // Load artwork via priority chain
+            // Load artwork via authoritative priority chain
             PlaylistArtworkHelper.loadPlaylistArt(
-                    itemView.getContext(), playlist, store, albumIds, ivPlaylistArtwork);
+                    itemView.getContext(), playlist, store, ivPlaylistArtwork);
 
             com.psthetech.swara.ui.theme.DesignTokens tokens =
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
