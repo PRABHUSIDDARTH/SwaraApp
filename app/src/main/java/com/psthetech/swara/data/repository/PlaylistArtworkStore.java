@@ -131,11 +131,13 @@ public class PlaylistArtworkStore {
     }
 
     /**
-     * Invalidates (touches) the collage file so Glide reloads it after playlist changes.
+     * Invalidates the collage file cache so a fresh collage is generated after playlist songs change.
      */
     public void invalidateCollage(long playlistId) {
         File f = getCollageFile(playlistId);
-        if (f.exists()) f.setLastModified(System.currentTimeMillis());
+        if (f.exists()) {
+            f.delete();
+        }
     }
 
     /**

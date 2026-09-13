@@ -46,6 +46,19 @@ public class PlaylistRepository {
         return dao.getSongCountLive(playlistId);
     }
 
+    /** Reactive map of playlistId -> song count for all playlists */
+    public LiveData<java.util.Map<Long, Integer>> getSongCountsMapLive() {
+        return androidx.lifecycle.Transformations.map(dao.getSongCountsLive(), list -> {
+            java.util.Map<Long, Integer> map = new java.util.HashMap<>();
+            if (list != null) {
+                for (PlaylistDao.PlaylistSongCount sc : list) {
+                    map.put(sc.playlistId, sc.count);
+                }
+            }
+            return map;
+        });
+    }
+
     // ===== Playlist CRUD =====
 
     public void createPlaylist(String name, CreateCallback callback) {
