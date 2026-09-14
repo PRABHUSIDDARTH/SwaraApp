@@ -13,7 +13,8 @@
 
 ## 📑 Table of Contents
 
-- [Overview](#-overview)
+- [Overview & USP](#-overview--unique-selling-proposition-usp)
+- [User-Friendly Experience](#-user-friendly-experience)
 - [Design System & Themes](#-design-system--themes)
   - [Liquid Glass Morphism](#liquid-glass-morphism)
   - [The 7 ColorThemes](#the-7-colorthemes)
@@ -35,11 +36,24 @@
 
 ---
 
-## 🌟 Overview
+## 🌟 Overview & Unique Selling Proposition (USP)
 
-**Swara** is a production-grade offline music player for Android designed to deliver an audiophile-grade playback experience wrapped in an authentic **Liquid Glass** aesthetic. 
+**Swara** is a production-grade, offline-first Android music player crafted purely in modern Java. It is designed to deliver an uncompromising, audiophile-grade playback experience wrapped in a breathtakingly fluid **Liquid Glass** aesthetic.
 
-Built strictly using modern Java 17, Swara leverages Android Jetpack architecture components (Media3, Navigation, Room, LiveData, ViewModel, DiffUtil) without relying on heavy third-party framework overhead. Every animation, dialog, color token, and RecyclerView cell is crafted with strict performance and memory recycling guarantees.
+### Why Swara?
+- **Pure Java Craftsmanship:** Built strictly with Java 17, Swara is a testament to native Android performance without the overhead of heavy third-party frameworks or forced Kotlin migration.
+- **Offline-First & Private:** Your music, your device. Swara indexes your local library instantly without requiring an internet connection or phoning home.
+- **Zero Bloat:** Every animation, dialog, and interface element is highly optimized. Swara leverages robust Android Jetpack architecture components (Media3, Navigation, Room) for maximum reliability and minimal resource consumption.
+
+## 🫂 User-Friendly Experience
+
+Swara is meticulously designed to put the user first, ensuring every interaction feels natural, accessible, and deeply personal:
+
+- **Tailored Aesthetics:** Choose from 7 curated color themes (such as Midnight, Lavender, and Ocean), each dynamically adjusting to provide beautifully distinct Light and Dark modes.
+- **Accessibility by Design (WCAG AAA):** Swara prioritizes readability. Text contrast exceeds **7.0:1** on all surfaces, ensuring crisp clarity in any lighting condition. Specialized indicators ensure you can easily identify what's playing even under extreme ambient sunlight.
+- **Intuitive Controls:** Navigate effortlessly with a collapsible edge-to-edge mini-player, fluid swipe-down dismissal for the Now Playing screen, and drag-and-drop playlist reordering.
+- **Smart Search & Organization:** Find any track instantly with real-time, multi-attribute search across songs, albums, artists, and playlists. Automatically generate dynamic 2x2 collage artwork or upload custom photos for a truly personalized library.
+- **Uninterrupted Listening:** Fall asleep to your favorite tracks with the built-in intelligent sleep timer (or end-of-song mode) and manage your queue with simple swipe-to-delete gestures.
 
 ---
 
