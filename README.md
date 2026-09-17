@@ -89,6 +89,7 @@ Every screen element references dynamic semantic tokens from `DesignTokens` and 
 
 ## ⚡ Key Features
 
+- **Optimized Performance:** Addressed potential memory leaks in cursor usage and bitmap recycling to ensure sustained background performance.
 - **Media3 Playback Core:** Continuous background playback powered by `MediaSessionService` and ExoPlayer. Survives device orientation, lock screen, and process backgrounding.
 - **Lockscreen & Notification Media Controls:** High-resolution notification seekbar, artwork, playback actions, and favorite toggling via Android `MediaSession`.
 - **MediaStore Discovery:** Automatic indexing of on-device audio files with real-time metadata parsing and album art caching.

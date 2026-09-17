@@ -262,8 +262,10 @@ public class PlaylistArtworkHelper {
             Canvas canvas = new Canvas(collage);
 
             if (bitmaps.size() == 1) {
-                Bitmap scaled = Bitmap.createScaledBitmap(bitmaps.get(0), COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
+                Bitmap src = bitmaps.get(0);
+                Bitmap scaled = Bitmap.createScaledBitmap(src, COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
                 canvas.drawBitmap(scaled, 0, 0, null);
+                if (scaled != src && !scaled.isRecycled()) scaled.recycle();
             } else {
                 int[][] positions = {
                         {0, 0}, {cellSize, 0}, {0, cellSize}, {cellSize, cellSize}
@@ -272,8 +274,12 @@ public class PlaylistArtworkHelper {
                     Bitmap src = bitmaps.get(i % bitmaps.size());
                     Bitmap cell = Bitmap.createScaledBitmap(src, cellSize, cellSize, true);
                     canvas.drawBitmap(cell, positions[i][0], positions[i][1], null);
-                    if (!cell.isRecycled()) cell.recycle();
+                    if (cell != src && !cell.isRecycled()) cell.recycle();
                 }
+            }
+
+            for (Bitmap bmp : bitmaps) {
+                if (bmp != null && !bmp.isRecycled()) bmp.recycle();
             }
 
             store.saveCollageArtwork(playlistId, collage);
@@ -352,17 +358,24 @@ public class PlaylistArtworkHelper {
                     Bitmap collage = Bitmap.createBitmap(COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, Bitmap.Config.ARGB_8888);
                     Canvas canvas = new Canvas(collage);
                     if (bitmaps.size() == 1) {
-                        Bitmap scaled = Bitmap.createScaledBitmap(bitmaps.get(0), COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
+                        Bitmap src = bitmaps.get(0);
+                        Bitmap scaled = Bitmap.createScaledBitmap(src, COLLAGE_SIZE_PX, COLLAGE_SIZE_PX, true);
                         canvas.drawBitmap(scaled, 0, 0, null);
+                        if (scaled != src && !scaled.isRecycled()) scaled.recycle();
                     } else {
                         int[][] positions = {{0, 0}, {cellSize, 0}, {0, cellSize}, {cellSize, cellSize}};
                         for (int i = 0; i < 4; i++) {
                             Bitmap src = bitmaps.get(i % bitmaps.size());
                             Bitmap cell = Bitmap.createScaledBitmap(src, cellSize, cellSize, true);
                             canvas.drawBitmap(cell, positions[i][0], positions[i][1], null);
-                            if (!cell.isRecycled()) cell.recycle();
+                            if (cell != src && !cell.isRecycled()) cell.recycle();
                         }
                     }
+
+                    for (Bitmap bmp : bitmaps) {
+                        if (bmp != null && !bmp.isRecycled()) bmp.recycle();
+                    }
+
                     store.saveCollageArtwork(playlistId, collage);
                     collage.recycle();
                 }
