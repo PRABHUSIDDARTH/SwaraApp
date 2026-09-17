@@ -49,9 +49,8 @@ public abstract class AppDatabase extends RoomDatabase {
     static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            android.database.Cursor cursor = database.query("PRAGMA table_info(playlists)");
             boolean hasColumn = false;
-            try {
+            try (android.database.Cursor cursor = database.query("PRAGMA table_info(playlists)")) {
                 int nameIndex = cursor.getColumnIndex("name");
                 while (cursor.moveToNext()) {
                     if ("artworkPath".equals(cursor.getString(nameIndex))) {
@@ -59,8 +58,6 @@ public abstract class AppDatabase extends RoomDatabase {
                         break;
                     }
                 }
-            } finally {
-                cursor.close();
             }
             if (!hasColumn) {
                 database.execSQL("ALTER TABLE playlists ADD COLUMN artworkPath TEXT");

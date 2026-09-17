@@ -307,9 +307,7 @@ public class MusicRepository {
             sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
         }
 
-        Cursor cursor = null;
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, sortOrder);
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, sortOrder)) {
             if (cursor == null) {
                 Log.w(TAG, "MediaStore query returned null cursor");
                 return songs;
@@ -347,8 +345,6 @@ public class MusicRepository {
                     Log.w(TAG, "Skipping malformed MediaStore row", rowEx);
                 }
             }
-        } finally {
-            if (cursor != null) cursor.close();
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");
