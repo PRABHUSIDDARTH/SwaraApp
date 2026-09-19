@@ -16,8 +16,11 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 
+import com.psthetech.swara.data.repository.MusicRepository;
+import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.MainActivity;
 import com.psthetech.swara.util.SleepTimerManager;
+import com.psthetech.swara.widget.SwaraWidgetUpdater;
 
 /**
  * Swara V2 Playback Service — the authoritative playback engine.
@@ -63,14 +66,24 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setHandleAudioBecomingNoisy(true)
                 .build();
 
-        // Notify SleepTimerManager when the song changes (for end-of-song sleep mode)
+        // Notify SleepTimerManager when the song changes, and push widget updates
         player.addListener(new Player.Listener() {
+
             @Override
             public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
                     // Natural track finish → trigger end-of-song sleep if armed
                     SleepTimerManager.getInstance().onSongTransition();
                 }
+                // Push widget update with new track info
+                pushWidgetUpdate(mediaItem, player.isPlaying());
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                // Push widget update when play/pause state changes
+                MediaItem current = player.getCurrentMediaItem();
+                pushWidgetUpdate(current, isPlaying);
             }
         });
 
@@ -107,6 +120,37 @@ public class SwaraPlaybackService extends MediaSessionService {
             player = null;
         }
         super.onDestroy();
+    }
+
+    /**
+     * Resolve the Song for the given MediaItem and push a widget update.
+     * Called from the Player.Listener on track transitions and play/pause changes.
+     *
+     * Song resolution priority:
+     *   1. MusicRepository.getCanonicalSong() — has full metadata including albumId
+     *   2. MediaItem.mediaMetadata fields — fallback if not in repo cache yet
+     */
+    private void pushWidgetUpdate(@Nullable MediaItem mediaItem, boolean isPlaying) {
+        Song song = null;
+        if (mediaItem != null) {
+            try {
+                long id = Long.parseLong(mediaItem.mediaId);
+                song = MusicRepository.getCanonicalSong(id);
+                if (song == null) {
+                    // Build a minimal Song from metadata so the widget still updates
+                    MediaMetadata meta = mediaItem.mediaMetadata;
+                    song = new Song(
+                            id,
+                            meta.title  != null ? meta.title.toString()  : "Unknown",
+                            meta.artist != null ? meta.artist.toString() : "Unknown",
+                            meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
+                            /* albumId */ 0, /* duration */ 0,
+                            /* trackNumber */ 0, /* year */ 0, /* dateAdded */ 0
+                    );
+                }
+            } catch (NumberFormatException ignored) { /* mediaId not a song ID */ }
+        }
+        SwaraWidgetUpdater.pushUpdate(this, song, isPlaying);
     }
 
     /**
