@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Swara Now-Playing Home Screen Widget layout.
+
+    Structure (horizontal):
+    ┌──────────────────────────────────────────────────────────┐
+    │  [Album Art]   Song Title                  ⏮  ▶/⏸  ⏭  │
+    │  (square,      Artist Name                               │
+    │   fills h)     ──────────────────────────────────────── │
+    └──────────────────────────────────────────────────────────┘
+
+    The root RelativeLayout stretches to whatever size the user drags the
+    widget to (resizeMode="horizontal|vertical" in the provider metadata).
+
+    Album art ImageView:
+    - layout_width / layout_height = "match_parent" on one axis is not allowed
+      in RemoteViews — so we use a fixed 0dp + weight trick inside a LinearLayout.
+    - scaleType="centerCrop" fills the art square without letterboxing.
+
+    Widget RemoteViews restrictions:
+    - No ConstraintLayout, no custom views, no Glide.
+    - Only: FrameLayout, LinearLayout, RelativeLayout, GridLayout,
+            TextView, ImageView, Button, ImageButton, ProgressBar, ViewFlipper,
+            ListView, GridView, StackView, AdapterViewFlipper, Chronometer.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget"
+    android:padding="0dp">
+
+    <!-- ── Album Artwork ──────────────────────────────────── -->
+    <!--
+        Width is constrained to be equal to the widget height (square art).
+        We cannot do this in XML for RemoteViews, so SwaraWidgetUpdater sets
+        an explicit pixel size at runtime. Here we give a generous fixed width
+        that scales gracefully at any widget size.
+    -->
+    <ImageView
+        android:id="@+id/widget_album_art"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:adjustViewBounds="true"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_artwork_fallback"
+        android:contentDescription="@string/cd_album_art" />
+
+    <!-- ── Controls (right side) ─────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingEnd="8dp">
+
+        <ImageButton
+            android:id="@+id/widget_btn_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_skip_prev"
+            android:tint="#C9A84C"
+            android:contentDescription="Previous" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_play"
+            android:tint="#C9A84C"
+            android:contentDescription="Play / Pause"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_skip_next"
+            android:tint="#C9A84C"
+            android:contentDescription="Next" />
+
+    </LinearLayout>
+
+    <!-- ── Song Info (between artwork and controls) ───────── -->
+    <LinearLayout
+        android:id="@+id/widget_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/widget_album_art"
+        android:layout_toStartOf="@id/widget_controls"
+        android:layout_centerVertical="true"
+        android:orientation="vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="6dp">
+
+        <TextView
+            android:id="@+id/widget_song_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_no_song"
+            android:textColor="#F0E6C8"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="marquee"
+            android:singleLine="true"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
+        <TextView
+            android:id="@+id/widget_artist_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text=""
+            android:textColor="#9B7EC8"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+</RelativeLayout>
+
