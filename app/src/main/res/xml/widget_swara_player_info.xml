@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AppWidget provider metadata for the Swara Now Playing Widget.
+
+    Sizing strategy:
+      - Default size: 4×2 cells (~270 × 110 dp) — album art + info + controls
+      - minResizeWidth / minResizeHeight allow the user to shrink to 2×2
+      - maxResizeWidth / maxResizeHeight allow expansion to full-width tall card
+      - resizeMode="horizontal|vertical" — drag handles on all sides in widget picker
+
+    Update strategy:
+      - updatePeriodMillis="0" — the system NEVER polls; updates are pushed by
+        SwaraPlaybackService via SwaraWidgetUpdater.pushUpdate().
+        (Android enforces a minimum of 30 min anyway; using 0 saves battery.)
+
+    Android 12+ extras:
+      - targetCellWidth / targetCellHeight — precise grid hint for the new picker
+      - description — shown below the widget name in the picker
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+
+    android:minResizeWidth="130dp"
+    android:minResizeHeight="80dp"
+
+    android:maxResizeWidth="500dp"
+    android:maxResizeHeight="400dp"
+
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+
+    android:updatePeriodMillis="0"
+
+    android:initialLayout="@layout/widget_swara_player"
+    android:previewImage="@mipmap/ic_launcher"
+
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+
+    android:description="@string/widget_description" />
+
