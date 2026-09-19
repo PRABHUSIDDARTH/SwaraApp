@@ -55,6 +55,44 @@
             </intent-filter>
         </service>
 
+        <!--
+            SwaraWidgetProvider — AppWidgetProvider that makes the Now Playing widget
+            appear in the system widget picker.
+
+            The two required entries:
+              1. android.appwidget.action.APPWIDGET_UPDATE intent-filter — tells Android
+                 this receiver is an AppWidget provider.
+              2. android.appwidget.provider meta-data pointing to the XML descriptor —
+                 this is what the widget picker reads for size, description, preview, etc.
+        -->
+        <receiver
+            android:name=".widget.SwaraWidgetProvider"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_swara_player_info" />
+        </receiver>
+
+        <!--
+            SwaraWidgetReceiver — handles play/pause/next/prev button taps and
+            widget-update broadcasts from SwaraPlaybackService.
+            exported=false: only our own app sends these broadcasts.
+        -->
+        <receiver
+            android:name=".widget.SwaraWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.psthetech.swara.ACTION_PLAY_PAUSE" />
+                <action android:name="com.psthetech.swara.ACTION_NEXT" />
+                <action android:name="com.psthetech.swara.ACTION_PREV" />
+                <action android:name="com.psthetech.swara.ACTION_WIDGET_UPDATE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
