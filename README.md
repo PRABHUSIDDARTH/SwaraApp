@@ -89,6 +89,7 @@ Every screen element references dynamic semantic tokens from `DesignTokens` and 
 
 ## ⚡ Key Features
 
+- **App Widget:** Add Swara's Now Playing widget to your home screen for instant playback control, real-time album art, and one-tap access to the app.
 - **Optimized Performance:** Addressed potential memory leaks in cursor usage and bitmap recycling to ensure sustained background performance.
 - **Media3 Playback Core:** Continuous background playback powered by `MediaSessionService` and ExoPlayer. Survives device orientation, lock screen, and process backgrounding.
 - **Lockscreen & Notification Media Controls:** High-resolution notification seekbar, artwork, playback actions, and favorite toggling via Android `MediaSession`.
