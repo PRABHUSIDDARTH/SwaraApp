@@ -41,6 +41,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import com.psthetech.swara.data.repository.ShuffleEngine;
+
 /**
  * Playlist detail screen.
  *
@@ -71,6 +73,10 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     private String playlistName = "Playlist";
     private com.psthetech.swara.data.db.entity.Playlist currentPlaylist;
     private List<Song> currentSongs = new ArrayList<>();
+
+    // Tracks the last shuffle order for repeat-avoidance:
+    // pressing Shuffle twice on the same playlist must produce a different ordering.
+    private List<Song> lastShuffleOrder = null;
 
     // Image picker — registered before fragment is started
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
@@ -378,25 +384,21 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
     private void playAll(boolean shuffle) {
         if (currentSongs.isEmpty()) return;
-        List<Song> queue = new ArrayList<>(currentSongs);
+
+        final List<Song> queue;
         if (shuffle) {
-            Collections.shuffle(queue);
+            // ShuffleEngine.shuffleAvoidRepeat: Fisher-Yates + repeat-avoidance.
+            // Each call produces a fresh permutation different from lastShuffleOrder.
+            queue = ShuffleEngine.shuffleAvoidRepeat(currentSongs, lastShuffleOrder);
+            lastShuffleOrder = queue;
+        } else {
+            queue = new ArrayList<>(currentSongs);
         }
+
+        // ExoPlayer is the sole playback authority. We pass the already-randomized
+        // list as explicit ordered MediaItems. Shuffle mode flag is not needed because
+        // the randomization already happened client-side.
         playbackViewModel.playSongs(queue, 0);
-        if (shuffle) {
-            // Notify PlaybackViewModel that we want shuffle mode on
-            // (ExoPlayer remains authority; we just set the flag after)
-            playbackViewModel.getShuffleEnabled().observeForever(
-                    new androidx.lifecycle.Observer<Boolean>() {
-                        @Override
-                        public void onChanged(Boolean enabled) {
-                            if (!Boolean.TRUE.equals(enabled)) {
-                                playbackViewModel.toggleShuffle();
-                            }
-                            playbackViewModel.getShuffleEnabled().removeObserver(this);
-                        }
-                    });
-        }
     }
 
     // ===== Add Songs =====

@@ -54,9 +54,16 @@ public class LibraryFragment extends Fragment {
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     view.setBackground(tokens.createAmbientDrawable());
-                    tabLayout.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
-                    tabLayout.setTabTextColors(tokens.getSecondaryTextColor(), tokens.getAccentColor());
-                    tabLayout.setSelectedTabIndicatorColor(tokens.getAccentColor());
+                    tabLayout.setBackground(tokens.createGlassPillDrawable(requireContext()));
+                    int accent = tokens.getAccentColor();
+                    int glassPillColor = android.graphics.Color.argb(
+                            tokens.isNightMode() ? 90 : 50,
+                            android.graphics.Color.red(accent),
+                            android.graphics.Color.green(accent),
+                            android.graphics.Color.blue(accent)
+                    );
+                    tabLayout.setTabTextColors(tokens.getTextSecondaryColor(), tokens.getReadableAccentColor());
+                    tabLayout.setSelectedTabIndicatorColor(glassPillColor);
                 });
     }
 }

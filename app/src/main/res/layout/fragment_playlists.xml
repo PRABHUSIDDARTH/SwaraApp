@@ -18,7 +18,7 @@
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerView"
             android:layout_width="match_parent" android:layout_height="match_parent"
-            android:paddingBottom="144dp" android:clipToPadding="false" android:overScrollMode="never"/>
+            android:paddingBottom="@dimen/bottom_content_padding" android:clipToPadding="false" android:overScrollMode="never"/>
         <LinearLayout android:id="@+id/layoutEmpty" android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:layout_gravity="center"
             android:orientation="vertical" android:gravity="center" android:padding="@dimen/dp_32" android:visibility="gone">

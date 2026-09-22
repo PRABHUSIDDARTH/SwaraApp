@@ -96,6 +96,12 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                             .applyToSearchInput(tilSearch, etSearch, tokens);
 
+                    // Apply glass pill to search bar container
+                    android.view.View glassContainer = view.findViewById(R.id.searchGlassContainer);
+                    if (glassContainer != null) {
+                        com.psthetech.swara.ui.glass.LiquidGlassRenderer.applyGlassPill(glassContainer, tokens);
+                    }
+
                     if (layoutPrompt != null) {
                         TextView promptTitle = layoutPrompt.findViewById(R.id.tvPromptTitle);
                         TextView promptSub = layoutPrompt.findViewById(R.id.tvPromptSubtitle);
@@ -185,6 +191,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
     public void onArtistClick(Artist artist) {
         Bundle args = new Bundle();
         args.putString("artistName", artist.getName());
+        args.putString("canonicalKey", artist.getCanonicalKey());
         Navigation.findNavController(requireView())
                 .navigate(R.id.action_search_to_artistDetail, args);
     }
