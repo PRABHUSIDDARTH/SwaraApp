@@ -586,19 +586,31 @@ public class DesignTokens {
     /**
      * A readable foreground variant of the accent color.
      * In light mode, some accent colors (e.g. pale champagne gold) have insufficient contrast
-     * on light surfaces, so we use textPrimaryColor as the safe fallback.
-     * In dark mode the accent is typically readable as-is.
+     * on light surfaces, so we dynamically darken the hue while preserving its color theme identity.
+     * In dark mode the accent is vibrant and readable as-is.
      */
     public int getReadableAccentColor() {
         if (isNightMode) {
             return accentColor;
         }
-        // For light mode: check luminance — if accent is very light use primary text instead
-        double lum = (0.299 * android.graphics.Color.red(accentColor)
-                + 0.587 * android.graphics.Color.green(accentColor)
-                + 0.114 * android.graphics.Color.blue(accentColor)) / 255.0;
-        // If luminance > 0.7 (very bright), fall back to primary text
-        return lum > 0.70 ? textPrimaryColor : accentColor;
+        // For light mode: ensure >= 4.5:1 WCAG AA contrast against light surfaces
+        double r = android.graphics.Color.red(accentColor) / 255.0;
+        double g = android.graphics.Color.green(accentColor) / 255.0;
+        double b = android.graphics.Color.blue(accentColor) / 255.0;
+        double lr = (r <= 0.03928) ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+        double lg = (g <= 0.03928) ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+        double lb = (b <= 0.03928) ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+        double l1 = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+        double contrast = 1.05 / (l1 + 0.05);
+
+        if (contrast < 5.2) {
+            float[] hsv = new float[3];
+            android.graphics.Color.colorToHSV(accentColor, hsv);
+            hsv[2] = Math.min(hsv[2], 0.34f); // Darken value to guarantee >= 4.5:1 across all tinted light backgrounds
+            hsv[1] = Math.max(hsv[1], 0.75f); // Rich theme saturation
+            return android.graphics.Color.HSVToColor(hsv);
+        }
+        return accentColor;
     }
 
     /**
