@@ -38,6 +38,7 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     private SongAdapter songAdapter;
 
     private String artistName = "";
+    private String canonicalKey = "";
 
     @Nullable
     @Override
@@ -51,6 +52,10 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
 
         if (getArguments() != null) {
             artistName = getArguments().getString("artistName", "Artist");
+            canonicalKey = getArguments().getString("canonicalKey", "");
+        }
+        if (canonicalKey == null || canonicalKey.trim().isEmpty()) {
+            canonicalKey = com.psthetech.swara.domain.model.Artist.getCanonicalKey(artistName);
         }
 
         libraryViewModel = new ViewModelProvider(requireActivity()).get(LibraryViewModel.class);
@@ -113,7 +118,7 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
             }
         });
 
-        libraryViewModel.getSongsForArtist(artistName).observe(getViewLifecycleOwner(), songs -> {
+        libraryViewModel.getSongsForArtist(canonicalKey).observe(getViewLifecycleOwner(), songs -> {
             if (songs != null) {
                 songAdapter.submitList(songs);
                 if (artistMeta != null) {
@@ -126,7 +131,22 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     @Override
     public void onSongClick(Song song, int position) {
         List<Song> songs = songAdapter.getCurrentList();
-        playbackViewModel.playSongs(songs, position);
+        if (songs == null || songs.isEmpty()) return;
+        int targetIndex = position;
+        if (targetIndex < 0 || targetIndex >= songs.size() || songs.get(targetIndex).getId() != song.getId()) {
+            targetIndex = -1;
+            for (int i = 0; i < songs.size(); i++) {
+                if (songs.get(i).getId() == song.getId()) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+        }
+        if (targetIndex >= 0) {
+            playbackViewModel.playSongs(songs, targetIndex);
+        } else {
+            playbackViewModel.playSong(song);
+        }
     }
 
     @Override

@@ -90,7 +90,7 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:overScrollMode="never"
-        android:paddingBottom="144dp" />
+        android:paddingBottom="@dimen/bottom_content_padding" />
 
 </LinearLayout>
 
