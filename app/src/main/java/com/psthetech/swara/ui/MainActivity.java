@@ -236,6 +236,11 @@ public class MainActivity extends AppCompatActivity {
     private void refreshPlaybackArtwork(Song song) {
         if (playbackViewModel != null) {
             playbackViewModel.refreshCurrentSongArtwork();
+            Song current = playbackViewModel.getCurrentSong().getValue();
+            if (current != null && (song == null || current.getId() == song.getId())) {
+                boolean isPlaying = Boolean.TRUE.equals(playbackViewModel.getIsPlaying().getValue());
+                com.psthetech.swara.widget.SwaraWidgetUpdater.pushUpdate(this, current, isPlaying);
+            }
         }
         // Force refresh active fragments
         recreateNavHostChild();

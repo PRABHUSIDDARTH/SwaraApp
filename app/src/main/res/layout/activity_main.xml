@@ -24,23 +24,19 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="80dp"
+        android:layout_marginBottom="90dp"
         android:visibility="gone"
         android:elevation="@dimen/elevation_2" />
 
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation — glass floating pill -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_nav_height"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="12dp"
         android:layout_gravity="bottom"
-        android:background="@color/swara_surface_1"
         app:menu="@menu/menu_bottom_nav"
-        app:itemIconTint="@color/nav_icon_color"
-        app:itemTextColor="@color/nav_text_color"
-        app:itemActiveIndicatorStyle="@style/Widget.Swara.BottomNav.Indicator"
         app:labelVisibilityMode="labeled"
         android:elevation="@dimen/elevation_2" />
 
