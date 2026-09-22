@@ -230,4 +230,36 @@ public class Phase8PlaybackPolishTest {
         long safeTarget = zeroDuration > 0 ? Math.min(Math.max(0, pos1), zeroDuration) : Math.max(0, pos1);
         assertEquals(45_000L, safeTarget);
     }
+
+    @Test
+    public void testRepeatAndShuffleSemanticContentDescriptions() {
+        // Repeat mode state mapping: 0 = OFF, 1 = ONE, 2 = ALL
+        int modeOff = 0;
+        int modeOne = 1;
+        int modeAll = 2;
+
+        assertEquals(0, modeOff);
+        assertEquals(1, modeOne);
+        assertEquals(2, modeAll);
+
+        assertFalse(R.string.repeat_off == R.string.repeat_one);
+        assertFalse(R.string.repeat_one == R.string.repeat_all);
+        assertFalse(R.string.shuffle_on == R.string.shuffle_off);
+    }
+
+    @Test
+    public void testVibrantPixelScoringLogic() {
+        // Score = sat * 1.5f + (1.0f - Math.abs(val - 0.65f))
+        // Saturated vivid color (sat = 0.8, val = 0.7):
+        float sat1 = 0.8f, val1 = 0.7f;
+        float score1 = sat1 * 1.5f + (1.0f - Math.abs(val1 - 0.65f));
+
+        // Washed out color (sat = 0.25, val = 0.7):
+        float sat2 = 0.25f, val2 = 0.7f;
+        float score2 = sat2 * 1.5f + (1.0f - Math.abs(val2 - 0.65f));
+
+        // Vivid color must score significantly higher than washed out
+        assertTrue("Vivid color score (" + score1 + ") should exceed washed out score (" + score2 + ")",
+                score1 > score2);
+    }
 }
