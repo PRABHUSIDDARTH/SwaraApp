@@ -52,6 +52,10 @@
         <argument
             android:name="artistName"
             app:argType="string" />
+        <argument
+            android:name="canonicalKey"
+            app:argType="string"
+            android:defaultValue="" />
     </fragment>
 
     <fragment
