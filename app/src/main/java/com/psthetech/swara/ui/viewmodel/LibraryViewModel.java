@@ -253,15 +253,7 @@ public class LibraryViewModel extends AndroidViewModel {
         }
         return Transformations.map(allSongs, songs -> {
             if (songs == null || songs.isEmpty()) return Collections.emptyList();
-            String canonicalKey = Artist.getCanonicalKey(artistName);
-            List<Song> matched = new ArrayList<>();
-            for (Song s : songs) {
-                if (Artist.getCanonicalKey(s.getArtist()).equals(canonicalKey)) {
-                    matched.add(s);
-                }
-            }
-            matched.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
-            return matched;
+            return com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(artistName, songs);
         });
     }
 
