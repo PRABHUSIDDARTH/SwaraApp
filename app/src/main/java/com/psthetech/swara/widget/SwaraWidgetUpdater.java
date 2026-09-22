@@ -7,15 +7,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.widget.RemoteViews;
+
+import androidx.exifinterface.media.ExifInterface;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.MainActivity;
 
 import java.io.FileDescriptor;
+import java.io.InputStream;
 
 /**
  * Static utility that builds the widget's RemoteViews and pushes them to the
@@ -63,21 +67,106 @@ public final class SwaraWidgetUpdater {
      */
     public static void pushUpdate(Context context, Song song, boolean isPlaying) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        ComponentName provider   = new ComponentName(context, SwaraWidgetProvider.class);
-        int[] widgetIds          = manager.getAppWidgetIds(provider);
+        ComponentName standardProvider = new ComponentName(context, SwaraWidgetProvider.class);
+        ComponentName verticalProvider = new ComponentName(context, SwaraVerticalWidgetProvider.class);
 
-        if (widgetIds == null || widgetIds.length == 0) return; // no widgets placed
+        int[] standardIds = manager.getAppWidgetIds(standardProvider);
+        int[] verticalIds = manager.getAppWidgetIds(verticalProvider);
 
-        RemoteViews views = buildViews(context, song, isPlaying);
-        manager.updateAppWidget(widgetIds, views);
+        boolean hasStandard = (standardIds != null && standardIds.length > 0);
+        boolean hasVertical = (verticalIds != null && verticalIds.length > 0);
+
+        if (!hasStandard && !hasVertical) return; // no widgets placed
+
+        Bitmap art = (song != null) ? loadArtworkBitmap(context, song) : null;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            RemoteViews responsiveViews = buildResponsiveViews(context, song, isPlaying, art);
+            if (hasStandard) {
+                manager.updateAppWidget(standardIds, responsiveViews);
+            }
+            if (hasVertical) {
+                manager.updateAppWidget(verticalIds, responsiveViews);
+            }
+        } else {
+            if (hasStandard) {
+                for (int id : standardIds) {
+                    pushSingleWidgetUpdate(context, manager, id, song, isPlaying, art, R.layout.widget_swara_player);
+                }
+            }
+            if (hasVertical) {
+                for (int id : verticalIds) {
+                    pushSingleWidgetUpdate(context, manager, id, song, isPlaying, art, R.layout.widget_swara_player_vertical);
+                }
+            }
+        }
     }
 
     /**
      * Build the RemoteViews for the given playback state.
-     * Called by both pushUpdate() and SwaraWidgetProvider.onUpdate().
+     * Called by SwaraWidgetProvider.onUpdate().
      */
-    static RemoteViews buildViews(Context context, Song song, boolean isPlaying) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_swara_player);
+    public static RemoteViews buildViews(Context context, Song song, boolean isPlaying) {
+        Bitmap art = (song != null) ? loadArtworkBitmap(context, song) : null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            return buildResponsiveViews(context, song, isPlaying, art);
+        }
+        return buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art);
+    }
+
+    /**
+     * Build responsive RemoteViews on Android 12+ that automatically switch layouts
+     * based on widget size on the home screen.
+     */
+    public static RemoteViews buildResponsiveViews(Context context, Song song, boolean isPlaying, Bitmap art) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            java.util.Map<android.util.SizeF, RemoteViews> viewMapping = new android.util.ArrayMap<>();
+            // Vertical / square mode for taller or compact widgets
+            viewMapping.put(new android.util.SizeF(110f, 130f),
+                    buildSingleView(context, song, isPlaying, R.layout.widget_swara_player_vertical, art));
+            // Horizontal bar mode for wider widgets
+            viewMapping.put(new android.util.SizeF(180f, 80f),
+                    buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art));
+            return new RemoteViews(viewMapping);
+        }
+        return buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art);
+    }
+
+    /**
+     * Update a single widget instance (e.g. on resize or placement).
+     */
+    public static void pushSingleWidgetUpdate(Context context, AppWidgetManager manager, int widgetId,
+                                              Song song, boolean isPlaying) {
+        Bitmap art = (song != null) ? loadArtworkBitmap(context, song) : null;
+        pushSingleWidgetUpdate(context, manager, widgetId, song, isPlaying, art, 0);
+    }
+
+    public static void pushSingleWidgetUpdate(Context context, AppWidgetManager manager, int widgetId,
+                                              Song song, boolean isPlaying, Bitmap art, int defaultLayoutResId) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            manager.updateAppWidget(widgetId, buildResponsiveViews(context, song, isPlaying, art));
+            return;
+        }
+
+        android.os.Bundle options = manager.getAppWidgetOptions(widgetId);
+        int minWidth = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) : 0;
+        int minHeight = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
+
+        int layoutRes = defaultLayoutResId != 0 ? defaultLayoutResId : R.layout.widget_swara_player;
+        if (minHeight > 0 && minWidth > 0 && (minHeight >= 140 || minHeight >= minWidth)) {
+            layoutRes = R.layout.widget_swara_player_vertical;
+        }
+
+        RemoteViews views = buildSingleView(context, song, isPlaying, layoutRes, art);
+        manager.updateAppWidget(widgetId, views);
+    }
+
+    /**
+     * Build RemoteViews for a specific layout XML resource.
+     */
+    public static RemoteViews buildSingleView(Context context, Song song, boolean isPlaying,
+                                              int layoutResId, Bitmap art) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), layoutResId);
 
         // ── Text ──────────────────────────────────────────────────────────────
         String title  = (song != null) ? song.getTitle()  : context.getString(R.string.widget_no_song);
@@ -87,10 +176,6 @@ public final class SwaraWidgetUpdater {
         views.setTextViewText(R.id.widget_artist_name, artist);
 
         // ── Album Art ─────────────────────────────────────────────────────────
-        Bitmap art = null;
-        if (song != null) {
-            art = loadArtworkBitmap(context, song);
-        }
         if (art != null) {
             views.setImageViewBitmap(R.id.widget_album_art, art);
         } else {
@@ -166,9 +251,78 @@ public final class SwaraWidgetUpdater {
             BitmapFactory.decodeFileDescriptor(fd, null, opts);
             opts.inSampleSize   = calculateInSampleSize(opts, 256, 256);
             opts.inJustDecodeBounds = false;
-            return BitmapFactory.decodeFileDescriptor(fd, null, opts);
+            Bitmap bmp = BitmapFactory.decodeFileDescriptor(fd, null, opts);
+            if (bmp == null) return null;
+
+            // Correct EXIF orientation (e.g. uploaded phone camera photos rotated left/right)
+            int orientation = getExifOrientation(context, uri);
+            return rotateBitmap(bmp, orientation);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private static int getExifOrientation(Context context, Uri uri) {
+        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+            if (in == null) return ExifInterface.ORIENTATION_NORMAL;
+            ExifInterface exif = new ExifInterface(in);
+            return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+        } catch (Exception e) {
+            return ExifInterface.ORIENTATION_NORMAL;
+        }
+    }
+
+    private static Bitmap rotateBitmap(Bitmap bitmap, int orientation) {
+        int degrees = 0;
+        boolean flipHorizontal = false;
+        boolean flipVertical = false;
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                degrees = 90;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                degrees = 180;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                degrees = 270;
+                break;
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                flipHorizontal = true;
+                break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                flipVertical = true;
+                break;
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+                degrees = 90;
+                flipHorizontal = true;
+                break;
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+                degrees = 270;
+                flipHorizontal = true;
+                break;
+            case ExifInterface.ORIENTATION_NORMAL:
+            case ExifInterface.ORIENTATION_UNDEFINED:
+            default:
+                return bitmap;
+        }
+
+        Matrix matrix = new Matrix();
+        if (degrees != 0) {
+            matrix.postRotate(degrees);
+        }
+        if (flipHorizontal || flipVertical) {
+            matrix.postScale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);
+        }
+
+        try {
+            Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            if (rotated != bitmap) {
+                bitmap.recycle();
+            }
+            return rotated;
+        } catch (OutOfMemoryError | Exception e) {
+            return bitmap;
         }
     }
 

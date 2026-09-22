@@ -42,6 +42,14 @@ public class SwaraWidgetProvider extends AppWidgetProvider {
     }
 
     @Override
+    public void onAppWidgetOptionsChanged(Context context,
+                                          AppWidgetManager appWidgetManager,
+                                          int appWidgetId,
+                                          android.os.Bundle newOptions) {
+        SwaraWidgetUpdater.pushSingleWidgetUpdate(context, appWidgetManager, appWidgetId, null, false);
+    }
+
+    @Override
     public void onEnabled(Context context) {
         // First widget instance placed — nothing extra needed; onUpdate fires next.
     }
