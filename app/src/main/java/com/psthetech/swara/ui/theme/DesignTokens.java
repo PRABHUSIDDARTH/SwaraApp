@@ -189,6 +189,28 @@ public class DesignTokens {
                     this.overlayColor = Color.parseColor("#CC08140C");
                     break;
 
+                case OFF_WHITE:
+                    // Dark mode OFF_WHITE: elegant warm dark aesthetic
+                    this.backgroundColor = Color.parseColor("#1A1714");
+                    this.backgroundSecondaryColor = Color.parseColor("#231F1B");
+                    this.surfaceColor = Color.parseColor("#2C2721");
+                    this.surfaceElevatedColor = Color.parseColor("#38312A");
+                    this.surfaceVariantColor = Color.parseColor("#453D34");
+                    this.accentColor = Color.parseColor("#E8C97A"); // Warm cream gold
+                    this.primaryColor = Color.parseColor("#E8C97A");
+                    this.primaryContainerColor = Color.parseColor("#38312A");
+                    this.secondaryColor = Color.parseColor("#F2E0B4");
+                    this.textPrimaryColor = Color.parseColor("#F5EFE0");
+                    this.textSecondaryColor = Color.parseColor("#C5B99A");
+                    this.textTertiaryColor = Color.parseColor("#8A7D68");
+                    this.iconPrimaryColor = Color.parseColor("#F5EFE0");
+                    this.iconSecondaryColor = Color.parseColor("#C5B99A");
+                    this.strokeColor = Color.parseColor("#5A5245");
+                    this.dividerColor = Color.parseColor("#38312A");
+                    this.selectedColor = Color.parseColor("#26E8C97A");
+                    this.overlayColor = Color.parseColor("#CC1A1714");
+                    break;
+
                 case SWARA:
                 default:
                     this.backgroundColor = Color.parseColor("#0D0819");
