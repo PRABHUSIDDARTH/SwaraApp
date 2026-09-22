@@ -194,6 +194,84 @@ public final class ArtistIdentityHelper {
     }
 
     /**
+     * Checks if a raw artist credit contains a specific target artist, matching by canonical key.
+     * Example:
+     *   containsArtist("A.R. Rahman, Shreya Ghoshal", "A.R. Rahman") -> true
+     *   containsArtist("A.R. Rahman, Shreya Ghoshal", "shreya ghoshal") -> true
+     *   containsArtist("A.R. Rahman, Shreya Ghoshal", "Anirudh") -> false
+     */
+    public static boolean containsArtist(@Nullable String rawArtistCredit, @Nullable String targetArtistOrKey) {
+        if (rawArtistCredit == null || targetArtistOrKey == null) return false;
+        String targetKey = getCanonicalKey(targetArtistOrKey);
+        List<String> constituents = extractArtists(rawArtistCredit);
+        for (String c : constituents) {
+            if (getCanonicalKey(c).equals(targetKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Builds a canonical artist index mapping each canonical artist key to its full list of songs.
+     * Deduplicates songs per artist by stable Song ID and sorts them alphabetically by title.
+     */
+    @NonNull
+    public static Map<String, List<Song>> buildCanonicalArtistIndex(@Nullable List<Song> songs) {
+        if (songs == null || songs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Map<Long, Song>> artistSongsMap = new LinkedHashMap<>();
+
+        for (Song song : songs) {
+            if (song == null) continue;
+            List<String> individualArtists = extractArtists(song.getArtist());
+            for (String artistName : individualArtists) {
+                String canonicalKey = getCanonicalKey(artistName);
+                Map<Long, Song> songMap = artistSongsMap.computeIfAbsent(canonicalKey, k -> new LinkedHashMap<>());
+                // Deduplicate by stable Song ID
+                songMap.putIfAbsent(song.getId(), song);
+            }
+        }
+
+        Map<String, List<Song>> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<Long, Song>> entry : artistSongsMap.entrySet()) {
+            List<Song> artistSongList = new ArrayList<>(entry.getValue().values());
+            artistSongList.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+            result.put(entry.getKey(), Collections.unmodifiableList(artistSongList));
+        }
+
+        return result;
+    }
+
+    /**
+     * Resolves all songs belonging to an artist (by display name or canonical key).
+     * Inspects constituent artist credits for multi-artist songs.
+     * Deduplicates by stable Song ID and sorts songs alphabetically by title.
+     */
+    @NonNull
+    public static List<Song> getSongsForArtist(@Nullable String artistOrKey, @Nullable List<Song> songs) {
+        if (artistOrKey == null || songs == null || songs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String targetKey = getCanonicalKey(artistOrKey);
+        Map<Long, Song> matched = new LinkedHashMap<>();
+
+        for (Song song : songs) {
+            if (song == null) continue;
+            if (containsArtist(song.getArtist(), targetKey)) {
+                matched.putIfAbsent(song.getId(), song);
+            }
+        }
+
+        List<Song> result = new ArrayList<>(matched.values());
+        result.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+        return result;
+    }
+
+    /**
      * Builds canonical, deduplicated Artist domain models from a list of songs.
      * Each song contributes to all of its constituent artists.
      */
@@ -203,16 +281,17 @@ public final class ArtistIdentityHelper {
             return Collections.emptyList();
         }
 
-        Map<String, Set<Song>> artistSongsMap = new LinkedHashMap<>();
+        Map<String, Map<Long, Song>> artistSongsMap = new LinkedHashMap<>();
         Map<String, String> displayNames = new HashMap<>();
 
         for (Song song : songs) {
+            if (song == null) continue;
             List<String> individualArtists = extractArtists(song.getArtist());
             for (String artistName : individualArtists) {
                 String canonicalKey = getCanonicalKey(artistName);
 
-                Set<Song> songSet = artistSongsMap.computeIfAbsent(canonicalKey, k -> new LinkedHashSet<>());
-                songSet.add(song);
+                Map<Long, Song> songMap = artistSongsMap.computeIfAbsent(canonicalKey, k -> new LinkedHashMap<>());
+                songMap.putIfAbsent(song.getId(), song);
 
                 String currentDisplay = displayNames.get(canonicalKey);
                 if (currentDisplay == null) {
@@ -227,9 +306,9 @@ public final class ArtistIdentityHelper {
         }
 
         List<Artist> result = new ArrayList<>();
-        for (Map.Entry<String, Set<Song>> entry : artistSongsMap.entrySet()) {
+        for (Map.Entry<String, Map<Long, Song>> entry : artistSongsMap.entrySet()) {
             String key = entry.getKey();
-            List<Song> artistSongList = new ArrayList<>(entry.getValue());
+            List<Song> artistSongList = new ArrayList<>(entry.getValue().values());
             // Sort songs by title
             artistSongList.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
 
@@ -237,7 +316,7 @@ public final class ArtistIdentityHelper {
             long repAlbumId = artistSongList.isEmpty() ? -1L : artistSongList.get(0).getAlbumId();
             String displayName = displayNames.getOrDefault(key, "Unknown Artist");
 
-            result.add(new Artist(displayName, artistSongList.size(), (int) distinctAlbums, repAlbumId, artistSongList));
+            result.add(new Artist(displayName, key, artistSongList.size(), (int) distinctAlbums, repAlbumId, artistSongList));
         }
 
         // Sort artists alphabetically
