@@ -507,9 +507,9 @@ public class DesignTokens {
 
     // ===== Additional semantic tokens =====
 
-    /** Accent tint for a filled favorite icon. Alias of accentColor. */
+    /** Accent tint for a filled favorite icon. Uses readable accent in light mode for crisp contrast. */
     public int getFavoriteActiveColor() {
-        return accentColor;
+        return isNightMode ? accentColor : getReadableAccentColor();
     }
 
     /**
