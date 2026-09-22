@@ -660,6 +660,21 @@ public class DesignTokens {
     }
 
     /**
+     * Creates a circular glass play/pause button background with subtle accent glow and border.
+     */
+    public Drawable createPlayButtonDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        GradientDrawable disk = new GradientDrawable();
+        disk.setShape(GradientDrawable.OVAL);
+        int baseColor = isNightMode ? surfaceElevatedColor : surfaceVariantColor;
+        disk.setColor(baseColor);
+        int strokeCol = getReadableAccentColor();
+        int r = Color.red(strokeCol), g = Color.green(strokeCol), b = Color.blue(strokeCol);
+        disk.setStroke(Math.max(1, Math.round(1.5f * density)), Color.argb(isNightMode ? 140 : 100, r, g, b));
+        return disk;
+    }
+
+    /**
      * Create a card background drawable adhering to design tokens.
      */
     public Drawable createCardDrawable(Context context) {
