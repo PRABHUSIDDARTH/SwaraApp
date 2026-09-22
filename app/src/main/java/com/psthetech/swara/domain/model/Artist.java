@@ -8,6 +8,7 @@ import java.util.List;
  */
 public class Artist {
     private final String name;
+    private final String canonicalKey;
     private final int songCount;
     private final int albumCount;
     private final List<Song> songs;
@@ -15,7 +16,12 @@ public class Artist {
     private final long representativeAlbumId;
 
     public Artist(String name, int songCount, int albumCount, long representativeAlbumId, List<Song> songs) {
+        this(name, com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(name), songCount, albumCount, representativeAlbumId, songs);
+    }
+
+    public Artist(String name, String canonicalKey, int songCount, int albumCount, long representativeAlbumId, List<Song> songs) {
         this.name = name != null ? name : "Unknown Artist";
+        this.canonicalKey = canonicalKey != null ? canonicalKey : com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(this.name);
         this.songCount = songCount;
         this.albumCount = albumCount;
         this.representativeAlbumId = representativeAlbumId;
@@ -23,6 +29,8 @@ public class Artist {
     }
 
     public String getName() { return name; }
+    public String getDisplayName() { return name; }
+    public String getCanonicalKey() { return canonicalKey != null ? canonicalKey : getCanonicalName(); }
     public int getSongCount() { return songCount; }
     public int getAlbumCount() { return albumCount; }
     public long getRepresentativeAlbumId() { return representativeAlbumId; }
@@ -37,7 +45,7 @@ public class Artist {
     }
 
     public String getCanonicalName() {
-        return getCanonicalKey(name);
+        return canonicalKey != null ? canonicalKey : getCanonicalKey(name);
     }
 
     @Override
@@ -45,11 +53,11 @@ public class Artist {
         if (this == o) return true;
         if (!(o instanceof Artist)) return false;
         Artist artist = (Artist) o;
-        return getCanonicalKey(name).equals(getCanonicalKey(artist.name));
+        return getCanonicalKey().equals(artist.getCanonicalKey());
     }
 
     @Override
     public int hashCode() {
-        return getCanonicalKey(name).hashCode();
+        return getCanonicalKey().hashCode();
     }
 }
