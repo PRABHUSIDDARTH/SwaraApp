@@ -69,6 +69,7 @@ public class ArtistsFragment extends Fragment implements ArtistAdapter.OnArtistC
     public void onArtistClick(Artist artist) {
         Bundle bundle = new Bundle();
         bundle.putString("artistName", artist.getName());
+        bundle.putString("canonicalKey", artist.getCanonicalKey());
         Navigation.findNavController(requireView()).navigate(R.id.action_library_to_artistDetail, bundle);
     }
 }
