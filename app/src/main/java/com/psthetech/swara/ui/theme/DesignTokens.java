@@ -638,6 +638,28 @@ public class DesignTokens {
     }
 
     /**
+     * Creates an ambient glow drawable for the Now Playing album art.
+     * Uses a multi-stop radial gradient centered behind the art, with soft fading alpha.
+     */
+    public Drawable createArtworkGlowDrawable(int glowColor) {
+        GradientDrawable glow = new GradientDrawable();
+        glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        glow.setShape(GradientDrawable.RECTANGLE);
+        int r = android.graphics.Color.red(glowColor);
+        int g = android.graphics.Color.green(glowColor);
+        int b = android.graphics.Color.blue(glowColor);
+        int centerAlpha = isNightMode ? 90 : 50;
+        int midAlpha    = isNightMode ? 40 : 20;
+        int centerColor = android.graphics.Color.argb(centerAlpha, r, g, b);
+        int midColor    = android.graphics.Color.argb(midAlpha, r, g, b);
+        int outerColor  = android.graphics.Color.argb(0, r, g, b);
+        glow.setColors(new int[] { centerColor, midColor, outerColor });
+        glow.setGradientRadius(550f);
+        glow.setCornerRadius(60f);
+        return glow;
+    }
+
+    /**
      * Create a card background drawable adhering to design tokens.
      */
     public Drawable createCardDrawable(Context context) {
