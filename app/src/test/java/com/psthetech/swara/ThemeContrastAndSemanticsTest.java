@@ -98,6 +98,8 @@ public class ThemeContrastAndSemanticsTest {
                 new LightPalette("#F3F9F5", "#FFFFFF", "#DCF0E3", "#022C22", "#065F46", "#059669"));
         LIGHT_PALETTES.put(ColorTheme.SWARA,
                 new LightPalette("#F6F2FC", "#FFFFFF", "#EDE6F7", "#1F0F3D", "#5B4380", "#946E14"));
+        LIGHT_PALETTES.put(ColorTheme.OFF_WHITE,
+                new LightPalette("#F8F4EE", "#FDFAF5", "#EDE8DE", "#1A1510", "#4A3F30", "#5C4A1E"));
     }
 
     // =========================================================================
@@ -282,7 +284,7 @@ public class ThemeContrastAndSemanticsTest {
 
     @Test
     public void testAllColorThemesEnumCountAndFallback() {
-        assertEquals(7, ColorTheme.values().length);
+        assertEquals(8, ColorTheme.values().length);
         assertEquals(ColorTheme.SWARA, ColorTheme.fromKey("UNKNOWN_THEME"));
         assertEquals(ColorTheme.ROSE, ColorTheme.fromKey("ROSE"));
         assertEquals(ColorTheme.FOREST, ColorTheme.fromKey("forest"));
