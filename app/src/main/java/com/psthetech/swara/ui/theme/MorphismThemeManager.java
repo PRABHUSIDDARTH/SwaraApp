@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -267,6 +268,7 @@ public class MorphismThemeManager {
 
     /**
      * Apply active design tokens to BottomNavigationView.
+     * Uses Liquid Glass nav drawable — floating pill with TL→BR highlight gradient.
      */
     public void applyToBottomNav(BottomNavigationView nav, @Nullable DesignTokens tokens) {
         if (nav == null) return;
@@ -274,16 +276,32 @@ public class MorphismThemeManager {
         if (tokens == null) return;
 
         Context context = nav.getContext();
+        float density = context.getResources().getDisplayMetrics().density;
 
-        // Always Liquid Glass nav background
-        nav.setBackground(tokens.createSurfaceVariantDrawable(context));
+        // Glass pill background (highlight gradient + semi-transparent fill + stroke)
+        nav.setBackground(tokens.createGlassNavDrawable(context));
+        nav.setClipToOutline(true);
+        ViewCompat.setElevation(nav, 8 * density);
 
-        // Active indicator pill color
+        // Active indicator — crisp luminous accent pill sized cleanly for the icon without crowding text
         nav.setItemActiveIndicatorEnabled(true);
-        nav.setItemActiveIndicatorColor(ColorStateList.valueOf(tokens.getSelectedColor()));
+        nav.setItemActiveIndicatorWidth((int) (48 * density));
+        nav.setItemActiveIndicatorHeight((int) (26 * density));
+        nav.setActiveIndicatorLabelPadding((int) (2 * density));
 
-        // Active state indicator color
-        int activeColor = tokens.getAccentColor();
+        com.google.android.material.shape.ShapeAppearanceModel shape =
+                com.google.android.material.shape.ShapeAppearanceModel.builder()
+                        .setAllCornerSizes(13 * density)
+                        .build();
+        nav.setItemActiveIndicatorShapeAppearance(shape);
+
+        int indicatorColor = tokens.isNightMode()
+                ? Color.argb(85, Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()), Color.blue(tokens.getAccentColor()))
+                : Color.argb(45, Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()), Color.blue(tokens.getAccentColor()));
+        nav.setItemActiveIndicatorColor(ColorStateList.valueOf(indicatorColor));
+
+        // Icon + text color state list
+        int activeColor = tokens.getReadableAccentColor();
         int unselectedColor = tokens.getTextSecondaryColor();
 
         ColorStateList stateList = new ColorStateList(
@@ -298,5 +316,21 @@ public class MorphismThemeManager {
         );
         nav.setItemIconTintList(stateList);
         nav.setItemTextColor(stateList);
+    }
+
+    /**
+     * Apply glass surface to any view with configurable corner radius.
+     * Delegates to LiquidGlassRenderer for consistent application.
+     *
+     * @param view           Target view.
+     * @param tokens         Current design tokens.
+     * @param cornerRadiusDp Corner radius in dp (999 = full pill, 20 = mini-player, etc.)
+     */
+    public void applyGlassToView(View view, @Nullable DesignTokens tokens, float cornerRadiusDp) {
+        if (view == null) return;
+        if (tokens == null) tokens = getCurrentTokens();
+        if (tokens == null) return;
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.applyGlassBackground(
+                view, tokens, cornerRadiusDp);
     }
 }

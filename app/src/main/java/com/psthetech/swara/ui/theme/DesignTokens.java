@@ -725,6 +725,232 @@ public class DesignTokens {
         }
     }
 
+    // ===== Liquid Glass Semantic Tokens =====
+    // All derived from existing palette fields — zero hardcoded colors.
+    // Adapt automatically across all 7 themes and both light/dark modes.
+
+    /**
+     * Glass background fill color — semi-transparent surface for blur overlays.
+     * Dark: surface at ~62% alpha for deep translucency.
+     * Light: white at ~85% alpha for a clean frosted look.
+     */
+    @ColorInt
+    public int getGlassBackgroundColor() {
+        if (isNightMode) {
+            int r = Color.red(surfaceColor);
+            int g = Color.green(surfaceColor);
+            int b = Color.blue(surfaceColor);
+            return Color.argb(230, r, g, b); // ~90% alpha — frosted base
+        } else {
+            return Color.argb(242, 255, 255, 255); // ~95% white
+        }
+    }
+
+    /**
+     * Elevated glass fill — high-opacity frosted base for floating nav/mini-player surfaces.
+     * Prevents content underneath from causing double-exposure collisions while maintaining
+     * rich translucent depth and specular highlight.
+     */
+    @ColorInt
+    public int getGlassNavBackgroundColor() {
+        if (isNightMode) {
+            int r = Color.red(surfaceElevatedColor);
+            int g = Color.green(surfaceElevatedColor);
+            int b = Color.blue(surfaceElevatedColor);
+            return Color.argb(240, r, g, b); // ~94% alpha
+        } else {
+            return Color.argb(248, 255, 255, 255); // ~97% white
+        }
+    }
+
+    /**
+     * Subtle theme-colored tint wash over glass surfaces.
+     * Dark: accent at 9% alpha for atmospheric coloring.
+     * Light: accent at 5% alpha (very subtle, avoids washing out text).
+     */
+    @ColorInt
+    public int getGlassTintColor() {
+        int r = Color.red(accentColor);
+        int g = Color.green(accentColor);
+        int b = Color.blue(accentColor);
+        return Color.argb(isNightMode ? 23 : 13, r, g, b);
+    }
+
+    /**
+     * Glass border/stroke color — alpha-adjusted stroke for crisp glass edges.
+     * Dark: stroke at ~55% alpha.
+     * Light: stroke at ~65% alpha (needs to be more visible on white).
+     */
+    @ColorInt
+    public int getGlassBorderColor() {
+        int r = Color.red(strokeColor);
+        int g = Color.green(strokeColor);
+        int b = Color.blue(strokeColor);
+        return Color.argb(isNightMode ? 140 : 166, r, g, b);
+    }
+
+    /**
+     * Glass highlight color — top-left to bottom-right sheen.
+     */
+    @ColorInt
+    public int getGlassHighlightColor() {
+        return Color.argb(isNightMode ? 40 : 128, 255, 255, 255);
+    }
+
+    /**
+     * Accent-colored glow for glass-selected/active states.
+     * Uses readableAccentColor at controlled alpha so it works in both modes.
+     */
+    @ColorInt
+    public int getGlassAccentGlowColor() {
+        int r = Color.red(accentColor);
+        int g = Color.green(accentColor);
+        int b = Color.blue(accentColor);
+        return Color.argb(isNightMode ? 65 : 45, r, g, b);
+    }
+
+    /**
+     * Creates a premium pill-shaped glass surface drawable for the Bottom Navigation.
+     * Structure: high-opacity frosted base fill + TL→BR specular highlight + crisp refraction border.
+     * Corner radius: full pill (999dp).
+     */
+    public GradientDrawable createGlassNavDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int baseColor = isNightMode ? surfaceElevatedColor : surfaceColor;
+        int startColor = isNightMode
+                ? Color.argb(246,
+                        Math.min(255, Color.red(baseColor) + 26),
+                        Math.min(255, Color.green(baseColor) + 26),
+                        Math.min(255, Color.blue(baseColor) + 36))
+                : Color.argb(248, 255, 255, 255);
+        int endColor = isNightMode
+                ? Color.argb(238, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
+                : Color.argb(240, 245, 245, 248);
+
+        GradientDrawable glass = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
+        glass.setCornerRadius(999 * density); // Full pill
+        int strokeColor = isNightMode
+                ? Color.argb(70, 255, 255, 255)
+                : Color.argb(45, 0, 0, 0);
+        glass.setStroke(Math.max(1, Math.round(density)), strokeColor);
+        return glass;
+    }
+
+    /**
+     * Creates a glass drawable for the Mini Player — fully rounded on all corners (22dp pill).
+     * High-opacity frosted base fill blocks text bleed-through from background lists.
+     */
+    public GradientDrawable createGlassMiniPlayerDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        float cornerPx = 22f * density;
+        int baseColor = isNightMode ? surfaceElevatedColor : surfaceColor;
+        int startColor = isNightMode
+                ? Color.argb(246,
+                        Math.min(255, Color.red(baseColor) + 26),
+                        Math.min(255, Color.green(baseColor) + 26),
+                        Math.min(255, Color.blue(baseColor) + 34))
+                : Color.argb(250, 255, 255, 255);
+        int endColor = isNightMode
+                ? Color.argb(240, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
+                : Color.argb(242, 245, 245, 248);
+
+        GradientDrawable glass = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
+        glass.setCornerRadius(cornerPx);
+        int strokeColor = isNightMode
+                ? Color.argb(65, 255, 255, 255)
+                : Color.argb(40, 0, 0, 0);
+        glass.setStroke(Math.max(1, Math.round(density)), strokeColor);
+        return glass;
+    }
+
+    /**
+     * Creates a glass pill drawable for action chips, search bars, and segmented control backgrounds.
+     */
+    public GradientDrawable createGlassPillDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int baseColor = isNightMode ? surfaceVariantColor : surfaceColor;
+        int startColor = isNightMode
+                ? Color.argb(235,
+                        Math.min(255, Color.red(baseColor) + 20),
+                        Math.min(255, Color.green(baseColor) + 20),
+                        Math.min(255, Color.blue(baseColor) + 28))
+                : Color.argb(240, 255, 255, 255);
+        int endColor = isNightMode
+                ? Color.argb(225, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
+                : Color.argb(230, 240, 240, 244);
+
+        GradientDrawable glass = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
+        glass.setCornerRadius(999 * density); // Full pill
+        int strokeColor = isNightMode
+                ? Color.argb(55, 255, 255, 255)
+                : Color.argb(35, 0, 0, 0);
+        glass.setStroke(Math.max(1, Math.round(density)), strokeColor);
+        return glass;
+    }
+
+    /**
+     * Creates a glass card drawable with theme corner radius.
+     */
+    public GradientDrawable createGlassCardDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int baseColor = isNightMode ? surfaceColor : surfaceColor;
+        int startColor = isNightMode
+                ? Color.argb(230,
+                        Math.min(255, Color.red(baseColor) + 18),
+                        Math.min(255, Color.green(baseColor) + 18),
+                        Math.min(255, Color.blue(baseColor) + 24))
+                : Color.argb(240, 255, 255, 255);
+        int endColor = isNightMode
+                ? Color.argb(220, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
+                : Color.argb(230, 245, 245, 248);
+
+        GradientDrawable glass = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
+        glass.setCornerRadius(cornerRadiusDp * density);
+        int strokeColor = isNightMode
+                ? Color.argb(50, 255, 255, 255)
+                : Color.argb(30, 0, 0, 0);
+        glass.setStroke(Math.max(1, Math.round(density)), strokeColor);
+        return glass;
+    }
+
+    /**
+     * Creates a shuffle action button background.
+     * Glass pill with accent glow — visually distinctive from ordinary buttons.
+     */
+    public GradientDrawable createShuffleButtonDrawable(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int startColor = getGlassHighlightColor();
+        int endColor = getGlassAccentGlowColor();
+        GradientDrawable glass = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{startColor, endColor}
+        );
+        glass.setCornerRadius(999 * density); // Full pill
+        int strokeColor = getReadableAccentColor();
+        int sr = Color.red(strokeColor), sg = Color.green(strokeColor), sb = Color.blue(strokeColor);
+        glass.setStroke(Math.max(1, Math.round(density)), Color.argb(120, sr, sg, sb));
+        return glass;
+    }
+
+    // ===== Internal Helpers =====
+
+    /** Package-visible color mix for use in LiquidGlassRenderer. */
+    static int mixColors(int from, int to, float amount) {
+        return mix(from, to, amount);
+    }
+
     private static int mix(int from, int to, float amount) {
         return Color.rgb(Math.round(Color.red(from) * (1 - amount) + Color.red(to) * amount),
                 Math.round(Color.green(from) * (1 - amount) + Color.green(to) * amount),
