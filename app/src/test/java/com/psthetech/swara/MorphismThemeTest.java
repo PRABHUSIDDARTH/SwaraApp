@@ -19,7 +19,7 @@ public class MorphismThemeTest {
     @Test
     public void testAllColorThemesExist() {
         ColorTheme[] themes = ColorTheme.values();
-        assertEquals(7, themes.length);
+        assertEquals(8, themes.length);
 
         assertNotNull(ColorTheme.valueOf("SWARA"));
         assertNotNull(ColorTheme.valueOf("MIDNIGHT"));
@@ -28,6 +28,7 @@ public class MorphismThemeTest {
         assertNotNull(ColorTheme.valueOf("ROSE"));
         assertNotNull(ColorTheme.valueOf("OCEAN"));
         assertNotNull(ColorTheme.valueOf("FOREST"));
+        assertNotNull(ColorTheme.valueOf("OFF_WHITE"));
     }
 
     @Test
