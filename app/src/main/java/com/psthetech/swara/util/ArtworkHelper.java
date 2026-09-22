@@ -242,6 +242,49 @@ public class ArtworkHelper {
     }
 
     /**
+     * Extracts a dominant vibrant color from the song artwork, sampling a tiny 24x24 thumbnail.
+     * Guaranteed to run asynchronously and fall back to fallbackColor if artwork is absent or monochromatic.
+     */
+    public static void extractArtworkColor(Context context, @Nullable Song song, int fallbackColor, ColorCallback callback) {
+        if (context == null || callback == null) return;
+        if (song == null) {
+            callback.onColorExtracted(fallbackColor);
+            return;
+        }
+
+        ArtworkRepository repo = new ArtworkRepository(context);
+        Uri primaryUri = repo.getArtworkUri(song);
+        if (primaryUri == null) {
+            callback.onColorExtracted(fallbackColor);
+            return;
+        }
+
+        ObjectKey signature = getSongSignature(context, song);
+        Glide.with(context)
+                .asBitmap()
+                .load(primaryUri)
+                .signature(signature)
+                .override(24, 24)
+                .centerCrop()
+                .into(new com.bumptech.glide.request.target.CustomTarget<android.graphics.Bitmap>() {
+                    @Override
+                    public void onResourceReady(@androidx.annotation.NonNull android.graphics.Bitmap resource,
+                                                @Nullable com.bumptech.glide.request.transition.Transition<? super android.graphics.Bitmap> transition) {
+                        int extracted = findVibrantColor(resource, fallbackColor);
+                        callback.onColorExtracted(extracted);
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {}
+
+                    @Override
+                    public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                        callback.onColorExtracted(fallbackColor);
+                    }
+                });
+    }
+
+    /**
      * Finds the most vibrant / saturated color in a small sampled bitmap.
      */
     public static int findVibrantColor(android.graphics.Bitmap bitmap, int fallbackColor) {
