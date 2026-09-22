@@ -33,13 +33,14 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
     private static final DiffUtil.ItemCallback<Artist> DIFF_CALLBACK = new DiffUtil.ItemCallback<Artist>() {
         @Override
         public boolean areItemsTheSame(@NonNull Artist oldItem, @NonNull Artist newItem) {
-            return oldItem.getName().equalsIgnoreCase(newItem.getName());
+            return oldItem.getCanonicalKey().equalsIgnoreCase(newItem.getCanonicalKey());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Artist oldItem, @NonNull Artist newItem) {
             return oldItem.getSongCount() == newItem.getSongCount()
-                    && oldItem.getAlbumCount() == newItem.getAlbumCount();
+                    && oldItem.getAlbumCount() == newItem.getAlbumCount()
+                    && oldItem.getName().equals(newItem.getName());
         }
     };
 
