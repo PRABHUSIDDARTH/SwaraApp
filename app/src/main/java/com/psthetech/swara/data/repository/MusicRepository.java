@@ -49,9 +49,20 @@ public class MusicRepository {
     }
 
     private static final Map<Long, Song> canonicalSongMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, List<Song>> canonicalArtistIndex = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static Song getCanonicalSong(long songId) {
         return canonicalSongMap.get(songId);
+    }
+
+    public static List<Song> getSongsForArtistFromCache(String artistName) {
+        if (artistName == null) return Collections.emptyList();
+        String canonicalKey = Artist.getCanonicalKey(artistName);
+        List<Song> cached = canonicalArtistIndex.get(canonicalKey);
+        if (cached != null) {
+            return cached;
+        }
+        return com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, new ArrayList<>(canonicalSongMap.values()));
     }
 
     public Song getSongById(long songId) {
@@ -140,15 +151,19 @@ public class MusicRepository {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
                 String canonicalKey = Artist.getCanonicalKey(artistName);
-                List<Song> allSongs = querySongs(null, null, null);
-                List<Song> songs = new ArrayList<>();
-                for (Song s : allSongs) {
-                    if (Artist.getCanonicalKey(s.getArtist()).equals(canonicalKey)) {
-                        songs.add(s);
-                    }
+                List<Song> cached = canonicalArtistIndex.get(canonicalKey);
+                if (cached != null && !cached.isEmpty()) {
+                    mainHandler.post(() -> callback.onResult(new ArrayList<>(cached)));
+                    return;
                 }
-                songs.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
-                mainHandler.post(() -> callback.onResult(songs));
+                List<Song> allSongs = querySongs(null, null, null);
+                buildArtists(allSongs);
+                List<Song> songs = canonicalArtistIndex.get(canonicalKey);
+                if (songs == null) {
+                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs);
+                }
+                final List<Song> result = songs != null ? songs : Collections.emptyList();
+                mainHandler.post(() -> callback.onResult(result));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load songs for artist", e);
                 mainHandler.post(() -> callback.onError("Failed to load artist songs"));
@@ -264,7 +279,14 @@ public class MusicRepository {
                 for (Artist a : allArtistsFromMatching) {
                     if (a.getName().toLowerCase(Locale.getDefault()).contains(q)
                             || com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(a.getName()).contains(canonicalQuery)) {
-                        artistResults.add(a);
+                        List<Song> fullSongs = canonicalArtistIndex.get(a.getCanonicalKey());
+                        if (fullSongs != null && !fullSongs.isEmpty()) {
+                            long distinctAlbums = fullSongs.stream().map(Song::getAlbumId).distinct().count();
+                            long repAlbumId = fullSongs.get(0).getAlbumId();
+                            artistResults.add(new Artist(a.getName(), a.getCanonicalKey(), fullSongs.size(), (int) distinctAlbums, repAlbumId, fullSongs));
+                        } else {
+                            artistResults.add(a);
+                        }
                     }
                 }
 
@@ -378,6 +400,11 @@ public class MusicRepository {
     }
 
     public static List<Artist> buildArtists(List<Song> songs) {
-        return com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
+        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
+        canonicalArtistIndex.clear();
+        for (Artist a : artists) {
+            canonicalArtistIndex.put(a.getCanonicalKey(), a.getSongs());
+        }
+        return artists;
     }
 }
