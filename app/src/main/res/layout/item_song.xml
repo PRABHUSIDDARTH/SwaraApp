@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="@dimen/song_item_height"
     android:orientation="horizontal"
@@ -7,14 +8,15 @@
     android:gravity="center_vertical"
     android:background="@drawable/ripple_item">
 
-    <!-- Album Artwork Thumbnail -->
-    <ImageView
+    <!-- Album Artwork Thumbnail with 10dp rounded corners -->
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivArtwork"
         android:layout_width="@dimen/song_item_artwork_size"
         android:layout_height="@dimen/song_item_artwork_size"
         android:scaleType="centerCrop"
         android:background="@color/swara_surface_3"
         android:src="@drawable/ic_artwork_fallback"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Swara.RoundedCorner.10dp"
         android:contentDescription="@string/cd_song_thumbnail"
         android:importantForAccessibility="no" />
 

@@ -71,4 +71,6 @@
     <dimen name="bottom_sheet_drag_handle_height">4dp</dimen>
     <dimen name="progress_bar_height">3dp</dimen>
     <dimen name="mini_player_progress_height">2dp</dimen>
+    <dimen name="bottom_content_padding">184dp</dimen>
+    <dimen name="radius_artwork">10dp</dimen>
 </resources>

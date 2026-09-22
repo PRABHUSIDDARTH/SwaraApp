@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/miniPlayerRoot"
     android:layout_width="match_parent"
     android:layout_height="@dimen/mini_player_height"
     android:orientation="vertical"
     android:clipToOutline="true"
-    android:background="@drawable/bg_mini_player"
     android:clickable="true"
     android:focusable="true">
 
@@ -24,14 +24,15 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/dp_12">
 
-        <!-- Artwork -->
-        <ImageView
+        <!-- Artwork with 12dp rounded corners -->
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivArtwork"
             android:layout_width="@dimen/mini_player_artwork_size"
             android:layout_height="@dimen/mini_player_artwork_size"
             android:scaleType="centerCrop"
             android:background="@color/swara_surface_3"
             android:src="@drawable/ic_artwork_fallback"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Swara.RoundedCorner.12dp"
             android:contentDescription="@string/cd_song_thumbnail" />
 
         <!-- Title + artist -->

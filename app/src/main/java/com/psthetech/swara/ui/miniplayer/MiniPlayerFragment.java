@@ -1,6 +1,6 @@
 package com.psthetech.swara.ui.miniplayer;
 
-import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +16,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.ui.glass.LiquidGlassRenderer;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.util.ArtworkHelper;
 
@@ -81,13 +82,41 @@ public class MiniPlayerFragment extends Fragment {
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                            .applyToView(rootView, true, tokens);
+
+                    // Apply glass mini-player surface (fully-rounded, translucent, highlight gradient)
+                    GradientDrawable glassDrawable = tokens.createGlassMiniPlayerDrawable(requireContext());
+                    rootView.setBackground(glassDrawable);
+                    rootView.setClipToOutline(true);
+
+                    // Round the artwork corners using a ShapeAppearance-style outline
+                    if (ivArtwork != null) {
+                        float artworkCornerPx = 8 * requireContext().getResources().getDisplayMetrics().density;
+                        android.graphics.drawable.GradientDrawable artworkBg =
+                                new android.graphics.drawable.GradientDrawable();
+                        artworkBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                        artworkBg.setColor(tokens.getSurfaceElevatedColor());
+                        artworkBg.setCornerRadius(artworkCornerPx);
+                        ivArtwork.setBackground(artworkBg);
+                        ivArtwork.setClipToOutline(true);
+                    }
+
+                    // Text colors
                     tvTitle.setTextColor(tokens.getTextPrimaryColor());
                     tvArtist.setTextColor(tokens.getTextSecondaryColor());
-                    btnPlayPause.setBackground(tokens.createCardDrawable(requireContext()));
-                    btnPlayPause.setColorFilter(tokens.getTextPrimaryColor());
-                    btnNext.setColorFilter(tokens.getAccentColor());
+
+                    // Play/pause button — glass pill with accent tint
+                    if (btnPlayPause != null) {
+                        GradientDrawable btnBg = tokens.createGlassPillDrawable(requireContext());
+                        btnPlayPause.setBackground(btnBg);
+                        btnPlayPause.setColorFilter(tokens.getReadableAccentColor());
+                    }
+
+                    // Next button — simple accent tint on transparent
+                    if (btnNext != null) {
+                        btnNext.setColorFilter(tokens.getReadableAccentColor());
+                    }
+
+                    // Progress line color
                     if (progressLine != null) {
                         progressLine.setBackgroundColor(tokens.getAccentColor());
                     }
@@ -104,6 +133,9 @@ public class MiniPlayerFragment extends Fragment {
                 navHostFragment.getNavController().navigate(R.id.nowPlayingFragment);
             }
         });
+
+        // Attach press animation to the entire mini-player (respects reduced-motion)
+        LiquidGlassRenderer.attachPressAnimation(rootView);
 
         btnPlayPause.setOnClickListener(v -> {
             Boolean isPlaying = playbackViewModel.getIsPlaying().getValue();
