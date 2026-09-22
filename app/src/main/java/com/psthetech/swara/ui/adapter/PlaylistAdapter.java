@@ -107,7 +107,6 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
         super.onViewRecycled(holder);
         PlaylistArtworkHelper.clear(holder.itemView.getContext(), holder.ivPlaylistArtwork);
         holder.ivPlaylistArtwork.setImageDrawable(null);
-        holder.itemView.setBackground(null);
         holder.itemView.setScaleX(1.0f);
         holder.itemView.setScaleY(1.0f);
         holder.itemView.setAlpha(1.0f);
