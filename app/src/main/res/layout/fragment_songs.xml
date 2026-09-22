@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Songs list with header bar (sort) and loading/empty states -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="?android:attr/colorBackground">
 
-    <!-- Header bar: label + sort button -->
+    <!-- Header bar: label + shuffle + sort button -->
     <LinearLayout
         android:id="@+id/headerBar"
         android:layout_width="match_parent"
@@ -24,25 +25,58 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <!-- Shuffle all — plays all songs in random order -->
+        <ImageView
+            android:id="@+id/btnShuffle"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_shuffle"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/shuffle"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="4dp"
+            app:tint="?attr/colorSecondary" />
+
+        <!-- View mode toggle: compact list vs expanded cards -->
+        <ImageView
+            android:id="@+id/btnViewMode"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_view_expanded"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/view_mode"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="4dp"
+            app:tint="?attr/colorSecondary" />
+
         <ImageView
             android:id="@+id/btnSort"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:padding="6dp"
             android:src="@drawable/ic_sort"
+            android:background="@drawable/ripple_circle"
             android:contentDescription="@string/sort"
             app:tint="?attr/colorSecondary" />
 
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="48dp"
-        android:paddingBottom="144dp"
-        android:clipToPadding="false"
-        android:overScrollMode="never" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="@dimen/bottom_content_padding"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
 
     <!-- Loading state -->
     <ProgressBar
@@ -93,4 +127,6 @@
 
     </LinearLayout>
 
-</FrameLayout>
+    </FrameLayout>
+
+</LinearLayout>

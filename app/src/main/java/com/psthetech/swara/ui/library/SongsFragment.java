@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.psthetech.swara.R;
+import com.psthetech.swara.data.repository.ShuffleEngine;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.adapter.SongAdapter;
 import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
@@ -36,6 +37,8 @@ import java.util.List;
  */
 public class SongsFragment extends Fragment implements SongAdapter.Listener {
 
+    private static final String PREF_SONGS_EXPANDED_MODE = "pref_songs_expanded_mode";
+
     private LibraryViewModel libraryViewModel;
     private PlaybackViewModel playbackViewModel;
     private FavoritesViewModel favoritesViewModel;
@@ -45,6 +48,11 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
     private ProgressBar progressBar;
     private View layoutEmpty;
     private ImageView btnSort;
+    private ImageView btnShuffle;
+    private ImageView btnViewMode;
+
+    // Tracks last shuffled order for repeat-avoidance (same spec contract as playlist shuffle)
+    private List<Song> lastShuffleOrder = null;
 
     private SongAdapter songAdapter;
 
@@ -69,16 +77,44 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         progressBar  = view.findViewById(R.id.progressBar);
         layoutEmpty  = view.findViewById(R.id.layoutEmpty);
         btnSort      = view.findViewById(R.id.btnSort);
+        btnShuffle   = view.findViewById(R.id.btnShuffle);
+        btnViewMode  = view.findViewById(R.id.btnViewMode);
 
         songAdapter = new SongAdapter(this);
+
+        android.content.SharedPreferences prefs = requireContext().getSharedPreferences("swara_ui_prefs", android.content.Context.MODE_PRIVATE);
+        boolean isExpanded = prefs.getBoolean(PREF_SONGS_EXPANDED_MODE, false);
+        songAdapter.setExpandedMode(isExpanded);
+        updateViewModeButton(isExpanded);
+
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
+
+        if (btnViewMode != null) {
+            btnViewMode.setOnClickListener(v -> {
+                boolean newMode = !songAdapter.isExpandedMode();
+                songAdapter.setExpandedMode(newMode);
+                updateViewModeButton(newMode);
+                prefs.edit().putBoolean(PREF_SONGS_EXPANDED_MODE, newMode).apply();
+            });
+        }
 
         if (btnSort != null) {
             btnSort.setOnClickListener(this::showSortMenu);
         }
 
+        if (btnShuffle != null) {
+            btnShuffle.setOnClickListener(v -> shuffleLibrary());
+        }
+
         observeData();
+    }
+
+    private void updateViewModeButton(boolean isExpanded) {
+        if (btnViewMode != null) {
+            btnViewMode.setImageResource(isExpanded ? R.drawable.ic_view_list : R.drawable.ic_view_expanded);
+            btnViewMode.setContentDescription(getString(isExpanded ? R.string.view_mode_compact : R.string.view_mode_expanded));
+        }
     }
 
     // ===== Sort menu =====
@@ -102,6 +138,30 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
             return false;
         });
         popup.show();
+    }
+
+    // ===== Shuffle =====
+
+    /**
+     * Shuffles all visible library songs and starts playback.
+     *
+     * Contract:
+     *  - Does NOT modify the library list order (display unchanged).
+     *  - Uses ShuffleEngine.shuffleAvoidRepeat to avoid replaying the exact same order.
+     *  - Deduplicates by Song ID before shuffling.
+     *  - Delegates to PlaybackViewModel — ExoPlayer remains the sole playback authority.
+     */
+    private void shuffleLibrary() {
+        List<Song> current = songAdapter.getCurrentList();
+        if (current == null || current.isEmpty()) return;
+
+        // ShuffleEngine: deduplicate + Fisher-Yates + repeat-avoidance
+        List<Song> shuffled = ShuffleEngine.shuffleSongs(current, lastShuffleOrder);
+        lastShuffleOrder = shuffled;
+
+        // Play the shuffled queue — ExoPlayer receives the randomized order as MediaItems
+        // position 0 = first song in the shuffled queue
+        playbackViewModel.playSongs(shuffled, 0);
     }
 
     // ===== Data observation =====
@@ -156,7 +216,15 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         }
 
         if (btnSort != null) {
-            btnSort.setColorFilter(tokens.getAccentColor());
+            btnSort.setColorFilter(tokens.getReadableAccentColor());
+        }
+
+        if (btnShuffle != null) {
+            btnShuffle.setColorFilter(tokens.getReadableAccentColor());
+        }
+
+        if (btnViewMode != null) {
+            btnViewMode.setColorFilter(tokens.getReadableAccentColor());
         }
 
         if (progressBar != null) {

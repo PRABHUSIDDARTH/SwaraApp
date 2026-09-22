@@ -49,14 +49,29 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         default void onDeleteSong(Song song) {}
     }
 
+    public static final int VIEW_TYPE_COMPACT  = 0;
+    public static final int VIEW_TYPE_EXPANDED = 1;
+
     private Listener listener;
     private Set<Long> favoriteSongIds = new HashSet<>();
     private boolean showRemoveFromPlaylist = false;
     private long currentPlayingSongId = -1L;
+    private boolean isExpandedMode = false;
 
     public SongAdapter(@NonNull Listener listener) {
         super(DIFF_CALLBACK);
         this.listener = listener;
+    }
+
+    public void setExpandedMode(boolean expanded) {
+        if (this.isExpandedMode != expanded) {
+            this.isExpandedMode = expanded;
+            notifyDataSetChanged();
+        }
+    }
+
+    public boolean isExpandedMode() {
+        return isExpandedMode;
     }
 
     public void setFavorites(Set<Long> favoriteIds) {
@@ -87,11 +102,17 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
 
     // ===== RecyclerView.Adapter =====
 
+    @Override
+    public int getItemViewType(int position) {
+        return isExpandedMode ? VIEW_TYPE_EXPANDED : VIEW_TYPE_COMPACT;
+    }
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        int layoutId = (viewType == VIEW_TYPE_EXPANDED) ? R.layout.item_song_expanded : R.layout.item_song;
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_song, parent, false);
+                .inflate(layoutId, parent, false);
         return new ViewHolder(view);
     }
 
@@ -105,7 +126,22 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
 
         // ===== Text =====
         holder.tvTitle.setText(song.getTitle());
-        holder.tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
+        if (holder.tvExtraInfo != null) {
+            // Expanded card mode: separate artist and album/duration
+            holder.tvSubtitle.setText(song.getArtist());
+            String album = song.getAlbum();
+            if (album != null && !album.isEmpty() && !album.equalsIgnoreCase("Unknown Album") && !album.equalsIgnoreCase("<unknown>")) {
+                holder.tvExtraInfo.setText(album + " • " + song.getFormattedDuration());
+            } else {
+                holder.tvExtraInfo.setText(song.getFormattedDuration());
+            }
+            if (tokens != null) {
+                holder.tvExtraInfo.setTextColor(tokens.getTextSecondaryColor());
+            }
+        } else {
+            // Compact list mode
+            holder.tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
+        }
 
         if (tokens != null) {
             // Currently playing rows: title uses readable accent color; others use primary text
@@ -176,7 +212,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         ArtworkHelper.clear(holder.itemView.getContext(), holder.ivArtwork);
         holder.ivArtwork.setImageDrawable(null);
         // Reset playback glow and typeface
-        holder.itemView.setBackground(null);
+        if (isExpandedMode) {
+            holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+        } else {
+            holder.itemView.setBackgroundResource(R.drawable.ripple_item);
+        }
         holder.tvTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
         // Reset scale and alpha
         holder.itemView.setScaleX(1.0f);
@@ -197,12 +237,17 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
             glow.setShape(GradientDrawable.RECTANGLE);
             glow.setColor(tokens.getPlaybackSurfaceColor());
             float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
-            glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
+            float radiusDp = isExpandedMode ? 16f : tokens.getCornerRadiusDp();
+            glow.setCornerRadius(radiusDp * density);
             glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
             holder.itemView.setBackground(glow);
         } else {
             // Always clear glow for non-playing rows (RecyclerView safety)
-            holder.itemView.setBackground(null);
+            if (isExpandedMode) {
+                holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+            } else {
+                holder.itemView.setBackgroundResource(R.drawable.ripple_item);
+            }
         }
     }
 
@@ -267,6 +312,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         ImageView ivArtwork;
         TextView tvTitle;
         TextView tvSubtitle;
+        TextView tvExtraInfo;
         ImageView ivFavorite;
         ImageView ivMore;
 
@@ -275,6 +321,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
             ivArtwork = view.findViewById(R.id.ivArtwork);
             tvTitle = view.findViewById(R.id.tvTitle);
             tvSubtitle = view.findViewById(R.id.tvSubtitle);
+            tvExtraInfo = view.findViewById(R.id.tvExtraInfo);
             ivFavorite = view.findViewById(R.id.ivFavorite);
             ivMore = view.findViewById(R.id.ivMore);
         }

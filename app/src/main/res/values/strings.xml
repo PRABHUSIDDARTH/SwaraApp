@@ -4,7 +4,12 @@
 
     <!-- Widget -->
     <string name="widget_description">Now playing controls for Swara</string>
+    <string name="widget_vertical_description">Compact vertical now playing card for Swara</string>
+    <string name="widget_name_vertical">Swara Card (Vertical)</string>
     <string name="widget_no_song">Nothing playing</string>
+    <string name="view_mode">View Mode</string>
+    <string name="view_mode_compact">Switch to compact list</string>
+    <string name="view_mode_expanded">Switch to expanded cards</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>

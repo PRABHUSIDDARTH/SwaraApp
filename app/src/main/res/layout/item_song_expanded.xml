@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expanded song card item with large artwork, rich metadata, and glass card styling -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="96dp"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="5dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_glass_card"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- Large Album Artwork (72dp x 72dp with 12dp rounded corners) -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivArtwork"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:scaleType="centerCrop"
+        android:background="@color/swara_surface_3"
+        android:src="@drawable/ic_artwork_fallback"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Swara.RoundedCorner.12dp"
+        android:contentDescription="@string/cd_song_thumbnail"
+        android:importantForAccessibility="no" />
+
+    <!-- Song Metadata Container -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="6dp">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@color/swara_text_primary"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Song Title" />
+
+        <TextView
+            android:id="@+id/tvSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/swara_text_secondary"
+            android:layout_marginTop="3dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Artist Name" />
+
+        <TextView
+            android:id="@+id/tvExtraInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/swara_text_muted"
+            android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Album • 3:45" />
+
+    </LinearLayout>
+
+    <!-- Right-side actions -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Favorite button -->
+        <ImageView
+            android:id="@+id/ivFavorite"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_favorite_border"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:padding="8dp"
+            android:contentDescription="@string/cd_favorite_empty"
+            android:tint="@color/swara_lavender" />
+
+        <!-- Overflow menu -->
+        <ImageView
+            android:id="@+id/ivMore"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_more_vert"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:padding="8dp"
+            android:contentDescription="@string/cd_more_options"
+            android:tint="@color/swara_text_dim" />
+
+    </LinearLayout>
+
+</LinearLayout>
