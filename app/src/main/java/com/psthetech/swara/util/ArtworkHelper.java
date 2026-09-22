@@ -236,4 +236,46 @@ public class ArtworkHelper {
         void onLoaded(Drawable drawable);
         void onFailed();
     }
+
+    public interface ColorCallback {
+        void onColorExtracted(int color);
+    }
+
+    /**
+     * Finds the most vibrant / saturated color in a small sampled bitmap.
+     */
+    public static int findVibrantColor(android.graphics.Bitmap bitmap, int fallbackColor) {
+        if (bitmap == null || bitmap.isRecycled()) return fallbackColor;
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        if (width <= 0 || height <= 0) return fallbackColor;
+
+        float bestScore = -1f;
+        int bestColor = fallbackColor;
+        float[] hsv = new float[3];
+
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int pixel : pixels) {
+            int alpha = (pixel >> 24) & 0xFF;
+            if (alpha < 128) continue; // Skip transparent
+
+            android.graphics.Color.colorToHSV(pixel, hsv);
+            float sat = hsv[1];
+            float val = hsv[2];
+
+            // Filter out near-black, near-white, or washed-out grays
+            if (val < 0.15f || val > 0.95f || sat < 0.20f) continue;
+
+            // Score favoring good saturation and medium-high brightness
+            float score = sat * 1.5f + (1.0f - Math.abs(val - 0.65f));
+            if (score > bestScore) {
+                bestScore = score;
+                bestColor = pixel;
+            }
+        }
+
+        return bestScore > 0 ? bestColor : fallbackColor;
+    }
 }
