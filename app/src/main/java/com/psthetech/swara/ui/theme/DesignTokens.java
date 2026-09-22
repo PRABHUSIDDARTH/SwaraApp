@@ -340,6 +340,28 @@ public class DesignTokens {
                     this.overlayColor = Color.parseColor("#CCF3F9F5");
                     break;
 
+                case OFF_WHITE:
+                    // Light mode OFF_WHITE: the signature personality — warm cream premium aesthetic
+                    this.backgroundColor = Color.parseColor("#F8F4EE"); // Warm off-white
+                    this.backgroundSecondaryColor = Color.parseColor("#F2EDE4");
+                    this.surfaceColor = Color.parseColor("#FDFAF5"); // Creamy white
+                    this.surfaceElevatedColor = Color.parseColor("#FFFFFF");
+                    this.surfaceVariantColor = Color.parseColor("#EDE8DE");
+                    this.accentColor = Color.parseColor("#5C4A1E"); // Warm dark brown (contrast >7:1 on cream)
+                    this.primaryColor = Color.parseColor("#1C1814"); // Near-black warm
+                    this.primaryContainerColor = Color.parseColor("#EDE8DE");
+                    this.secondaryColor = Color.parseColor("#3D3022");
+                    this.textPrimaryColor = Color.parseColor("#1A1510"); // Warm near-black (contrast ~17:1)
+                    this.textSecondaryColor = Color.parseColor("#4A3F30"); // Dark warm brown (contrast ~8:1)
+                    this.textTertiaryColor = Color.parseColor("#7A6E5A"); // Muted warm gray (contrast ~4.6:1)
+                    this.iconPrimaryColor = Color.parseColor("#1A1510");
+                    this.iconSecondaryColor = Color.parseColor("#4A3F30");
+                    this.strokeColor = Color.parseColor("#D4C9B5"); // Subtle warm border
+                    this.dividerColor = Color.parseColor("#E8E0D0");
+                    this.selectedColor = Color.parseColor("#265C4A1E");
+                    this.overlayColor = Color.parseColor("#CCF8F4EE");
+                    break;
+
                 case SWARA:
                 default:
                     this.backgroundColor = Color.parseColor("#F6F2FC");
