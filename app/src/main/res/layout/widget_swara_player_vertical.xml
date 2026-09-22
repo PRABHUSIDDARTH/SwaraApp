@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Swara Vertical / Square Home Screen Widget layout -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_widget"
+    android:padding="12dp">
+
+    <!-- Album Artwork (Top) -->
+    <ImageView
+        android:id="@+id/widget_album_art"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:src="@drawable/ic_artwork_fallback"
+        android:contentDescription="@string/cd_album_art" />
+
+    <!-- Song Info (Middle) -->
+    <LinearLayout
+        android:id="@+id/widget_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_song_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_no_song"
+            android:textColor="#F0E6C8"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:gravity="center"
+            android:ellipsize="marquee"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/widget_artist_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text=""
+            android:textColor="#9B7EC8"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:gravity="center"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+    <!-- Controls (Bottom, centered) -->
+    <LinearLayout
+        android:id="@+id/widget_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="2dp">
+
+        <ImageButton
+            android:id="@+id/widget_btn_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_skip_prev"
+            android:tint="#C9A84C"
+            android:contentDescription="Previous" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_play"
+            android:tint="#C9A84C"
+            android:contentDescription="Play / Pause"
+            android:layout_marginHorizontal="12dp" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_skip_next"
+            android:tint="#C9A84C"
+            android:contentDescription="Next" />
+
+    </LinearLayout>
+
+</LinearLayout>

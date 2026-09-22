@@ -77,6 +77,18 @@
                 android:resource="@xml/widget_swara_player_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.SwaraVerticalWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name_vertical">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_swara_player_vertical_info" />
+        </receiver>
+
         <!--
             SwaraWidgetReceiver — handles play/pause/next/prev button taps and
             widget-update broadcasts from SwaraPlaybackService.
