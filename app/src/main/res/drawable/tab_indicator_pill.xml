@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Segmented pill indicator for TabLayout.
+     In Android Material 3 with tabIndicatorGravity="stretch", this creates
+     a smooth rounded capsule behind the active tab. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetTop="5dp"
+    android:insetBottom="5dp"
+    android:insetLeft="-14dp"
+    android:insetRight="-14dp">
+    <shape android:shape="rectangle">
+        <corners android:radius="17dp" />
+        <solid android:color="@color/swara_gold" />
+    </shape>
+</inset>
