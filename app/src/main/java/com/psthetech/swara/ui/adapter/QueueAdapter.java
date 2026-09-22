@@ -165,7 +165,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
             glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
             holder.itemView.setBackground(glow);
         } else {
-            holder.itemView.setBackground(null);
+            holder.itemView.setBackgroundResource(R.drawable.ripple_item);
         }
     }
 
