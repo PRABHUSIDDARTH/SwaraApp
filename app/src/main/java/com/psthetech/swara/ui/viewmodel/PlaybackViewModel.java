@@ -262,8 +262,13 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     public void seekTo(long positionMs) {
         if (queueManager != null) {
-            queueManager.seekTo(positionMs);
-            currentPositionMs.setValue(positionMs);
+            Long dur = durationMs.getValue();
+            long safePos = Math.max(0, positionMs);
+            if (dur != null && dur > 0) {
+                safePos = Math.min(safePos, dur);
+            }
+            queueManager.seekTo(safePos);
+            currentPositionMs.setValue(safePos);
         }
     }
 
