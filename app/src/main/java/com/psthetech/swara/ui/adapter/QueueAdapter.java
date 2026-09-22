@@ -146,7 +146,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
         super.onViewRecycled(holder);
         ArtworkHelper.clear(holder.itemView.getContext(), holder.queueSongArt);
         holder.queueSongArt.setImageDrawable(null);
-        holder.itemView.setBackground(null);
+        holder.itemView.setBackgroundResource(R.drawable.ripple_item);
         holder.queueSongTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
         holder.itemView.setScaleX(1.0f);
         holder.itemView.setScaleY(1.0f);
