@@ -67,6 +67,7 @@ public class FavoritesThemeContrastTest {
         LIGHT_PALETTES.put(ColorTheme.OCEAN, new PaletteColors("#FFFFFF", "#042F2E", "#115E59", "#0D9488", "#FFFFFF"));
         LIGHT_PALETTES.put(ColorTheme.FOREST, new PaletteColors("#FFFFFF", "#022C22", "#065F46", "#059669", "#FFFFFF"));
         LIGHT_PALETTES.put(ColorTheme.SWARA, new PaletteColors("#FFFFFF", "#1F0F3D", "#5B4380", "#946E14", "#1A1A1A"));
+        LIGHT_PALETTES.put(ColorTheme.OFF_WHITE, new PaletteColors("#FDFAF5", "#1A1510", "#4A3F30", "#5C4A1E", "#FDFAF5"));
     }
 
     private static final Map<ColorTheme, PaletteColors> DARK_PALETTES = new HashMap<>();
@@ -78,6 +79,7 @@ public class FavoritesThemeContrastTest {
         DARK_PALETTES.put(ColorTheme.OCEAN, new PaletteColors("#0C2025", "#F0FDFA", "#99F6E4", "#2DD4BF", "#1A1A1A"));
         DARK_PALETTES.put(ColorTheme.FOREST, new PaletteColors("#0B2016", "#F0FDF4", "#A7F3D0", "#34D399", "#1A1A1A"));
         DARK_PALETTES.put(ColorTheme.SWARA, new PaletteColors("#160E29", "#F5F3FF", "#DDD6FE", "#D4AF37", "#1A1A1A"));
+        DARK_PALETTES.put(ColorTheme.OFF_WHITE, new PaletteColors("#2C2721", "#F5EFE0", "#C5B99A", "#E8C97A", "#1A1714"));
     }
 
     @Test
