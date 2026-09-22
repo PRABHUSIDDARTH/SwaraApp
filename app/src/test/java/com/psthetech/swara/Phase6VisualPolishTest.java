@@ -89,6 +89,7 @@ public class Phase6VisualPolishTest {
         LIGHT_PALETTES.put(ColorTheme.OCEAN, new Palette("#F2F9FA", "#E0F2F1", "#FFFFFF", "#0D9488", "#0D9488"));
         LIGHT_PALETTES.put(ColorTheme.FOREST, new Palette("#F3F9F5", "#DCF0E3", "#FFFFFF", "#059669", "#059669"));
         LIGHT_PALETTES.put(ColorTheme.SWARA, new Palette("#F6F2FC", "#EDE6F7", "#FFFFFF", "#946E14", "#946E14"));
+        LIGHT_PALETTES.put(ColorTheme.OFF_WHITE, new Palette("#F8F4EE", "#EDE8DE", "#FDFAF5", "#5C4A1E", "#5C4A1E"));
 
         // Dark Palettes (matching DesignTokens)
         DARK_PALETTES.put(ColorTheme.MIDNIGHT, new Palette("#080A0F", "#27324A", "#1E2638", "#38BDF8", "#38BDF8"));
@@ -98,6 +99,8 @@ public class Phase6VisualPolishTest {
         DARK_PALETTES.put(ColorTheme.OCEAN, new Palette("#061014", "#153942", "#102C33", "#2DD4BF", "#2DD4BF"));
         DARK_PALETTES.put(ColorTheme.FOREST, new Palette("#06120D", "#153D2A", "#103021", "#34D399", "#34D399"));
         DARK_PALETTES.put(ColorTheme.SWARA, new Palette("#0D0814", "#2E1C44", "#241635", "#C9A84C", "#C9A84C"));
+        DARK_PALETTES.put(ColorTheme.OFF_WHITE, new Palette("#1A1714", "#453D34", "#38312A", "#E8C97A", "#E8C97A"));
+
     }
 
     @Test

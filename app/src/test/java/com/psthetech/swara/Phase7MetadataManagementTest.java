@@ -247,9 +247,10 @@ public class Phase7MetadataManagementTest {
 
     @Test
     public void testMetadataEditorContrastAcrossThemes() {
-        // Verify all 7 ColorTheme enums are covered
+        // Verify all 8 ColorTheme enums are covered (added OFF_WHITE)
         ColorTheme[] themes = ColorTheme.values();
-        assertEquals(7, themes.length);
+        assertEquals(8, themes.length);
+
 
         for (ColorTheme theme : themes) {
             assertNotNull("Theme must have valid name", theme.name());
