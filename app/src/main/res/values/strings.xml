@@ -215,6 +215,10 @@
     <string name="color_theme_forest_title">Forest</string>
     <string name="color_theme_forest_desc">Deep emerald forest with sage leaf gold accents</string>
 
+    <string name="color_theme_off_white_title">Off-White</string>
+    <string name="color_theme_off_white_desc">Premium warm cream with near-black contrast — sophisticated minimal luxury</string>
+
+
     <string name="settings">Settings</string>
     <string name="active_style">Active</string>
 
