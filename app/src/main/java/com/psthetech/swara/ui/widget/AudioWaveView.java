@@ -14,6 +14,8 @@ import android.view.animation.LinearInterpolator;
 
 import androidx.annotation.Nullable;
 
+import com.psthetech.swara.ui.theme.DesignTokens;
+
 /**
  * AudioWaveView is a hardware-accelerated custom view that renders a living,
  * multi-layered vibrating sound wave pattern.
@@ -23,6 +25,7 @@ import androidx.annotation.Nullable;
  *  - Organic amplitude modulation simulating musical vibration and rhythm
  *  - Smooth spring-like damping when paused, easing into a calm resting baseline
  *  - Dynamic gradient styling reacting to the active theme's accent color
+ *  - Compact mode support for Mini Player and full mode for Now Playing
  */
 public class AudioWaveView extends View {
 
@@ -36,6 +39,7 @@ public class AudioWaveView extends View {
     private final Path pathTertiary = new Path();
 
     private boolean isPlaying = false;
+    private boolean isCompact = false;
 
     // Animation & physics state
     private float currentPhase = 0f;
@@ -86,6 +90,29 @@ public class AudioWaveView extends View {
         updateColors();
     }
 
+    public void setCompact(boolean compact) {
+        this.isCompact = compact;
+        float density = getResources().getDisplayMetrics().density;
+        if (compact) {
+            wavePaintPrimary.setStrokeWidth(1.5f * density);
+            wavePaintSecondary.setStrokeWidth(1.0f * density);
+            wavePaintTertiary.setStrokeWidth(0.8f * density);
+        } else {
+            wavePaintPrimary.setStrokeWidth(2.2f * density);
+            wavePaintSecondary.setStrokeWidth(1.6f * density);
+            wavePaintTertiary.setStrokeWidth(1.2f * density);
+        }
+        invalidate();
+    }
+
+    public void setDesignTokens(DesignTokens tokens) {
+        if (tokens == null) return;
+        this.accentColor = tokens.getReadableAccentColor();
+        this.secondaryColor = tokens.getAccentColor();
+        updateColors();
+        invalidate();
+    }
+
     public void setAccentColor(int color) {
         this.accentColor = color;
         updateColors();
@@ -123,7 +150,7 @@ public class AudioWaveView extends View {
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(animation -> {
             // Advance phase based on vibration speed
-            currentPhase += 0.09f;
+            currentPhase += isCompact ? 0.12f : 0.09f;
             if (currentPhase > (float) (Math.PI * 200)) {
                 currentPhase = 0f;
             }
@@ -195,7 +222,7 @@ public class AudioWaveView extends View {
         if (width <= 0 || height <= 0) return;
 
         float centerY = height / 2.0f;
-        float maxWaveHeight = (height * 0.44f) * currentAmplitude * beatPulse;
+        float maxWaveHeight = (height * (isCompact ? 0.38f : 0.44f)) * currentAmplitude * beatPulse;
 
         // Draw calm baseline
         canvas.drawLine(0, centerY, width, centerY, baselinePaint);
@@ -219,7 +246,7 @@ public class AudioWaveView extends View {
     private void buildWavePath(Path path, int width, float centerY, float amplitude,
                               float frequencyMultiplier, float phase, float harmonicWeight) {
         path.reset();
-        int step = 3;
+        int step = isCompact ? 4 : 3;
 
         for (int x = 0; x <= width; x += step) {
             // Normalized x [0, 1]
