@@ -4,90 +4,124 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.os.SystemClock;
-import android.view.KeyEvent;
+import android.util.Log;
 
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionToken;
+
+import com.google.common.util.concurrent.ListenableFuture;
 import com.psthetech.swara.service.SwaraPlaybackService;
 
 /**
- * BroadcastReceiver that handles widget button taps and playback-state update
- * broadcasts from SwaraPlaybackService.
+ * BroadcastReceiver for widget button taps.
  *
- * Button tap flow:
- *   Widget ImageButton (PendingIntent broadcast)
- *       → SwaraWidgetReceiver.onReceive()
- *       → Sends a ACTION_MEDIA_BUTTON Intent to SwaraPlaybackService
- *         (Media3 MediaSessionService auto-processes media key events)
+ * ARCHITECTURE FIX (vs old startService() approach):
+ *   Old: sendMediaKey() via startService() — BROKEN on Android 8+ when app is in background.
+ *   New: Connect a temporary MediaController via SessionToken and call transport controls.
+ *        MediaController connects to the running MediaSession directly, with no service start
+ *        restrictions. The receiver uses goAsync() to keep the process alive during the
+ *        async MediaController build.
  *
- * Update flow:
- *   SwaraPlaybackService → SwaraWidgetUpdater.pushUpdate() → AppWidgetManager
- *   The ACTION_WIDGET_UPDATE broadcast is kept for external/test callers.
+ * Flow:
+ *   Widget button tap → PendingIntent broadcast → SwaraWidgetReceiver.onReceive()
+ *       → goAsync() to survive async work
+ *       → SessionToken + MediaController.Builder.buildAsync()
+ *       → controller.play()/pause()/seekToNext()/seekToPrevious()
+ *       → controller.release()
+ *       → pendingResult.finish()
+ *
+ * NOTE: If SwaraPlaybackService is not running (no active session), the MediaController
+ * connection will fail silently — which is correct behavior (nothing to control).
  */
+@UnstableApi
 public class SwaraWidgetReceiver extends BroadcastReceiver {
+
+    private static final String TAG = "SwaraWidgetReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null || intent.getAction() == null) return;
 
-        switch (intent.getAction()) {
+        String action = intent.getAction();
 
-            case SwaraWidgetUpdater.ACTION_PLAY_PAUSE:
-                sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
-                break;
-
-            case SwaraWidgetUpdater.ACTION_NEXT:
-                sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT);
-                break;
-
-            case SwaraWidgetUpdater.ACTION_PREV:
-                sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-                break;
-
-            case SwaraWidgetUpdater.ACTION_WIDGET_UPDATE:
-                // External / test callers can broadcast this to request a full widget redraw.
-                SwaraWidgetUpdater.pushUpdate(context, null, false);
-                break;
-
-            default:
-                break;
+        // Handle widget-update broadcast immediately (sync, no Media3 needed)
+        if (SwaraWidgetUpdater.ACTION_WIDGET_UPDATE.equals(action)) {
+            SwaraWidgetUpdater.pushUpdate(context, null, false);
+            return;
         }
-    }
 
-    /**
-     * Dispatch a media key event to SwaraPlaybackService.
-     *
-     * Media3 MediaSessionService handles ACTION_MEDIA_BUTTON intents automatically:
-     * it forwards the KeyEvent to the active MediaSession, which in turn controls
-     * ExoPlayer. This keeps widget button handling fully decoupled from service internals.
-     *
-     * We send both DOWN and UP events — some media session implementations require
-     * the full pair to register the action.
-     */
-    private void sendMediaKey(Context context, int keyCode) {
-        long now = SystemClock.uptimeMillis();
+        // For playback control: use goAsync() + MediaController
+        boolean isPlaybackAction =
+                SwaraWidgetUpdater.ACTION_PLAY_PAUSE.equals(action)
+                        || SwaraWidgetUpdater.ACTION_NEXT.equals(action)
+                        || SwaraWidgetUpdater.ACTION_PREV.equals(action);
 
-        // Build the DOWN + UP key event pair
-        KeyEvent down = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);
-        KeyEvent up   = new KeyEvent(now, now, KeyEvent.ACTION_UP,   keyCode, 0);
+        if (!isPlaybackAction) return;
 
-        ComponentName serviceComponent = new ComponentName(context, SwaraPlaybackService.class);
+        // goAsync() keeps this BroadcastReceiver's process alive for the async MC connection
+        final PendingResult pendingResult = goAsync();
 
-        Intent downIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        downIntent.setComponent(serviceComponent);
-        downIntent.putExtra(Intent.EXTRA_KEY_EVENT, down);
-
-        Intent upIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        upIntent.setComponent(serviceComponent);
-        upIntent.putExtra(Intent.EXTRA_KEY_EVENT, up);
-
-        // startService so the service is started if it was previously stopped
         try {
-            context.startService(downIntent);
-            context.startService(upIntent);
+            SessionToken sessionToken = new SessionToken(
+                    context.getApplicationContext(),
+                    new ComponentName(context, SwaraPlaybackService.class));
+
+            ListenableFuture<MediaController> controllerFuture =
+                    new MediaController.Builder(context.getApplicationContext(), sessionToken)
+                            .buildAsync();
+
+            controllerFuture.addListener(() -> {
+                try {
+                    MediaController controller = controllerFuture.get();
+                    if (controller == null) {
+                        Log.w(TAG, "MediaController is null; ignoring action: " + action);
+                        pendingResult.finish();
+                        return;
+                    }
+
+                    switch (action) {
+                        case SwaraWidgetUpdater.ACTION_PLAY_PAUSE:
+                            if (controller.isPlaying()) {
+                                controller.pause();
+                            } else {
+                                controller.play();
+                            }
+                            break;
+                        case SwaraWidgetUpdater.ACTION_NEXT:
+                            controller.seekToNextMediaItem();
+                            break;
+                        case SwaraWidgetUpdater.ACTION_PREV:
+                            controller.seekToPreviousMediaItem();
+                            break;
+                    }
+
+                    // Release controller after sending the command
+                    new android.os.Handler(android.os.Looper.getMainLooper())
+                            .postDelayed(() -> {
+                                try {
+                                    controller.release();
+                                } catch (Exception ignored) {
+                                } finally {
+                                    try {
+                                        pendingResult.finish();
+                                    } catch (Exception ignored) {}
+                                }
+                            }, 350L);
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Error controlling playback from widget: " + e.getMessage());
+                    try {
+                        pendingResult.finish();
+                    } catch (Exception ignored) {}
+                }
+            }, androidx.core.content.ContextCompat.getMainExecutor(context));
+
         } catch (Exception e) {
-            // Service may not be startable in background on some Android versions;
-            // fall through — playback was likely already stopped.
+            Log.e(TAG, "Failed to build MediaController for widget action: " + e.getMessage());
+            try {
+                pendingResult.finish();
+            } catch (Exception ignored) {}
         }
     }
 }
-
