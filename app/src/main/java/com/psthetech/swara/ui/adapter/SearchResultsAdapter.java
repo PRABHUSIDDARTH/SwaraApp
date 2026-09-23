@@ -256,7 +256,7 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
                 glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
                 itemView.setBackground(glow);
             } else {
-                itemView.setBackground(null);
+                itemView.setBackgroundResource(R.drawable.ripple_item);
             }
         }
     }
