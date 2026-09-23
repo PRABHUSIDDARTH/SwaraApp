@@ -55,15 +55,37 @@ public class LibraryFragment extends Fragment {
                     if (tokens == null || getView() == null) return;
                     view.setBackground(tokens.createAmbientDrawable());
                     tabLayout.setBackground(tokens.createGlassPillDrawable(requireContext()));
+
+                    float density = requireContext().getResources().getDisplayMetrics().density;
                     int accent = tokens.getAccentColor();
-                    int glassPillColor = android.graphics.Color.argb(
-                            tokens.isNightMode() ? 90 : 50,
-                            android.graphics.Color.red(accent),
-                            android.graphics.Color.green(accent),
-                            android.graphics.Color.blue(accent)
-                    );
+                    int r = android.graphics.Color.red(accent);
+                    int g = android.graphics.Color.green(accent);
+                    int b = android.graphics.Color.blue(accent);
+                    int pillAlpha = tokens.isNightMode() ? 100 : 55;
+
+                    android.graphics.drawable.GradientDrawable pill =
+                            new android.graphics.drawable.GradientDrawable();
+                    pill.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                    pill.setColor(android.graphics.Color.argb(pillAlpha, r, g, b));
+                    pill.setCornerRadius(17f * density);
+
+                    int readableAccent = tokens.getReadableAccentColor();
+                    int sr = android.graphics.Color.red(readableAccent);
+                    int sg = android.graphics.Color.green(readableAccent);
+                    int sb = android.graphics.Color.blue(readableAccent);
+                    pill.setStroke(Math.max(1, Math.round(1f * density)),
+                            android.graphics.Color.argb(tokens.isNightMode() ? 160 : 120, sr, sg, sb));
+
+                    android.graphics.drawable.InsetDrawable insetPill =
+                            new android.graphics.drawable.InsetDrawable(
+                                    pill,
+                                    Math.round(-14f * density),
+                                    Math.round(5f * density),
+                                    Math.round(-14f * density),
+                                    Math.round(5f * density)
+                            );
+                    tabLayout.setSelectedTabIndicator(insetPill);
                     tabLayout.setTabTextColors(tokens.getTextSecondaryColor(), tokens.getReadableAccentColor());
-                    tabLayout.setSelectedTabIndicatorColor(glassPillColor);
                 });
     }
 }
