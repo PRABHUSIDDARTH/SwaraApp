@@ -34,7 +34,7 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="2"
-            android:textColor="@color/swara_text_primary"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:gravity="center"
-            android:textColor="@color/swara_text_muted"
+            android:textColor="?android:attr/textColorSecondary"
             android:textSize="11sp" />
 
     </LinearLayout>
