@@ -149,6 +149,8 @@ public class MiniPlayerFragment extends Fragment {
 
         // Attach press animation to the entire mini-player (respects reduced-motion)
         LiquidGlassRenderer.attachPressAnimation(rootView);
+        if (btnPlayPause != null) LiquidGlassRenderer.attachPressAnimation(btnPlayPause);
+        if (btnNext != null) LiquidGlassRenderer.attachPressAnimation(btnNext);
 
         btnPlayPause.setOnClickListener(v -> {
             Boolean isPlaying = playbackViewModel.getIsPlaying().getValue();
