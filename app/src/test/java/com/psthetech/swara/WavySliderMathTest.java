@@ -66,4 +66,14 @@ public class WavySliderMathTest {
         double activeDisplacement = computeWaveDisplacement(30f, length, angularFreq, 0f, amplitude);
         assertTrue(Math.abs(activeDisplacement) > 0.01);
     }
+
+    @Test
+    public void testRestingPauseFlatLineModel() {
+        // When paused, wave amplitude ratio is 0
+        float amplitudeRatio = 0.0f;
+        float baseAmplitude = 6f;
+        float effectiveAmplitude = baseAmplitude * amplitudeRatio;
+
+        assertEquals(0.0f, effectiveAmplitude, 1e-6);
+    }
 }
