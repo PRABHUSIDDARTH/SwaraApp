@@ -52,7 +52,22 @@ public final class SwaraWidgetUpdater {
     public static final String EXTRA_IS_PLAYING    = "extra_is_playing";
     public static final String EXTRA_SONG_ID       = "extra_song_id";
 
+    // ── Artwork caching & async background decoding ──────────────────────────
+    private static volatile Long cachedSongId = null;
+    @androidx.annotation.Nullable private static volatile Bitmap cachedArtwork = null;
+    private static final Object CACHE_LOCK = new Object();
+    private static final java.util.concurrent.ExecutorService ARTWORK_EXECUTOR =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
+
     private SwaraWidgetUpdater() { /* static only */ }
+
+    /** Clear cached artwork bitmap (e.g. for testing or memory pressure). */
+    public static void clearArtworkCache() {
+        synchronized (CACHE_LOCK) {
+            cachedSongId = null;
+            cachedArtwork = null;
+        }
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -66,6 +81,10 @@ public final class SwaraWidgetUpdater {
      * @param isPlaying True if music is actively playing.
      */
     public static void pushUpdate(Context context, Song song, boolean isPlaying) {
+        pushUpdate(context, song, isPlaying, 0.35f);
+    }
+
+    public static void pushUpdate(Context context, Song song, boolean isPlaying, float progressRatio) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         ComponentName standardProvider = new ComponentName(context, SwaraWidgetProvider.class);
         ComponentName verticalProvider = new ComponentName(context, SwaraVerticalWidgetProvider.class);
@@ -78,27 +97,66 @@ public final class SwaraWidgetUpdater {
 
         if (!hasStandard && !hasVertical) return; // no widgets placed
 
-        Bitmap art = (song != null) ? loadArtworkBitmap(context, song) : null;
+        if (song == null) {
+            synchronized (CACHE_LOCK) {
+                cachedSongId = null;
+                cachedArtwork = null;
+            }
+            renderAndPush(context, manager, standardIds, verticalIds, null, isPlaying, null, progressRatio);
+            return;
+        }
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            RemoteViews responsiveViews = buildResponsiveViews(context, song, isPlaying, art);
-            if (hasStandard) {
-                manager.updateAppWidget(standardIds, responsiveViews);
+        Bitmap artToUse = null;
+        boolean needsBackgroundLoad = false;
+        long targetSongId = song.getId();
+
+        synchronized (CACHE_LOCK) {
+            if (cachedSongId != null && cachedSongId == targetSongId && cachedArtwork != null && !cachedArtwork.isRecycled()) {
+                artToUse = cachedArtwork;
+            } else {
+                needsBackgroundLoad = true;
             }
-            if (hasVertical) {
-                manager.updateAppWidget(verticalIds, responsiveViews);
-            }
-        } else {
-            if (hasStandard) {
-                for (int id : standardIds) {
-                    pushSingleWidgetUpdate(context, manager, id, song, isPlaying, art, R.layout.widget_swara_player);
+        }
+
+        // Push immediate update so widget play/pause and text update without delay
+        renderAndPush(context, manager, standardIds, verticalIds, song, isPlaying, artToUse, progressRatio);
+
+        // If artwork needs decoding from disk / ContentResolver, offload to background executor
+        if (needsBackgroundLoad) {
+            final Context appContext = context.getApplicationContext();
+            final Song songSnapshot = song;
+            final boolean playingSnapshot = isPlaying;
+            final float progressSnapshot = progressRatio;
+
+            ARTWORK_EXECUTOR.execute(() -> {
+                Bitmap decoded = loadArtworkBitmap(appContext, songSnapshot);
+                if (decoded != null) {
+                    synchronized (CACHE_LOCK) {
+                        cachedSongId = songSnapshot.getId();
+                        cachedArtwork = decoded;
+                    }
                 }
-            }
-            if (hasVertical) {
-                for (int id : verticalIds) {
-                    pushSingleWidgetUpdate(context, manager, id, song, isPlaying, art, R.layout.widget_swara_player_vertical);
-                }
-            }
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    int[] sIds = manager.getAppWidgetIds(standardProvider);
+                    int[] vIds = manager.getAppWidgetIds(verticalProvider);
+                    if ((sIds != null && sIds.length > 0) || (vIds != null && vIds.length > 0)) {
+                        renderAndPush(appContext, manager, sIds, vIds, songSnapshot, playingSnapshot, decoded, progressSnapshot);
+                    }
+                });
+            });
+        }
+    }
+
+    private static void renderAndPush(Context context, AppWidgetManager manager,
+                                      int[] standardIds, int[] verticalIds,
+                                      Song song, boolean isPlaying, Bitmap art, float progressRatio) {
+        if (standardIds != null && standardIds.length > 0) {
+            RemoteViews standardViews = buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art, progressRatio);
+            manager.updateAppWidget(standardIds, standardViews);
+        }
+        if (verticalIds != null && verticalIds.length > 0) {
+            RemoteViews verticalViews = buildSingleView(context, song, isPlaying, R.layout.widget_swara_player_vertical, art, progressRatio);
+            manager.updateAppWidget(verticalIds, verticalViews);
         }
     }
 
@@ -107,29 +165,15 @@ public final class SwaraWidgetUpdater {
      * Called by SwaraWidgetProvider.onUpdate().
      */
     public static RemoteViews buildViews(Context context, Song song, boolean isPlaying) {
-        Bitmap art = (song != null) ? loadArtworkBitmap(context, song) : null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            return buildResponsiveViews(context, song, isPlaying, art);
+        Bitmap art = null;
+        if (song != null) {
+            synchronized (CACHE_LOCK) {
+                if (cachedSongId != null && cachedSongId == song.getId() && cachedArtwork != null && !cachedArtwork.isRecycled()) {
+                    art = cachedArtwork;
+                }
+            }
         }
-        return buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art);
-    }
-
-    /**
-     * Build responsive RemoteViews on Android 12+ that automatically switch layouts
-     * based on widget size on the home screen.
-     */
-    public static RemoteViews buildResponsiveViews(Context context, Song song, boolean isPlaying, Bitmap art) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            java.util.Map<android.util.SizeF, RemoteViews> viewMapping = new android.util.ArrayMap<>();
-            // Vertical / square mode for taller or compact widgets
-            viewMapping.put(new android.util.SizeF(110f, 130f),
-                    buildSingleView(context, song, isPlaying, R.layout.widget_swara_player_vertical, art));
-            // Horizontal bar mode for wider widgets
-            viewMapping.put(new android.util.SizeF(180f, 80f),
-                    buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art));
-            return new RemoteViews(viewMapping);
-        }
-        return buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art);
+        return buildSingleView(context, song, isPlaying, R.layout.widget_swara_player, art, 0.0f);
     }
 
     /**
@@ -143,21 +187,8 @@ public final class SwaraWidgetUpdater {
 
     public static void pushSingleWidgetUpdate(Context context, AppWidgetManager manager, int widgetId,
                                               Song song, boolean isPlaying, Bitmap art, int defaultLayoutResId) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            manager.updateAppWidget(widgetId, buildResponsiveViews(context, song, isPlaying, art));
-            return;
-        }
-
-        android.os.Bundle options = manager.getAppWidgetOptions(widgetId);
-        int minWidth = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) : 0;
-        int minHeight = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
-
         int layoutRes = defaultLayoutResId != 0 ? defaultLayoutResId : R.layout.widget_swara_player;
-        if (minHeight > 0 && minWidth > 0 && (minHeight >= 140 || minHeight >= minWidth)) {
-            layoutRes = R.layout.widget_swara_player_vertical;
-        }
-
-        RemoteViews views = buildSingleView(context, song, isPlaying, layoutRes, art);
+        RemoteViews views = buildSingleView(context, song, isPlaying, layoutRes, art, 0.0f);
         manager.updateAppWidget(widgetId, views);
     }
 
@@ -166,6 +197,11 @@ public final class SwaraWidgetUpdater {
      */
     public static RemoteViews buildSingleView(Context context, Song song, boolean isPlaying,
                                               int layoutResId, Bitmap art) {
+        return buildSingleView(context, song, isPlaying, layoutResId, art, 0.0f);
+    }
+
+    public static RemoteViews buildSingleView(Context context, Song song, boolean isPlaying,
+                                              int layoutResId, Bitmap art, float progressRatio) {
         RemoteViews views = new RemoteViews(context.getPackageName(), layoutResId);
 
         // ── Text ──────────────────────────────────────────────────────────────
@@ -185,6 +221,59 @@ public final class SwaraWidgetUpdater {
         // ── Play / Pause icon ─────────────────────────────────────────────────
         int playPauseIcon = isPlaying ? R.drawable.ic_pause : R.drawable.ic_play;
         views.setImageViewResource(R.id.widget_btn_play_pause, playPauseIcon);
+
+        // ── Theme-aware button tinting ─────────────────────────────────────────
+        // Apply dynamic accent and text colors from current DesignTokens so widgets
+        // respect the user's chosen color theme (OFF_WHITE, OCEAN, ROSE, etc.)
+        try {
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                int accentColor = tokens.getAccentColor();
+                int textColor = tokens.getTextPrimaryColor();
+                int textSecondaryColor = tokens.getTextSecondaryColor();
+
+                // Button icons: accent color
+                views.setInt(R.id.widget_btn_prev, "setColorFilter", accentColor);
+                views.setInt(R.id.widget_btn_play_pause, "setColorFilter", accentColor);
+                views.setInt(R.id.widget_btn_next, "setColorFilter", accentColor);
+
+                // Text: primary / secondary from tokens
+                views.setTextColor(R.id.widget_song_title, textColor);
+                views.setTextColor(R.id.widget_artist_name, textSecondaryColor);
+            }
+        } catch (Exception ignored) {
+            // Safe fallback: leave hardcoded tints from layout XML as-is
+        }
+
+        // ── Sound Vibration Wavy Slider Pattern ────────────────────────────────
+        try {
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+            int waveColor = (tokens != null) ? tokens.getAccentColor() : 0xFFC9A84C;
+
+            if (isPlaying) {
+                Bitmap[] waveFrames = WidgetWaveHelper.generateWavySliderFrames(context, 0, 0, waveColor, progressRatio);
+                views.setImageViewBitmap(R.id.widget_wave_frame_0, waveFrames[0]);
+                views.setImageViewBitmap(R.id.widget_wave_frame_1, waveFrames[1]);
+                views.setImageViewBitmap(R.id.widget_wave_frame_2, waveFrames[2]);
+                views.setImageViewBitmap(R.id.widget_wave_frame_3, waveFrames[3]);
+
+                views.setViewVisibility(R.id.widget_wave_flipper, android.view.View.VISIBLE);
+                views.setViewVisibility(R.id.widget_wave_idle, android.view.View.GONE);
+                views.setInt(R.id.widget_wave_flipper, "setFlipInterval", 150);
+                views.setBoolean(R.id.widget_wave_flipper, "startFlipping", true);
+            } else {
+                Bitmap idleWave = WidgetWaveHelper.generateIdleWavySlider(context, 0, 0, waveColor, progressRatio);
+                views.setImageViewBitmap(R.id.widget_wave_idle, idleWave);
+
+                views.setViewVisibility(R.id.widget_wave_flipper, android.view.View.GONE);
+                views.setViewVisibility(R.id.widget_wave_idle, android.view.View.VISIBLE);
+                views.setBoolean(R.id.widget_wave_flipper, "stopFlipping", true);
+            }
+        } catch (Exception ignored) {
+            // Safe fallback if bitmap allocation or RemoteViews binding encounters memory constraints
+        }
 
         // ── PendingIntents for buttons ─────────────────────────────────────────
         views.setOnClickPendingIntent(R.id.widget_btn_play_pause, makeBroadcastPI(context, ACTION_PLAY_PAUSE, 1));
