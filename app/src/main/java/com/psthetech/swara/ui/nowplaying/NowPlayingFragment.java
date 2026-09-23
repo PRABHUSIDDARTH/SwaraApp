@@ -142,6 +142,32 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
                 }
             });
+
+            // Wire circular seek → Media3
+            circularArtworkView.setSeekListener(new CircularArtworkView.SeekListener() {
+                @Override
+                public void onSeekDelta(float deltaSeconds) {
+                    Long currentPos = playbackViewModel.getCurrentPositionMs().getValue();
+                    Long duration = playbackViewModel.getDurationMs().getValue();
+                    if (currentPos == null || duration == null || duration <= 0) return;
+
+                    long newPos = currentPos + (long) (deltaSeconds * 1000f);
+                    newPos = Math.max(0, Math.min(newPos, duration));
+                    playbackViewModel.seekTo(newPos);
+
+                    // Update time displays immediately for responsiveness
+                    tvCurrentTime.setText(TimeFormatter.formatMs(newPos));
+                    if (wavySlider != null) wavySlider.setProgress(newPos);
+                    if (circularArtworkView != null && duration > 0) {
+                        circularArtworkView.setProgress((float) newPos / (float) duration);
+                    }
+                }
+
+                @Override
+                public void onSeekEnd() {
+                    // Nothing extra needed; seekTo() was called on each delta
+                }
+            });
         }
 
         setupListeners();
@@ -212,6 +238,30 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 sheet.show(getParentFragmentManager(), AudioOutputBottomSheet.TAG);
             });
         }
+
+        // Horizontal seek bar (WavySlider) — kept working alongside circular seek
+        wavySlider.setOnWavySliderChangeListener(new com.psthetech.swara.ui.widget.WavySliderView.OnWavySliderChangeListener() {
+            @Override
+            public void onProgressChanged(com.psthetech.swara.ui.widget.WavySliderView slider, long progress, boolean fromUser) {
+                if (fromUser) {
+                    tvCurrentTime.setText(TimeFormatter.formatMs(progress));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(com.psthetech.swara.ui.widget.WavySliderView slider) {
+                isUserSeeking = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(com.psthetech.swara.ui.widget.WavySliderView slider) {
+                isUserSeeking = false;
+                long target = Math.max(0, slider.getProgress());
+                long max = slider.getMax();
+                if (max > 0) target = Math.min(target, max);
+                playbackViewModel.seekTo(target);
+            }
+        });
     }
 
     private void observeViewModel() {
@@ -250,6 +300,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 }
                 wavySlider.setProgress(pos);
                 tvCurrentTime.setText(TimeFormatter.formatMs(pos));
+
+                // Update circular progress
+                if (circularArtworkView != null && max > 0) {
+                    circularArtworkView.setProgress((float) pos / (float) max);
+                }
             }
         });
 
