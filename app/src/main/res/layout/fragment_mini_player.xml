@@ -70,6 +70,13 @@
 
         </LinearLayout>
 
+        <!-- Sound Vibration Mini Wave -->
+        <com.psthetech.swara.ui.widget.AudioWaveView
+            android:id="@+id/miniAudioWaveView"
+            android:layout_width="48dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="6dp" />
+
         <!-- Play/Pause button -->
         <ImageView
             android:id="@+id/btnPlayPause"
