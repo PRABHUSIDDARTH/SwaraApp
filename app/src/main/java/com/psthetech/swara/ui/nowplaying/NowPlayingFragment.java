@@ -6,40 +6,63 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.lifecycle.ViewModelProvider;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+
+import androidx.lifecycle.ViewModelProvider;
+
 import com.psthetech.swara.R;
-import com.psthetech.swara.util.AudioOutputManager;
+import com.psthetech.swara.audio.AudioOutputManager;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.ui.audiooutput.AudioOutputBottomSheet;
 import com.psthetech.swara.ui.queue.QueueFragment;
+import com.psthetech.swara.ui.sleeptimer.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
+import com.psthetech.swara.ui.widget.CircularArtworkView;
 import com.psthetech.swara.util.ArtworkHelper;
 import com.psthetech.swara.util.EqualizerManager;
 import com.psthetech.swara.util.SleepTimerManager;
 import com.psthetech.swara.util.TimeFormatter;
 
+/**
+ * NowPlayingFragment — Premium Now Playing screen with circular rotating artwork.
+ *
+ * ARCHITECTURE:
+ *  - Observes PlaybackViewModel (the ONLY playback source of truth)
+ *  - CircularArtworkView handles: artwork display, rotation animation, circular seeking
+ *  - WavySliderView handles: horizontal seeking (kept alongside circular seek)
+ *  - Both seek methods control the same Media3 playback position via PlaybackViewModel.seekTo()
+ */
 public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private PlaybackViewModel playbackViewModel;
     private FavoritesViewModel favoritesViewModel;
 
+    // ── Premium Circular Artwork View ────────────────────────────────────────────
+    private CircularArtworkView circularArtworkView;
+
+    // ── Legacy compat views (kept as gone in layout for backward compat) ─────────
     private ImageView ivArtwork;
+    private View viewArtworkGlow;
+
+    // ── Song info ─────────────────────────────────────────────────────────────────
     private TextView tvTitle;
     private TextView tvArtist;
-    private SeekBar seekBar;
+    private TextView tvAlbum;
+
+    // ── Horizontal seek bar ───────────────────────────────────────────────────────
+    private com.psthetech.swara.ui.widget.WavySliderView wavySlider;
     private TextView tvCurrentTime;
     private TextView tvTotalTime;
+
+    // ── Playback controls ─────────────────────────────────────────────────────────
     private ImageView btnPlayPause;
     private ImageView btnPrevious;
     private ImageView btnNext;
@@ -52,6 +75,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnEqualizer;
     private ImageView btnAudioOutput;
 
+    // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
     private Song currentSong;
 
@@ -86,10 +110,15 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
         favoritesViewModel = new ViewModelProvider(requireActivity()).get(FavoritesViewModel.class);
 
-        ivArtwork = view.findViewById(R.id.ivArtwork);
+        // Find views
+        circularArtworkView = view.findViewById(R.id.circularArtworkView);
+        ivArtwork = view.findViewById(R.id.ivArtwork);             // gone, kept for compat
+        viewArtworkGlow = view.findViewById(R.id.viewArtworkGlow); // gone, kept for compat
+
         tvTitle = view.findViewById(R.id.tvTitle);
         tvArtist = view.findViewById(R.id.tvArtist);
-        seekBar = view.findViewById(R.id.seekBar);
+        tvAlbum = view.findViewById(R.id.tvAlbum);
+        wavySlider = view.findViewById(R.id.wavySlider);
         tvCurrentTime = view.findViewById(R.id.tvCurrentTime);
         tvTotalTime = view.findViewById(R.id.tvTotalTime);
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
@@ -106,11 +135,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
-        ivArtwork.setOnClickListener(v -> {
-            if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-                ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
-            }
-        });
+        // Circular artwork tap = edit artwork
+        if (circularArtworkView != null) {
+            circularArtworkView.setOnClickListener(v -> {
+                if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+                    ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
+                }
+            });
+        }
 
         setupListeners();
         observeViewModel();
@@ -180,26 +212,6 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 sheet.show(getParentFragmentManager(), AudioOutputBottomSheet.TAG);
             });
         }
-
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
-                if (fromUser) {
-                    tvCurrentTime.setText(TimeFormatter.formatMs(progress));
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar sb) {
-                isUserSeeking = true;
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar sb) {
-                isUserSeeking = false;
-                playbackViewModel.seekTo(sb.getProgress());
-            }
-        });
     }
 
     private void observeViewModel() {
@@ -208,8 +220,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             if (song != null) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
-                if (song.getDuration() > 0) {
-                    seekBar.setMax((int) song.getDuration());
+                if (song.getDuration() > 0 && wavySlider != null) {
+                    wavySlider.setMax(song.getDuration());
                     tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
                 }
                 ArtworkHelper.loadNowPlayingArt(requireContext(), song, ivArtwork);
@@ -218,8 +230,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
 
         playbackViewModel.getDurationMs().observe(getViewLifecycleOwner(), duration -> {
-            if (duration != null && duration > 0) {
-                seekBar.setMax(duration.intValue());
+            if (duration != null && duration > 0 && wavySlider != null) {
+                wavySlider.setMax(duration);
                 tvTotalTime.setText(TimeFormatter.formatMs(duration));
             }
         });
@@ -230,13 +242,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
-            if (!isUserSeeking && position != null) {
+            if (!isUserSeeking && position != null && wavySlider != null) {
                 long pos = Math.max(0, position);
-                int max = seekBar.getMax();
+                long max = wavySlider.getMax();
                 if (max > 0) {
                     pos = Math.min(pos, max);
                 }
-                seekBar.setProgress((int) pos);
+                wavySlider.setProgress(pos);
                 tvCurrentTime.setText(TimeFormatter.formatMs(pos));
             }
         });
@@ -285,7 +297,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     View view = getView();
                     view.setBackground(tokens.createAmbientDrawable());
                     ((TextView) view.findViewById(R.id.nowPlayingHeader)).setTextColor(tokens.getSecondaryTextColor());
-                    ivArtwork.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+                    if (ivArtwork != null) ivArtwork.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
                     tvTitle.setTextColor(tokens.getPrimaryTextColor());
                     tvArtist.setTextColor(tokens.getSecondaryTextColor());
                     tvCurrentTime.setTextColor(tokens.getSecondaryTextColor());
@@ -293,9 +305,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
                     btnPlayPause.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
                     btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
-                    seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
-                    seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(tokens.getPrimaryTextColor()));
-                    seekBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getSurfaceVariantColor()));
+                    if (wavySlider != null) wavySlider.setDesignTokens(tokens);
                     btnShuffle.setColorFilter(tokens.getAccentColor());
                     btnRepeat.setColorFilter(tokens.getAccentColor());
                     btnPrevious.setColorFilter(tokens.getAccentColor());
