@@ -58,4 +58,47 @@ public final class CircularSeekHelper {
         while (d < -180f) d += 360f;
         return d;
     }
+
+    /**
+     * Computes the new playback position in milliseconds from an angular delta.
+     *
+     * @param currentPositionMs Current playback position in ms
+     * @param deltaDegrees      Angular change in degrees (positive = CW, negative = CCW)
+     * @param degPerSecond      Degrees per second ratio (> 0)
+     * @param durationMs        Total media duration in ms
+     * @return Clamped new position in ms in range [0, durationMs].
+     *         If durationMs <= 0, returns currentPositionMs unchanged.
+     */
+    public static long computeNewPosition(long currentPositionMs, float deltaDegrees,
+                                          float degPerSecond, long durationMs) {
+        if (durationMs <= 0) {
+            return currentPositionMs;
+        }
+
+        float effectiveDegPerSec = degPerSecond > 0 ? degPerSecond : DEFAULT_DEG_PER_SECOND;
+        float deltaSeconds = deltaDegrees / effectiveDegPerSec;
+        long deltaMs = (long) (deltaSeconds * 1000f);
+
+        long newPos = currentPositionMs + deltaMs;
+        if (newPos < 0) {
+            newPos = 0;
+        } else if (newPos > durationMs) {
+            newPos = durationMs;
+        }
+        return newPos;
+    }
+
+    /**
+     * Converts an angle in degrees [0, 360) (where 0° is 3 o'clock)
+     * to a sweep angle starting from 12 o'clock (-90° / 270°).
+     *
+     * @param angleDeg Angle clockwise from 3 o'clock
+     * @return Angle clockwise from 12 o'clock in range [0, 360)
+     */
+    public static float angleTo12OClockProgress(float angleDeg) {
+        float sweep = angleDeg + 90f; // 270° (12 o'clock) + 90° = 360° -> 0°
+        while (sweep >= 360f) sweep -= 360f;
+        while (sweep < 0f) sweep += 360f;
+        return sweep / 360f;
+    }
 }
