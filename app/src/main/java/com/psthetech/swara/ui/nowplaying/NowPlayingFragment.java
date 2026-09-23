@@ -181,6 +181,19 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             });
         }
 
+        // Attach micro-interaction animations to all buttons
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnPlayPause);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnPrevious);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnNext);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShuffle);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnRepeat);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnFavorite);
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnQueue);
+        if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
+        if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
+        if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
+        if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
+
         setupListeners();
         observeViewModel();
     }
@@ -358,33 +371,38 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         playbackViewModel.getShuffleMode().observe(getViewLifecycleOwner(), enabled -> {
             boolean active = Boolean.TRUE.equals(enabled);
             btnShuffle.setAlpha(active ? 1.0f : 0.4f);
+            btnShuffle.setContentDescription(getString(active ? R.string.shuffle_on : R.string.shuffle_off));
         });
 
+        // Repeat state
         playbackViewModel.getRepeatMode().observe(getViewLifecycleOwner(), mode -> {
             if (mode != null) {
                 switch (mode) {
                     case 0:
                         btnRepeat.setImageResource(R.drawable.ic_repeat);
                         btnRepeat.setAlpha(0.4f);
+                        btnRepeat.setContentDescription(getString(R.string.repeat_off));
                         break;
                     case 1:
                         btnRepeat.setImageResource(R.drawable.ic_repeat_one);
                         btnRepeat.setAlpha(1.0f);
+                        btnRepeat.setContentDescription(getString(R.string.repeat_one));
                         break;
                     case 2:
                         btnRepeat.setImageResource(R.drawable.ic_repeat);
                         btnRepeat.setAlpha(1.0f);
+                        btnRepeat.setContentDescription(getString(R.string.repeat_all));
                         break;
                 }
             }
         });
 
+        // Favorites
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
-            if (currentSong != null) {
-                checkIsFavorite(currentSong.getId());
-            }
+            if (currentSong != null) checkIsFavorite(currentSong.getId());
         });
 
+        // Audio output
         AudioOutputManager.getInstance(requireContext()).getCurrentOutput().observe(getViewLifecycleOwner(), device -> {
             if (btnAudioOutput != null && device != null) {
                 btnAudioOutput.setImageResource(device.getIconResId());
@@ -392,22 +410,45 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             }
         });
 
-        // Observe Morphism design tokens for Now Playing styling
+        // Theme tokens → update circular artwork colors + all UI
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-                    View view = getView();
-                    view.setBackground(tokens.createAmbientDrawable());
-                    ((TextView) view.findViewById(R.id.nowPlayingHeader)).setTextColor(tokens.getSecondaryTextColor());
-                    if (ivArtwork != null) ivArtwork.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+                    View v = getView();
+                    v.setBackground(tokens.createAmbientDrawable());
+
+                    TextView header = v.findViewById(R.id.nowPlayingHeader);
+                    if (header != null) header.setTextColor(tokens.getSecondaryTextColor());
+
                     tvTitle.setTextColor(tokens.getPrimaryTextColor());
                     tvArtist.setTextColor(tokens.getSecondaryTextColor());
+                    if (tvAlbum != null) tvAlbum.setTextColor(tokens.getTextTertiaryColor());
                     tvCurrentTime.setTextColor(tokens.getSecondaryTextColor());
                     tvTotalTime.setTextColor(tokens.getSecondaryTextColor());
 
-                    btnPlayPause.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
+                    // Circular artwork theme colors
+                    if (circularArtworkView != null) {
+                        int accent = tokens.getAccentColor();
+                        int ar = android.graphics.Color.red(accent);
+                        int ag = android.graphics.Color.green(accent);
+                        int ab = android.graphics.Color.blue(accent);
+                        int trackAlpha = tokens.isNightMode() ? 50 : 40;
+                        int glowAlpha = tokens.isNightMode() ? 70 : 45;
+                        circularArtworkView.setThemeColors(
+                                android.graphics.Color.argb(glowAlpha, ar, ag, ab),   // glow
+                                accent,                                                  // progress arc
+                                android.graphics.Color.argb(trackAlpha, ar, ag, ab),   // progress track
+                                tokens.getGlassBorderColor(),                            // border
+                                accent,                                                  // knob
+                                tokens.isNightMode()
+                        );
+                    }
+
+                    btnPlayPause.setBackground(tokens.createPlayButtonDrawable(requireContext()));
                     btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
+
                     if (wavySlider != null) wavySlider.setDesignTokens(tokens);
+
                     btnShuffle.setColorFilter(tokens.getAccentColor());
                     btnRepeat.setColorFilter(tokens.getAccentColor());
                     btnPrevious.setColorFilter(tokens.getAccentColor());
@@ -417,6 +458,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     if (btnAudioOutput != null) btnAudioOutput.setColorFilter(tokens.getIconSecondaryColor());
                     if (btnEqualizer != null) btnEqualizer.setColorFilter(tokens.getIconSecondaryColor());
                     if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
+                    if (btnSleepTimer != null) btnSleepTimer.setColorFilter(tokens.getIconSecondaryColor());
                 });
     }
 
