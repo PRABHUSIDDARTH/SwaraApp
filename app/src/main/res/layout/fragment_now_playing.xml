@@ -68,30 +68,28 @@
 
     </LinearLayout>
 
-    <!-- Large album artwork -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- ── CIRCULAR ARTWORK + PROGRESS RING ── -->
+    <!-- CircularArtworkView: contains the rotating artwork disc and the
+         surrounding circular progress ring. Touch gestures on the ring
+         or disc surface trigger circular seeking. -->
+    <com.psthetech.swara.ui.widget.CircularArtworkView
+        android:id="@+id/circularArtworkView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="@dimen/dp_8"
+        android:layout_marginBottom="@dimen/dp_4"
+        android:contentDescription="@string/cd_album_art"
+        android:minWidth="260dp"
+        android:minHeight="260dp"
+        android:focusable="true"
+        android:clickable="true" />
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivArtwork"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintWidth_max="360dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:padding="6dp"
-            android:scaleType="centerCrop"
-            android:background="@color/swara_surface_3"
-            android:src="@drawable/ic_artwork_fallback"
-            android:elevation="@dimen/elevation_4"
-            android:contentDescription="Album art" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Invisible sizing reference: makes CircularArtworkView square -->
+    <Space
+        android:id="@+id/artworkSpacer"
+        android:layout_width="0dp"
+        android:layout_height="0dp" />
 
     <!-- Song info + favorite -->
     <LinearLayout
