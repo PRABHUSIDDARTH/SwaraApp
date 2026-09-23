@@ -206,25 +206,17 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     if (btnClearHistory instanceof android.widget.ImageView) {
                         ((android.widget.ImageView) btnClearHistory).setColorFilter(tokens.getReadableAccentColor());
                     }
-                    // Section headers — find title TextViews within section containers
-                    int[] sectionIds = {
-                            R.id.sectionRecentlyPlayed,
-                            R.id.sectionRecentlyAdded,
-                            R.id.sectionPlaylists
-                    };
-                    for (int sid : sectionIds) {
-                        View sec = view.findViewById(sid);
-                        if (sec instanceof android.view.ViewGroup) {
-                            android.view.ViewGroup secGroup = (android.view.ViewGroup) sec;
-                            for (int c = 0; c < secGroup.getChildCount(); c++) {
-                                View child = secGroup.getChildAt(c);
-                                if (child instanceof TextView) {
-                                    ((TextView) child).setTextColor(tokens.getTextPrimaryColor());
-                                    break; // Only style first (title) TextView
-                                }
-                            }
-                        }
-                    }
+                    // Explicit Section Headers & Welcome Card Text
+                    TextView tvHeaderRecentlyPlayed = view.findViewById(R.id.tvHeaderRecentlyPlayed);
+                    if (tvHeaderRecentlyPlayed != null) tvHeaderRecentlyPlayed.setTextColor(tokens.getTextPrimaryColor());
+                    TextView tvHeaderPlaylists = view.findViewById(R.id.tvHeaderPlaylists);
+                    if (tvHeaderPlaylists != null) tvHeaderPlaylists.setTextColor(tokens.getTextPrimaryColor());
+                    TextView tvHeaderRecentlyAdded = view.findViewById(R.id.tvHeaderRecentlyAdded);
+                    if (tvHeaderRecentlyAdded != null) tvHeaderRecentlyAdded.setTextColor(tokens.getTextPrimaryColor());
+                    TextView tvWelcomeTitle = view.findViewById(R.id.tvWelcomeTitle);
+                    if (tvWelcomeTitle != null) tvWelcomeTitle.setTextColor(tokens.getTextPrimaryColor());
+                    TextView tvWelcomeSubtitle = view.findViewById(R.id.tvWelcomeSubtitle);
+                    if (tvWelcomeSubtitle != null) tvWelcomeSubtitle.setTextColor(tokens.getTextSecondaryColor());
 
                     if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.notifyDataSetChanged();
                     if (recentlyAddedAdapter != null) recentlyAddedAdapter.notifyDataSetChanged();
