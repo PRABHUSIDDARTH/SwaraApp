@@ -1,5 +1,6 @@
 package com.psthetech.swara.ui.nowplaying;
 
+import android.graphics.Bitmap;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,6 +12,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
@@ -19,6 +25,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.audio.AudioOutputManager;
+import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.audiooutput.AudioOutputBottomSheet;
 import com.psthetech.swara.ui.queue.QueueFragment;
@@ -78,6 +85,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
     private Song currentSong;
+
+    // ── Glide target for circular artwork bitmap loading ─────────────────────────
+    @Nullable private CustomTarget<Bitmap> artworkTarget;
 
     @NonNull
     @Override
@@ -270,11 +280,22 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             if (song != null) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
+
+                if (tvAlbum != null) {
+                    String album = song.getAlbum();
+                    if (album != null && !album.trim().isEmpty() && !album.equalsIgnoreCase("<unknown>")) {
+                        tvAlbum.setText(album);
+                        tvAlbum.setVisibility(View.VISIBLE);
+                    } else {
+                        tvAlbum.setVisibility(View.GONE);
+                    }
+                }
+
                 if (song.getDuration() > 0 && wavySlider != null) {
                     wavySlider.setMax(song.getDuration());
                     tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
                 }
-                ArtworkHelper.loadNowPlayingArt(requireContext(), song, ivArtwork);
+                loadCircularArtwork(song);
                 checkIsFavorite(song.getId());
             }
         });
@@ -371,6 +392,116 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     if (btnEqualizer != null) btnEqualizer.setColorFilter(tokens.getIconSecondaryColor());
                     if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
                 });
+    }
+
+    // ── Artwork Loading ──────────────────────────────────────────────────────────
+
+    /**
+     * Load artwork from the existing Swara priority pipeline into the CircularArtworkView.
+     * Uses Glide to decode the bitmap, then passes it to CircularArtworkView.setArtworkBitmap().
+     * This reuses the same ArtworkRepository / CustomArtworkStore used everywhere else.
+     */
+    private void loadCircularArtwork(Song song) {
+        if (getContext() == null || circularArtworkView == null) return;
+
+        // Cancel any pending load
+        if (artworkTarget != null) {
+            try {
+                Glide.with(requireContext()).clear(artworkTarget);
+            } catch (Exception ignored) { /* context may be detached */ }
+            artworkTarget = null;
+        }
+
+        // Build the same request chain that ArtworkHelper.loadNowPlayingArt uses
+        ArtworkRepository repo = new ArtworkRepository(requireContext());
+        Object artworkSource;
+
+        // Priority 1: custom artwork override
+        java.io.File customFile = repo.getCustomArtworkStore().getArtworkFile(song.getId());
+        if (customFile.exists()) {
+            artworkSource = customFile;
+        } else {
+            // Priority 2: album art from MediaStore
+            android.net.Uri albumUri = ArtworkRepository.getAlbumArtUri(song.getAlbumId());
+            artworkSource = (albumUri != null) ? albumUri : R.drawable.ic_artwork_fallback;
+        }
+
+        final int targetSize = 512; // Enough resolution for circular disc
+        artworkTarget = new CustomTarget<Bitmap>(targetSize, targetSize) {
+            @Override
+            public void onResourceReady(@NonNull Bitmap resource,
+                                        @Nullable Transition<? super Bitmap> transition) {
+                if (circularArtworkView != null) {
+                    circularArtworkView.setArtworkBitmap(resource);
+                }
+                // Extract dominant color for glow
+                extractAndApplyGlowColor(resource);
+            }
+
+            @Override
+            public void onLoadFailed(@Nullable android.graphics.drawable.Drawable errorDrawable) {
+                if (circularArtworkView != null) {
+                    circularArtworkView.setArtworkBitmap(null);
+                }
+            }
+
+            @Override
+            public void onLoadCleared(@Nullable android.graphics.drawable.Drawable placeholder) {
+                // Glide cleared the resource; don't touch circularArtworkView
+            }
+        };
+
+        Glide.with(requireContext())
+                .asBitmap()
+                .load(artworkSource)
+                .apply(new RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(R.drawable.ic_artwork_fallback)
+                        .error(R.drawable.ic_artwork_fallback)
+                        .centerCrop())
+                .error(Glide.with(requireContext())
+                        .asBitmap()
+                        .load(R.drawable.ic_artwork_fallback))
+                .into(artworkTarget);
+    }
+
+    /** Extract the dominant color from the artwork bitmap and apply it as the glow color. */
+    private void extractAndApplyGlowColor(Bitmap bitmap) {
+        if (bitmap == null || circularArtworkView == null || getContext() == null) return;
+        com.psthetech.swara.ui.theme.DesignTokens tokens =
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+        int fallback = tokens != null ? tokens.getAccentColor() : 0xFFC9A84C;
+
+        // Delegate to existing ArtworkHelper color extraction
+        ArtworkHelper.extractArtworkColor(requireContext(), currentSong, fallback, glowColor -> {
+            if (circularArtworkView == null || tokens == null || getContext() == null) return;
+            int ar = android.graphics.Color.red(glowColor);
+            int ag = android.graphics.Color.green(glowColor);
+            int ab = android.graphics.Color.blue(glowColor);
+
+            // Luminance-adaptive alpha prevents wash-out on bright art and keeps glow visible on dark art
+            double luminance = (0.299 * ar + 0.587 * ag + 0.114 * ab) / 255.0;
+            int glowAlpha;
+            if (tokens.isNightMode()) {
+                glowAlpha = luminance > 0.75 ? 45 : (luminance < 0.20 ? 80 : 65);
+            } else {
+                glowAlpha = luminance < 0.25 ? 55 : (luminance > 0.80 ? 30 : 42);
+            }
+
+            int accent = tokens.getAccentColor();
+            int trackAlpha = tokens.isNightMode() ? 50 : 40;
+            circularArtworkView.setThemeColors(
+                    android.graphics.Color.argb(glowAlpha, ar, ag, ab),
+                    accent,
+                    android.graphics.Color.argb(trackAlpha,
+                            android.graphics.Color.red(accent),
+                            android.graphics.Color.green(accent),
+                            android.graphics.Color.blue(accent)),
+                    tokens.getGlassBorderColor(),
+                    accent,
+                    tokens.isNightMode()
+            );
+        });
     }
 
     private void checkIsFavorite(long songId) {
