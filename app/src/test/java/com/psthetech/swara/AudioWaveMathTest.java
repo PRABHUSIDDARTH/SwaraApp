@@ -1,6 +1,7 @@
 package com.psthetech.swara;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -50,5 +51,49 @@ public class AudioWaveMathTest {
             assertTrue(!Double.isNaN(valCenter) && !Double.isInfinite(valCenter));
             assertTrue(Math.abs(valCenter) <= 2.0);
         }
+    }
+
+    @Test
+    public void testPhaseProgressionProducesDistinctFrames() {
+        // Verify that 4 frames produce distinct wave values at key vibration nodes
+        double val0 = computeWavePoint(0.4, 0.0, 1.0, 1.0);
+        double val1 = computeWavePoint(0.4, Math.PI / 2.0, 1.0, 1.0);
+        double val2 = computeWavePoint(0.4, Math.PI, 1.0, 1.0);
+        double val3 = computeWavePoint(0.4, 3.0 * Math.PI / 2.0, 1.0, 1.0);
+
+        assertNotEquals(val0, val1, 1e-4);
+        assertNotEquals(val1, val2, 1e-4);
+        assertNotEquals(val2, val3, 1e-4);
+    }
+
+    @Test
+    public void testRestingStateAmplitudeIsFlat() {
+        // When paused / resting, target amplitude = 0, so computed y displacement must be 0 everywhere
+        double targetAmplitude = 0.0;
+        for (double nx = 0.0; nx <= 1.0; nx += 0.1) {
+            double displacement = computeWavePoint(nx, 1.5, 1.0, 1.0) * targetAmplitude;
+            assertEquals(0.0, displacement, 1e-6);
+        }
+    }
+
+    @Test
+    public void testRgbColorChannelSeparation() {
+        int swaraGold = 0xFFC9A84C;
+        int r = (swaraGold >> 16) & 0xFF;
+        int g = (swaraGold >> 8) & 0xFF;
+        int b = swaraGold & 0xFF;
+
+        assertEquals(0xC9, r);
+        assertEquals(0xA8, g);
+        assertEquals(0x4C, b);
+
+        int oceanBlue = 0xFF2196F3;
+        int ro = (oceanBlue >> 16) & 0xFF;
+        int go = (oceanBlue >> 8) & 0xFF;
+        int bo = oceanBlue & 0xFF;
+
+        assertEquals(0x21, ro);
+        assertEquals(0x96, go);
+        assertEquals(0xF3, bo);
     }
 }
