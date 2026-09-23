@@ -163,7 +163,7 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
         holder.itemView.setTranslationX(0f);
         holder.itemView.setTranslationY(0f);
         if (holder instanceof SongHolder) {
-            holder.itemView.setBackground(null);
+            holder.itemView.setBackgroundResource(R.drawable.ripple_item);
             SongHolder sh = (SongHolder) holder;
             ArtworkHelper.clear(holder.itemView.getContext(), sh.ivArtwork);
             sh.ivArtwork.setImageDrawable(null);
