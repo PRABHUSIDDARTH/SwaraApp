@@ -8,9 +8,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
@@ -28,12 +30,20 @@ import androidx.annotation.Nullable;
  *  - Song change resets rotation cleanly to 0°
  *  - Stationary circular progress arc beginning at 12 o'clock (-90°)
  *  - Stationary seek knob indicating playback position
+ *  - Circular seeking via angular delta touch gesture, handling 0°/360° boundary wrap-around
+ *  - Subtle ambient glow and specular highlight
  *  - Strict 1:1 mathematical circularity via custom onMeasure()
  */
 public class CircularArtworkView extends View {
 
     // One full rotation every 10 seconds (standard physical LP speed feel)
     private static final long ROTATION_DURATION_MS = 10_000L;
+    // Dead-zone degrees to ignore accidental micro-movements
+    private static final float SEEK_DEAD_ZONE_DEG = CircularSeekHelper.DEFAULT_DEAD_ZONE_DEG;
+    // Degrees of drag mapped per second of seek
+    private static final float DEG_PER_SEEK_SECOND = CircularSeekHelper.DEFAULT_DEG_PER_SECOND;
+    // Throttle seek callbacks to keep media transport smooth
+    private static final long SEEK_THROTTLE_MS = 80L;
 
     // Disc Rotation
     private ValueAnimator rotationAnimator;
@@ -47,6 +57,7 @@ public class CircularArtworkView extends View {
     // Paints
     private final Paint artworkPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint fallbackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint progressTrackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -57,6 +68,7 @@ public class CircularArtworkView extends View {
     private final Paint specularPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     // Theme colors
+    @ColorInt private int glowColor = Color.argb(60, 120, 80, 200);
     @ColorInt private int progressColor = Color.parseColor("#C9A84C");
     @ColorInt private int progressTrackColor = Color.argb(50, 200, 200, 200);
     @ColorInt private int borderColor = Color.argb(80, 255, 255, 255);
@@ -71,6 +83,19 @@ public class CircularArtworkView extends View {
     // Geometry
     private float cx, cy, artworkRadius, ringRadius;
     private final RectF progressRectF = new RectF();
+
+    // Touch / seek
+    private boolean isTouchSeeking = false;
+    private float touchStartAngle = 0f;
+    private float lastTouchAngle = 0f;
+    private long lastSeekTime = 0L;
+
+    @Nullable private SeekListener seekListener;
+
+    public interface SeekListener {
+        void onSeekDelta(float deltaSeconds);
+        void onSeekEnd();
+    }
 
     public CircularArtworkView(Context context) {
         super(context);
@@ -237,6 +262,31 @@ public class CircularArtworkView extends View {
         return progress;
     }
 
+    public void setSeekListener(@Nullable SeekListener listener) {
+        this.seekListener = listener;
+    }
+
+    public void setThemeColors(@ColorInt int glowColor, @ColorInt int progressColor,
+                               @ColorInt int progressTrackColor, @ColorInt int borderColor,
+                               @ColorInt int knobColor, boolean isNightMode) {
+        this.glowColor = glowColor;
+        this.progressColor = progressColor;
+        this.progressTrackColor = progressTrackColor;
+        this.borderColor = borderColor;
+        this.knobColor = knobColor;
+        this.isNightMode = isNightMode;
+
+        progressTrackPaint.setColor(progressTrackColor);
+        progressArcPaint.setColor(progressColor);
+        knobPaint.setColor(knobColor);
+        borderPaint.setColor(borderColor);
+        specularPaint.setColor(Color.argb(isNightMode ? 22 : 35, 255, 255, 255));
+        fallbackPaint.setColor(isNightMode ? Color.argb(220, 32, 24, 48) : Color.argb(220, 235, 230, 225));
+
+        rebuildGlow();
+        invalidate();
+    }
+
     // ── Layout / Geometry ────────────────────────────────────────────────────────
 
     @Override
@@ -254,6 +304,7 @@ public class CircularArtworkView extends View {
                 cx + ringRadius - inset, cy + ringRadius - inset);
 
         rebuildShader();
+        rebuildGlow();
     }
 
     private void rebuildShader() {
@@ -278,6 +329,21 @@ public class CircularArtworkView extends View {
         artworkPaint.setShader(artworkShader);
     }
 
+    private void rebuildGlow() {
+        if (artworkRadius <= 0) return;
+        int r = Color.red(glowColor), g = Color.green(glowColor), b = Color.blue(glowColor);
+        int a1 = isNightMode ? 80 : 55;
+        int a2 = isNightMode ? 30 : 18;
+        try {
+            RadialGradient gradient = new RadialGradient(
+                    cx, cy, artworkRadius * 1.45f,
+                    new int[]{Color.argb(a1, r, g, b), Color.argb(a2, r, g, b), Color.argb(0, r, g, b)},
+                    new float[]{0f, 0.55f, 1f},
+                    Shader.TileMode.CLAMP);
+            glowPaint.setShader(gradient);
+        } catch (Exception ignored) { /* size not ready yet */ }
+    }
+
     // ── Drawing ──────────────────────────────────────────────────────────────────
 
     @Override
@@ -285,10 +351,13 @@ public class CircularArtworkView extends View {
         super.onDraw(canvas);
         if (cx <= 0 || artworkRadius <= 0) return;
 
-        // 1. Subtle drop shadow for disc depth (stationary)
+        // 1. Ambient glow (stationary, atmospheric background)
+        canvas.drawCircle(cx, cy, artworkRadius * 1.45f, glowPaint);
+
+        // 2. Subtle drop shadow for disc depth (stationary)
         canvas.drawCircle(cx + 2f, cy + 4f, artworkRadius, shadowPaint);
 
-        // 2. Rotating Artwork Disc (rotation applied strictly to disc, not entire view)
+        // 3. Rotating Artwork Disc (rotation applied strictly to disc, not entire view)
         canvas.save();
         canvas.rotate(discRotation, cx, cy);
         if (artworkShader != null) {
@@ -298,22 +367,22 @@ public class CircularArtworkView extends View {
         }
         canvas.restore();
 
-        // 3. Specular sheen at top (stationary highlight over physical vinyl surface)
+        // 4. Specular sheen at top (stationary highlight over physical vinyl surface)
         drawSpecularHighlight(canvas);
 
-        // 4. Outer disc border (crisp stationary glass edge)
+        // 5. Outer disc border (crisp stationary glass edge)
         canvas.drawCircle(cx, cy, artworkRadius, borderPaint);
 
-        // 5. Progress ring track (concentric circle outside artwork disc)
+        // 6. Progress ring track (concentric circle outside artwork disc)
         canvas.drawOval(progressRectF, progressTrackPaint);
 
-        // 6. Progress arc (stationary coordinate system, begins at 12 o'clock = -90°)
+        // 7. Progress arc (stationary coordinate system, begins at 12 o'clock = -90°)
         float sweepAngle = progress * 360f;
         if (sweepAngle > 0.5f) {
             canvas.drawArc(progressRectF, -90f, sweepAngle, false, progressArcPaint);
         }
 
-        // 7. Seek knob positioned at the head of the progress arc
+        // 8. Seek knob positioned at the head of the progress arc
         if (progress > 0.002f) {
             drawSeekKnob(canvas, sweepAngle);
         }
@@ -344,6 +413,76 @@ public class CircularArtworkView extends View {
         canvas.clipRect(cx - artworkRadius, cy - artworkRadius, cx + artworkRadius, cy - artworkRadius * 0.1f);
         canvas.drawCircle(cx, cy - artworkRadius * 0.05f, artworkRadius * 0.7f, specularPaint);
         canvas.restore();
+    }
+
+    // ── Touch / Seek Gesture ─────────────────────────────────────────────────────
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        float tx = event.getX();
+        float ty = event.getY();
+        float dist = (float) Math.sqrt((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy));
+
+        // Outer ring zone (for seek knob drag)
+        boolean inOuterRing = dist >= (artworkRadius - 28f) && dist <= (ringRadius + 28f);
+        // Inner artwork zone (for tap-to-edit)
+        boolean inArtwork = dist < artworkRadius - 28f;
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                if (inOuterRing || inArtwork) {
+                    touchStartAngle = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
+                    lastTouchAngle = touchStartAngle;
+                    isTouchSeeking = true;
+                    if (getParent() != null) {
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                    }
+                    return true;
+                }
+                return false;
+
+            case MotionEvent.ACTION_MOVE:
+                if (isTouchSeeking) {
+                    float cur = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
+                    float delta = CircularSeekHelper.angularDelta(lastTouchAngle, cur);
+                    if (Math.abs(delta) > SEEK_DEAD_ZONE_DEG) {
+                        long now = System.currentTimeMillis();
+                        if (now - lastSeekTime > SEEK_THROTTLE_MS) {
+                            float secs = delta / DEG_PER_SEEK_SECOND;
+                            if (seekListener != null) seekListener.onSeekDelta(secs);
+                            lastSeekTime = now;
+                        }
+                        lastTouchAngle = cur;
+                    }
+                    return true;
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (isTouchSeeking) {
+                    isTouchSeeking = false;
+                    if (getParent() != null) {
+                        getParent().requestDisallowInterceptTouchEvent(false);
+                    }
+                    if (seekListener != null) seekListener.onSeekEnd();
+
+                    // If it was a small stationary tap on the artwork, forward to performClick
+                    float totalDelta = Math.abs(CircularSeekHelper.angularDelta(touchStartAngle,
+                            CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy)));
+                    if (totalDelta < SEEK_DEAD_ZONE_DEG && inArtwork && event.getActionMasked() == MotionEvent.ACTION_UP) {
+                        performClick();
+                    }
+                    return true;
+                }
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        return super.performClick();
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────────
