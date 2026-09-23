@@ -5,6 +5,8 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.widget.RemoteViews;
 
+import com.psthetech.swara.R;
+
 /**
  * Swara Now Playing AppWidgetProvider.
  *
@@ -46,7 +48,8 @@ public class SwaraWidgetProvider extends AppWidgetProvider {
                                           AppWidgetManager appWidgetManager,
                                           int appWidgetId,
                                           android.os.Bundle newOptions) {
-        SwaraWidgetUpdater.pushSingleWidgetUpdate(context, appWidgetManager, appWidgetId, null, false);
+        SwaraWidgetUpdater.pushSingleWidgetUpdate(
+                context, appWidgetManager, appWidgetId, null, false, null, R.layout.widget_swara_player);
     }
 
     @Override
