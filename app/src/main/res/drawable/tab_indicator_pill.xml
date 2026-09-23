@@ -9,6 +9,6 @@
     android:insetRight="-14dp">
     <shape android:shape="rectangle">
         <corners android:radius="17dp" />
-        <solid android:color="@color/swara_gold" />
+        <solid android:color="@android:color/transparent" />
     </shape>
 </inset>
