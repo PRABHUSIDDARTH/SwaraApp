@@ -125,6 +125,17 @@
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <TextView
+                android:id="@+id/tvAlbum"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_body_sm"
+                android:textColor="@color/swara_text_dim"
+                android:layout_marginTop="@dimen/dp_2"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Favorite toggle -->
@@ -139,11 +150,11 @@
 
     </LinearLayout>
 
-    <!-- SeekBar -->
-    <SeekBar
-        android:id="@+id/seekBar"
+    <!-- Wavy Squiggly Horizontal Seek Bar (kept alongside circular seek) -->
+    <com.psthetech.swara.ui.widget.WavySliderView
+        android:id="@+id/wavySlider"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="36dp"
         android:layout_marginTop="@dimen/dp_20" />
 
     <!-- Time labels -->
