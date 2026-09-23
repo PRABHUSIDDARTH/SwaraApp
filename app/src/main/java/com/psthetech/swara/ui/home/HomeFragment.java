@@ -195,12 +195,16 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     if (root != null) root.setBackground(tokens.createAmbientDrawable());
                     if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextSecondaryColor());
                     TextView tvAppName = view.findViewById(R.id.tvAppName);
-                    if (tvAppName != null) tvAppName.setTextColor(tokens.getAccentColor());
+                    if (tvAppName != null) tvAppName.setTextColor(tokens.getReadableAccentColor());
                     if (btnSettings != null && btnSettings instanceof android.widget.ImageView) {
-                        ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getAccentColor());
+                        ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getReadableAccentColor());
                     }
                     if (tvSeeAllPlaylists != null && tvSeeAllPlaylists instanceof TextView) {
-                        ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getAccentColor());
+                        ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getReadableAccentColor());
+                    }
+                    View btnClearHistory = view.findViewById(R.id.btnClearHistory);
+                    if (btnClearHistory instanceof android.widget.ImageView) {
+                        ((android.widget.ImageView) btnClearHistory).setColorFilter(tokens.getReadableAccentColor());
                     }
                     // Section headers — find title TextViews within section containers
                     int[] sectionIds = {
@@ -221,6 +225,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                             }
                         }
                     }
+
                     if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.notifyDataSetChanged();
                     if (recentlyAddedAdapter != null) recentlyAddedAdapter.notifyDataSetChanged();
                     if (playlistAdapter != null) playlistAdapter.notifyDataSetChanged();
