@@ -37,6 +37,7 @@ public class MiniPlayerFragment extends Fragment {
     private ImageView btnNext;
     private View progressLine;
     private View rootView;
+    private com.psthetech.swara.ui.widget.AudioWaveView miniAudioWaveView;
 
     @Nullable
     @Override
@@ -56,6 +57,10 @@ public class MiniPlayerFragment extends Fragment {
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
         btnNext = view.findViewById(R.id.btnNext);
         progressLine = view.findViewById(R.id.progressLine);
+        miniAudioWaveView = view.findViewById(R.id.miniAudioWaveView);
+        if (miniAudioWaveView != null) {
+            miniAudioWaveView.setCompact(true);
+        }
 
         // Activity-scoped ViewModel
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
@@ -65,8 +70,12 @@ public class MiniPlayerFragment extends Fragment {
 
         // Observe playing state
         playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), playing -> {
-            btnPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
-            btnPlayPause.setContentDescription(getString(playing ? R.string.pause : R.string.play));
+            boolean isPlaying = Boolean.TRUE.equals(playing);
+            btnPlayPause.setImageResource(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
+            btnPlayPause.setContentDescription(getString(isPlaying ? R.string.pause : R.string.play));
+            if (miniAudioWaveView != null) {
+                miniAudioWaveView.setPlaying(isPlaying);
+            }
         });
 
         // Observe progress for the top line
@@ -119,6 +128,10 @@ public class MiniPlayerFragment extends Fragment {
                     // Progress line color
                     if (progressLine != null) {
                         progressLine.setBackgroundColor(tokens.getAccentColor());
+                    }
+
+                    if (miniAudioWaveView != null) {
+                        miniAudioWaveView.setDesignTokens(tokens);
                     }
                 });
 
