@@ -218,8 +218,13 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         ArtworkHelper.clear(holder.itemView.getContext(), holder.ivArtwork);
         holder.ivArtwork.setImageDrawable(null);
         // Reset playback glow and typeface
+        DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
         if (isExpandedMode) {
-            holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+            if (tokens != null) {
+                holder.itemView.setBackground(tokens.createCardDrawable(holder.itemView.getContext()));
+            } else {
+                holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+            }
         } else {
             holder.itemView.setBackgroundResource(R.drawable.ripple_item);
         }
