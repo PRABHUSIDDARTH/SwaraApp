@@ -20,18 +20,17 @@
         android:layout_width="36dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/shape_drag_handle" />
 
-    <!-- Drag handle / top bar -->
+    <!-- Top bar: collapse | NOW PLAYING | queue -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="@dimen/dp_16">
+        android:paddingBottom="@dimen/dp_12">
 
-        <!-- Back / collapse button -->
         <ImageView
             android:id="@+id/btnCollapse"
             android:layout_width="@dimen/btn_min_touch_target"
@@ -56,7 +55,6 @@
 
         <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
-        <!-- Queue button -->
         <ImageView
             android:id="@+id/btnQueue"
             android:layout_width="@dimen/btn_min_touch_target"
@@ -97,7 +95,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="@dimen/dp_24">
+        android:layout_marginTop="@dimen/dp_20">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -157,7 +155,7 @@
         android:layout_height="36dp"
         android:layout_marginTop="@dimen/dp_20" />
 
-    <!-- Time labels -->
+    <!-- Time labels beneath the horizontal slider -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -184,13 +182,13 @@
 
     </LinearLayout>
 
-    <!-- Main controls row -->
+    <!-- Main playback controls row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginTop="@dimen/dp_24">
+        android:layout_marginTop="@dimen/dp_20">
 
         <!-- Shuffle -->
         <ImageView
@@ -212,17 +210,16 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/previous" />
 
-        <!-- Entire glass control is the playback touch target. -->
-            <ImageView
-                android:id="@+id/btnPlayPause"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:padding="16dp"
-                android:background="@drawable/bg_play_button"
-                android:src="@drawable/ic_play"
-                android:scaleType="center"
-                android:contentDescription="@string/play_pause" />
-
+        <!-- Play/Pause — strongest visual hierarchy -->
+        <ImageView
+            android:id="@+id/btnPlayPause"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:padding="16dp"
+            android:background="@drawable/bg_play_button"
+            android:src="@drawable/ic_play"
+            android:scaleType="center"
+            android:contentDescription="@string/play_pause" />
 
         <!-- Next -->
         <ImageView
@@ -246,7 +243,7 @@
 
     </LinearLayout>
 
-    <!-- Secondary controls row: Sleep Timer + Audio Output + Equalizer -->
+    <!-- Secondary controls: Sleep Timer | Audio Output | Equalizer -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -254,7 +251,6 @@
         android:gravity="center"
         android:layout_marginTop="@dimen/dp_16">
 
-        <!-- Sleep Timer -->
         <ImageView
             android:id="@+id/btnSleepTimer"
             android:layout_width="48dp"
@@ -264,7 +260,6 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/sleep_timer" />
 
-        <!-- Audio Output -->
         <ImageView
             android:id="@+id/btnAudioOutput"
             android:layout_width="48dp"
@@ -275,7 +270,6 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="Audio Output" />
 
-        <!-- Equalizer -->
         <ImageView
             android:id="@+id/btnEqualizer"
             android:layout_width="48dp"
@@ -286,6 +280,21 @@
             android:contentDescription="@string/equalizer" />
 
     </LinearLayout>
+
+    <!-- Invisible legacy compat: keep ivArtwork and viewArtworkGlow IDs present
+         but gone so existing code that tries to find them doesn't crash -->
+    <ImageView
+        android:id="@+id/ivArtwork"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:contentDescription="@string/cd_album_art" />
+
+    <View
+        android:id="@+id/viewArtworkGlow"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
 </LinearLayout>
 </androidx.core.widget.NestedScrollView>
