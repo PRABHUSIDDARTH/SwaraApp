@@ -255,7 +255,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         } else {
             // Always clear glow for non-playing rows (RecyclerView safety)
             if (isExpandedMode) {
-                holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+                if (tokens != null) {
+                    holder.itemView.setBackground(tokens.createCardDrawable(holder.itemView.getContext()));
+                } else {
+                    holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
+                }
             } else {
                 holder.itemView.setBackgroundResource(R.drawable.ripple_item);
             }
