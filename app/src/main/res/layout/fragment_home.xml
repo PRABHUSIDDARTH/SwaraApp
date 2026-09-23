@@ -91,12 +91,13 @@
                         android:paddingBottom="@dimen/dp_12">
 
                         <TextView
+                            android:id="@+id/tvHeaderRecentlyPlayed"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/recently_played"
                             android:textSize="@dimen/text_title_lg"
-                            android:textColor="@color/swara_text_primary"
+                            android:textColor="?android:attr/textColorPrimary"
                             android:fontFamily="sans-serif-medium" />
 
                         <TextView
@@ -104,7 +105,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/clear"
-                            android:textColor="@color/swara_lavender"
+                            android:textColor="?attr/colorSecondary"
                             android:textSize="13sp"
                             android:background="?attr/selectableItemBackground"
                             android:padding="4dp" />
@@ -139,12 +140,13 @@
                         android:paddingBottom="@dimen/dp_12">
 
                         <TextView
+                            android:id="@+id/tvHeaderPlaylists"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/playlists"
                             android:textSize="@dimen/text_title_lg"
-                            android:textColor="@color/swara_text_primary"
+                            android:textColor="?android:attr/textColorPrimary"
                             android:fontFamily="sans-serif-medium" />
 
                         <TextView
@@ -153,7 +155,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/see_all"
                             android:textSize="@dimen/text_body_sm"
-                            android:textColor="@color/swara_gold"
+                            android:textColor="?attr/colorSecondary"
                             android:paddingStart="@dimen/dp_8"
                             android:paddingEnd="0dp"
                             android:background="?attr/selectableItemBackground"
@@ -180,11 +182,12 @@
                     android:visibility="gone">
 
                     <TextView
+                        android:id="@+id/tvHeaderRecentlyAdded"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/recently_added"
                         android:textSize="@dimen/text_title_lg"
-                        android:textColor="@color/swara_text_primary"
+                        android:textColor="?android:attr/textColorPrimary"
                         android:fontFamily="sans-serif-medium"
                         android:paddingHorizontal="@dimen/dp_24"
                         android:paddingTop="@dimen/dp_24"
@@ -217,21 +220,23 @@
                         android:alpha="0.4" />
 
                     <TextView
+                        android:id="@+id/tvWelcomeTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/welcome_title"
                         android:textSize="@dimen/text_title_lg"
-                        android:textColor="@color/swara_text_primary"
+                        android:textColor="?android:attr/textColorPrimary"
                         android:fontFamily="sans-serif-medium"
                         android:layout_marginTop="@dimen/dp_16"
                         android:gravity="center" />
 
                     <TextView
+                        android:id="@+id/tvWelcomeSubtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/welcome_subtitle"
                         android:textSize="@dimen/text_body_md"
-                        android:textColor="@color/swara_text_secondary"
+                        android:textColor="?android:attr/textColorSecondary"
                         android:layout_marginTop="@dimen/dp_8"
                         android:gravity="center" />
 
