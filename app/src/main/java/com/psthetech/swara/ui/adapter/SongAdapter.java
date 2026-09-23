@@ -113,6 +113,12 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         int layoutId = (viewType == VIEW_TYPE_EXPANDED) ? R.layout.item_song_expanded : R.layout.item_song;
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(layoutId, parent, false);
+        if (viewType == VIEW_TYPE_EXPANDED) {
+            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            if (tokens != null) {
+                view.setBackground(tokens.createCardDrawable(parent.getContext()));
+            }
+        }
         return new ViewHolder(view);
     }
 
