@@ -150,7 +150,10 @@ public class SwaraPlaybackService extends MediaSessionService {
                 }
             } catch (NumberFormatException ignored) { /* mediaId not a song ID */ }
         }
-        SwaraWidgetUpdater.pushUpdate(this, song, isPlaying);
+        long pos = player != null ? player.getCurrentPosition() : 0;
+        long dur = player != null ? player.getDuration() : 0;
+        float progressRatio = (dur > 0 && pos > 0) ? (float) pos / (float) dur : 0.0f;
+        SwaraWidgetUpdater.pushUpdate(this, song, isPlaying, progressRatio);
     }
 
     /**
