@@ -56,6 +56,55 @@
 
     </LinearLayout>
 
+    <!-- Sound Vibration Wave Pattern (Animates with song playback) -->
+    <FrameLayout
+        android:id="@+id/widget_wave_container"
+        android:layout_width="match_parent"
+        android:layout_height="22dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp">
+
+        <ViewFlipper
+            android:id="@+id/widget_wave_flipper"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:flipInterval="150"
+            android:autoStart="false">
+
+            <ImageView
+                android:id="@+id/widget_wave_frame_0"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY" />
+
+            <ImageView
+                android:id="@+id/widget_wave_frame_1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY" />
+
+            <ImageView
+                android:id="@+id/widget_wave_frame_2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY" />
+
+            <ImageView
+                android:id="@+id/widget_wave_frame_3"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY" />
+
+        </ViewFlipper>
+
+        <ImageView
+            android:id="@+id/widget_wave_idle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY" />
+
+    </FrameLayout>
+
     <!-- Controls (Bottom, centered) -->
     <LinearLayout
         android:id="@+id/widget_controls"
@@ -82,7 +131,8 @@
             android:src="@drawable/ic_play"
             android:tint="#C9A84C"
             android:contentDescription="Play / Pause"
-            android:layout_marginHorizontal="12dp" />
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp" />
 
         <ImageButton
             android:id="@+id/widget_btn_next"
