@@ -7,10 +7,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
 import androidx.annotation.Nullable;
+
+import com.psthetech.swara.ui.theme.DesignTokens;
 
 /**
  * WavySliderView is an interactive Android 13/14 Material You-style squiggly/wavy seekbar.
@@ -20,8 +23,16 @@ import androidx.annotation.Nullable;
  *  - Thumb knob: A smooth circular pearl knob located at the current progress position.
  *  - Unplayed track (right of thumb): A straight, muted horizontal line.
  *  - Smooth flattening when paused: The wave flattens gracefully into a clean straight line.
+ *  - Full touch scrubbing: Users can touch and drag anywhere along the track to seek.
+ *  - Dynamic theme coloring: Colors react directly to DesignTokens.
  */
 public class WavySliderView extends View {
+
+    public interface OnWavySliderChangeListener {
+        void onProgressChanged(WavySliderView slider, long progress, boolean fromUser);
+        void onStartTrackingTouch(WavySliderView slider);
+        void onStopTrackingTouch(WavySliderView slider);
+    }
 
     private final Paint wavePaintPlayed = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trackPaintUnplayed = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -33,6 +44,7 @@ public class WavySliderView extends View {
     private long progress = 0;
     private long max = 100;
     private boolean isPlaying = false;
+    private boolean isTracking = false;
 
     // Animation state
     private float currentPhase = 0f;
@@ -50,6 +62,8 @@ public class WavySliderView extends View {
     private int accentColor = 0xFFC9A84C;
     private int unplayedColor = 0x4DFFFFFF;
     private int thumbColor = 0xFFFFFFFF;
+
+    private OnWavySliderChangeListener listener;
 
     public WavySliderView(Context context) {
         this(context, null);
@@ -90,9 +104,15 @@ public class WavySliderView extends View {
         updateColors();
     }
 
+    public void setOnWavySliderChangeListener(OnWavySliderChangeListener listener) {
+        this.listener = listener;
+    }
+
     public void setProgress(long progress) {
-        this.progress = Math.max(0, Math.min(progress, max));
-        invalidate();
+        if (!isTracking) {
+            this.progress = Math.max(0, Math.min(progress, max));
+            invalidate();
+        }
     }
 
     public long getProgress() {
@@ -123,6 +143,25 @@ public class WavySliderView extends View {
 
     public boolean isPlaying() {
         return isPlaying;
+    }
+
+    public void setDesignTokens(DesignTokens tokens) {
+        if (tokens == null) return;
+        this.accentColor = tokens.getAccentColor();
+        int r = Color.red(accentColor);
+        int g = Color.green(accentColor);
+        int b = Color.blue(accentColor);
+
+        this.unplayedColor = tokens.isNightMode()
+                ? Color.argb(65, 255, 255, 255)
+                : Color.argb(45, 0, 0, 0);
+
+        this.thumbColor = tokens.isNightMode()
+                ? Color.argb(255, 255, 255, 255)
+                : Color.rgb(r, g, b);
+
+        updateColors();
+        invalidate();
     }
 
     private void updateColors() {
@@ -254,5 +293,66 @@ public class WavySliderView extends View {
 
         // Ensure path firmly terminates right at the center of the thumb
         path.lineTo(endX, centerY);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!isEnabled()) return false;
+
+        float x = event.getX();
+        float trackLeft = trackPaddingPx;
+        float trackRight = getWidth() - trackPaddingPx;
+        float trackWidth = Math.max(1f, trackRight - trackLeft);
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                isTracking = true;
+                if (getParent() != null) {
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                }
+                updateProgressFromTouch(x, trackLeft, trackWidth);
+                if (listener != null) {
+                    listener.onStartTrackingTouch(this);
+                    listener.onProgressChanged(this, progress, true);
+                }
+                invalidate();
+                return true;
+
+            case MotionEvent.ACTION_MOVE:
+                if (isTracking) {
+                    updateProgressFromTouch(x, trackLeft, trackWidth);
+                    if (listener != null) {
+                        listener.onProgressChanged(this, progress, true);
+                    }
+                    invalidate();
+                    return true;
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (isTracking) {
+                    isTracking = false;
+                    updateProgressFromTouch(x, trackLeft, trackWidth);
+                    if (listener != null) {
+                        listener.onProgressChanged(this, progress, true);
+                        listener.onStopTrackingTouch(this);
+                    }
+                    if (getParent() != null) {
+                        getParent().requestDisallowInterceptTouchEvent(false);
+                    }
+                    invalidate();
+                    return true;
+                }
+                break;
+        }
+
+        return super.onTouchEvent(event);
+    }
+
+    private void updateProgressFromTouch(float touchX, float trackLeft, float trackWidth) {
+        float ratio = (touchX - trackLeft) / trackWidth;
+        ratio = Math.max(0f, Math.min(1f, ratio));
+        this.progress = Math.round(ratio * max);
     }
 }
