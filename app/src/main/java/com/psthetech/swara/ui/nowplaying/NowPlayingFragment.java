@@ -24,12 +24,12 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.psthetech.swara.R;
-import com.psthetech.swara.audio.AudioOutputManager;
+import com.psthetech.swara.util.AudioOutputManager;
 import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.ui.audiooutput.AudioOutputBottomSheet;
+import com.psthetech.swara.ui.nowplaying.AudioOutputBottomSheet;
 import com.psthetech.swara.ui.queue.QueueFragment;
-import com.psthetech.swara.ui.sleeptimer.SleepTimerDialog;
+import com.psthetech.swara.ui.nowplaying.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.widget.CircularArtworkView;
