@@ -85,6 +85,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
     private Song currentSong;
+    private long lastSongId = -1;
 
     // ── Glide target for circular artwork bitmap loading ─────────────────────────
     @Nullable private CustomTarget<Bitmap> artworkTarget;
@@ -276,7 +277,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private void observeViewModel() {
         playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
+            boolean isSongChange = (song == null && currentSong != null)
+                    || (song != null && (currentSong == null || song.getId() != lastSongId));
+
             this.currentSong = song;
+
             if (song != null) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
@@ -295,7 +300,20 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     wavySlider.setMax(song.getDuration());
                     tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
                 }
-                loadCircularArtwork(song);
+
+                if (isSongChange) {
+                    lastSongId = song.getId();
+                    // Reset artwork rotation for new song
+                    if (circularArtworkView != null) circularArtworkView.resetRotation();
+                    // Load artwork into circular view
+                    loadCircularArtwork(song);
+                    // Check if currently playing to start rotation
+                    Boolean playing = playbackViewModel.getIsPlaying().getValue();
+                    if (Boolean.TRUE.equals(playing) && circularArtworkView != null) {
+                        circularArtworkView.startRotation();
+                    }
+                }
+
                 checkIsFavorite(song.getId());
             }
         });
@@ -308,8 +326,16 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
 
         playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), isPlaying -> {
-            btnPlayPause.setImageResource(Boolean.TRUE.equals(isPlaying) ? R.drawable.ic_pause : R.drawable.ic_play);
-            btnPlayPause.setContentDescription(getString(Boolean.TRUE.equals(isPlaying) ? R.string.pause : R.string.play));
+            boolean playing = Boolean.TRUE.equals(isPlaying);
+            btnPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
+            btnPlayPause.setContentDescription(getString(playing ? R.string.pause : R.string.play));
+
+            if (wavySlider != null) wavySlider.setPlaying(playing);
+
+            // Rotate artwork while playing, stop when paused
+            if (circularArtworkView != null) {
+                circularArtworkView.setPlaying(playing);
+            }
         });
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
@@ -515,5 +541,23 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 btnFavorite.setColorFilter(favorite ? tokens.getFavoriteActiveColor() : tokens.getFavoriteInactiveColor());
             }
         });
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+    @Override
+    public void onDestroyView() {
+        // Cancel Glide load to avoid bitmap delivery to a destroyed view
+        if (artworkTarget != null && getContext() != null) {
+            try {
+                Glide.with(requireContext()).clear(artworkTarget);
+            } catch (Exception ignored) { /* detached */ }
+            artworkTarget = null;
+        }
+        // Release rotation animator
+        if (circularArtworkView != null) {
+            circularArtworkView.pauseRotation();
+        }
+        super.onDestroyView();
     }
 }
