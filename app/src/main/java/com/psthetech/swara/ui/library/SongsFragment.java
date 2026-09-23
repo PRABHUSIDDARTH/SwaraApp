@@ -204,6 +204,11 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
 
         view.setBackground(tokens.createAmbientDrawable());
 
+        TextView tvHeaderTitle = view.findViewById(R.id.tvHeaderTitle);
+        if (tvHeaderTitle != null) {
+            tvHeaderTitle.setTextColor(tokens.getTextPrimaryColor());
+        }
+
         View headerBar = view.findViewById(R.id.headerBar);
         if (headerBar instanceof android.view.ViewGroup) {
             android.view.ViewGroup group = (android.view.ViewGroup) headerBar;
@@ -216,14 +221,17 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         }
 
         if (btnSort != null) {
+            btnSort.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
             btnSort.setColorFilter(tokens.getReadableAccentColor());
         }
 
         if (btnShuffle != null) {
+            btnShuffle.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
             btnShuffle.setColorFilter(tokens.getReadableAccentColor());
         }
 
         if (btnViewMode != null) {
+            btnViewMode.setBackground(tokens.createSurfaceVariantDrawable(requireContext()));
             btnViewMode.setColorFilter(tokens.getReadableAccentColor());
         }
 
