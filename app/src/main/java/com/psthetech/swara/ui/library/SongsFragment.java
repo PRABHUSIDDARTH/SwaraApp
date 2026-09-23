@@ -236,7 +236,7 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         }
 
         if (progressBar != null) {
-            progressBar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
+            progressBar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(tokens.getReadableAccentColor()));
         }
 
         TextView tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle);
