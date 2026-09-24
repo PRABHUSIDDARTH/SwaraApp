@@ -370,7 +370,78 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
-    public void toggleRepeatMode() {
+        public void toggleKorokaeMode() {
+        Song song = currentSong.getValue();
+        if (song == null) return;
+        com.psthetech.swara.domain.model.KorokaeState state = korokaeState.getValue();
+
+        if (state != null && state.isActive()) {
+            if (activeKorokaeProcessor != null) {
+                activeKorokaeProcessor.cancel();
+                activeKorokaeProcessor = null;
+            }
+            if (originalSongForKorokae != null) {
+                switchTrackPreservingPosition(originalSongForKorokae, null, false);
+            }
+            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(song));
+            originalSongForKorokae = null;
+            return;
+        }
+
+        if (state != null && state.isProcessing()) {
+            if (activeKorokaeProcessor != null) {
+                activeKorokaeProcessor.cancel();
+                activeKorokaeProcessor = null;
+            }
+            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(song));
+            return;
+        }
+
+        final long genId = korokaeGenerationCounter.incrementAndGet();
+        final long songId = song.getId();
+        final Song targetSong = song;
+        originalSongForKorokae = targetSong;
+
+        long modifiedTime = targetSong.getDateAdded() * 1000L;
+        java.io.File cached = com.psthetech.swara.util.KorokaeCacheManager.getCachedStem(getApplication(), songId, modifiedTime);
+        if (cached != null) {
+            switchTrackPreservingPosition(targetSong, cached.getAbsolutePath(), true);
+            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, cached.getAbsolutePath()));
+            return;
+        }
+
+        korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, 0));
+        activeKorokaeProcessor = new com.psthetech.swara.util.KorokaeAudioProcessor(songId, genId);
+        activeKorokaeProcessor.process(getApplication(), targetSong, new com.psthetech.swara.util.KorokaeAudioProcessor.ProgressCallback() {
+            @Override public void onProgress(int percent) {
+                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
+                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, percent));
+                }
+            }
+            @Override public void onSuccess(@NonNull java.io.File instrumentalStem) {
+                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
+                    switchTrackPreservingPosition(targetSong, instrumentalStem.getAbsolutePath(), true);
+                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, instrumentalStem.getAbsolutePath()));
+                }
+            }
+            @Override public void onError(@NonNull String errorMessage) {
+                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
+                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.failed(targetSong, errorMessage));
+                }
+            }
+        });
+    }
+
+    private void switchTrackPreservingPosition(@NonNull Song song, @androidx.annotation.Nullable String instrumentalFilePath, boolean isEnteringKorokae) {
+        // Stub in step 35
+    }
+
+    private boolean isCurrentSong(long songId) {
+        Song current = currentSong.getValue();
+        return current != null && current.getId() == songId;
+    }
+
+public void toggleRepeatMode() {
         cycleRepeatMode();
     }
 
