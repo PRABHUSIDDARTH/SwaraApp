@@ -11,6 +11,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import com.psthetech.swara.widget.SwaraWidgetProvider;
+import com.psthetech.swara.widget.WidgetWaveformRenderer;
 
 /**
  * Hardening tests verifying widget broadcast contracts, actions, and memory bounds.
@@ -35,6 +36,32 @@ public class WidgetHardeningTest {
                 xml.contains(".widget.SwaraWidgetProvider") || xml.contains("SwaraWidgetProvider"));
         assertFalse("SwaraVerticalWidgetProvider must not be declared as a separate provider",
                 xml.contains("SwaraVerticalWidgetProvider"));
+    }
+    @Test
+    public void testWidgetLayoutsDoNotContainViewFlipper() throws Exception {
+        String[] layoutFiles = {
+                "app/src/main/res/layout/widget_swara_player.xml",
+                "app/src/main/res/layout/widget_swara_player_vertical.xml"
+        };
+        for (String path : layoutFiles) {
+            File file = new File(path);
+            if (!file.exists()) {
+                file = new File(path.replace("app/", ""));
+            }
+            assertTrue("Layout file must exist: " + path, file.exists());
+            String xml = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            assertFalse("Widget layout must not contain ViewFlipper: " + path, xml.contains("ViewFlipper"));
+            assertTrue("Widget layout must contain single wave image: " + path, xml.contains("widget_wave_progress"));
+        }
+    }
+
+    @Test
+    public void testWaveformProgressClamping() {
+        assertEquals(0.0f, WidgetWaveformRenderer.clampProgress(-0.5f), 1e-4);
+        assertEquals(1.0f, WidgetWaveformRenderer.clampProgress(1.5f), 1e-4);
+        assertEquals(0.42f, WidgetWaveformRenderer.clampProgress(0.42f), 1e-4);
+        assertEquals(0.0f, WidgetWaveformRenderer.clampProgress(Float.NaN), 1e-4);
+        assertEquals(0.0f, WidgetWaveformRenderer.clampProgress(Float.POSITIVE_INFINITY), 1e-4);
     }
     @Test
     public void testWidgetActionConstants() {
