@@ -55,12 +55,22 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
         boolean isPlaybackAction =
                 SwaraWidgetUpdater.ACTION_PLAY_PAUSE.equals(action)
                         || SwaraWidgetUpdater.ACTION_NEXT.equals(action)
-                        || SwaraWidgetUpdater.ACTION_PREV.equals(action);
+                        || SwaraWidgetUpdater.ACTION_PREV.equals(action)
+                        || SwaraWidgetUpdater.ACTION_SEEK_FORWARD.equals(action)
+                        || SwaraWidgetUpdater.ACTION_SEEK_BACKWARD.equals(action);
 
         if (!isPlaybackAction) return;
 
         // goAsync() keeps this BroadcastReceiver's process alive for the async MC connection
         final PendingResult pendingResult = goAsync();
+        final java.util.concurrent.atomic.AtomicBoolean isFinished = new java.util.concurrent.atomic.AtomicBoolean(false);
+        final Runnable finishOnce = () -> {
+            if (isFinished.compareAndSet(false, true)) {
+                try {
+                    pendingResult.finish();
+                } catch (Exception ignored) {}
+            }
+        };
 
         try {
             SessionToken sessionToken = new SessionToken(
@@ -76,7 +86,7 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                     MediaController controller = controllerFuture.get();
                     if (controller == null) {
                         Log.w(TAG, "MediaController is null; ignoring action: " + action);
-                        pendingResult.finish();
+                        finishOnce.run();
                         return;
                     }
 
@@ -94,6 +104,19 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                         case SwaraWidgetUpdater.ACTION_PREV:
                             controller.seekToPreviousMediaItem();
                             break;
+                        case SwaraWidgetUpdater.ACTION_SEEK_FORWARD: {
+                            long cur = controller.getCurrentPosition();
+                            long dur = controller.getDuration();
+                            long target = (dur > 0) ? Math.min(dur, cur + 15000L) : cur + 15000L;
+                            controller.seekTo(target);
+                            break;
+                        }
+                        case SwaraWidgetUpdater.ACTION_SEEK_BACKWARD: {
+                            long cur = controller.getCurrentPosition();
+                            long target = Math.max(0, cur - 15000L);
+                            controller.seekTo(target);
+                            break;
+                        }
                     }
 
                     // Release controller after sending the command
@@ -103,25 +126,19 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                                     controller.release();
                                 } catch (Exception ignored) {
                                 } finally {
-                                    try {
-                                        pendingResult.finish();
-                                    } catch (Exception ignored) {}
+                                    finishOnce.run();
                                 }
                             }, 350L);
 
                 } catch (Exception e) {
                     Log.e(TAG, "Error controlling playback from widget: " + e.getMessage());
-                    try {
-                        pendingResult.finish();
-                    } catch (Exception ignored) {}
+                    finishOnce.run();
                 }
             }, androidx.core.content.ContextCompat.getMainExecutor(context));
 
         } catch (Exception e) {
             Log.e(TAG, "Failed to build MediaController for widget action: " + e.getMessage());
-            try {
-                pendingResult.finish();
-            } catch (Exception ignored) {}
+            finishOnce.run();
         }
     }
 }
