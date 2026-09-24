@@ -81,8 +81,7 @@ public final class KorokaeMatcher {
      * @return Best matching Song candidate, or null if no valid match is found.
      */
     @Nullable
-    // findBestMatch in next commit
-    private static Song _unused(@Nullable Song targetSong, @Nullable List<Song> candidates) {
+    public static Song findBestMatch(@Nullable Song targetSong, @Nullable List<Song> candidates) {
         if (targetSong == null || candidates == null || candidates.isEmpty()) {
             return null;
         }
