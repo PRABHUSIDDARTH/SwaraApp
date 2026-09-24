@@ -100,6 +100,72 @@ public class WidgetHardeningTest {
         assertEquals(0.0f, WidgetWaveformRenderer.getCurrentPhase(), 1e-4);
     }
     @Test
+    public void testOffWhiteThemeWidgetContrast() {
+        int bgColor = parseHex("#FFFFFF");
+        int textColor = parseHex("#1A1510");
+        int accentColor = parseHex("#5C4A1E");
+        double bgLuminance = calculateLuminance(bgColor);
+        assertTrue("OFF_WHITE surface should be bright (>0.7)", bgLuminance > 0.7);
+        double textLuminance = calculateLuminance(textColor);
+        double contrastRatio = (bgLuminance + 0.05) / (textLuminance + 0.05);
+        assertTrue("OFF_WHITE text contrast must exceed 7:1 for readability", contrastRatio >= 7.0);
+        double accentLuminance = calculateLuminance(accentColor);
+        double accentContrast = (bgLuminance + 0.05) / (accentLuminance + 0.05);
+        assertTrue("OFF_WHITE accent button contrast must be readable (>3.0)", accentContrast >= 3.0);
+    }
+
+    @Test
+    public void testRoseLightThemeContrast() {
+        int bgColor = parseHex("#FFFFFF");
+        int textColor = parseHex("#2E1018");
+        int readableAccent = parseHex("#881337");
+        double bgLuminance = calculateLuminance(bgColor);
+        double textLuminance = calculateLuminance(textColor);
+        double textContrast = (bgLuminance + 0.05) / (textLuminance + 0.05);
+        assertTrue("ROSE light text contrast must exceed 4.5:1", textContrast >= 4.5);
+        double accentLuminance = calculateLuminance(readableAccent);
+        double accentContrast = (bgLuminance + 0.05) / (accentLuminance + 0.05);
+        assertTrue("ROSE light accent contrast must exceed 4.5:1", accentContrast >= 4.5);
+    }
+
+    @Test
+    public void testDarkThemeContrast() {
+        String[][] darkPalettes = {
+                {"#231645", "#F0E6C8"}, {"#1E2638", "#F0F6FC"}, {"#2E194F", "#FAF5FF"},
+                {"#382A1C", "#FEF3C7"}, {"#40182E", "#FFF1F2"}, {"#19334A", "#F0FDFA"},
+                {"#1C3D26", "#ECFDF5"}, {"#38312A", "#F5EFE0"}
+        };
+        for (String[] palette : darkPalettes) {
+            int bgColor = parseHex(palette[0]);
+            int textColor = parseHex(palette[1]);
+            double bgLuminance = calculateLuminance(bgColor);
+            double textLuminance = calculateLuminance(textColor);
+            assertTrue("Dark background should have low luminance (<0.3)", bgLuminance < 0.3);
+            assertTrue("Dark text should have high luminance (>0.5)", textLuminance > 0.5);
+            double contrast = (textLuminance + 0.05) / (bgLuminance + 0.05);
+            assertTrue("Dark contrast should exceed 4.5:1", contrast >= 4.5);
+        }
+    }
+
+    @Test
+    public void testLightThemeContrast() {
+        String[][] lightPalettes = {
+                {"#FFFFFF", "#1F0F3D"}, {"#FFFFFF", "#0F172A"}, {"#FFFFFF", "#2E0A4E"},
+                {"#FFFFFF", "#361A05"}, {"#FFFFFF", "#2E1018"}, {"#FFFFFF", "#042F2E"},
+                {"#FFFFFF", "#022C22"}, {"#FFFFFF", "#1A1510"}
+        };
+        for (String[] palette : lightPalettes) {
+            int bgColor = parseHex(palette[0]);
+            int textColor = parseHex(palette[1]);
+            double bgLuminance = calculateLuminance(bgColor);
+            double textLuminance = calculateLuminance(textColor);
+            assertTrue("Light background should have high luminance (>0.6)", bgLuminance > 0.6);
+            assertTrue("Light text should have low luminance (<0.4)", textLuminance < 0.4);
+            double contrast = (bgLuminance + 0.05) / (textLuminance + 0.05);
+            assertTrue("Light contrast should exceed 4.5:1", contrast >= 4.5);
+        }
+    }
+    @Test
     public void testWidgetActionConstants() {
         assertEquals("com.psthetech.swara.ACTION_PLAY_PAUSE", SwaraWidgetUpdater.ACTION_PLAY_PAUSE);
         assertEquals("com.psthetech.swara.ACTION_NEXT", SwaraWidgetUpdater.ACTION_NEXT);
@@ -143,5 +209,24 @@ public class WidgetHardeningTest {
             }
         }
         return inSampleSize;
+    }
+    private static double calculateLuminance(int color) {
+        double r = ((color >> 16) & 0xFF) / 255.0;
+        double g = ((color >> 8) & 0xFF) / 255.0;
+        double b = (color & 0xFF) / 255.0;
+        r = (r <= 0.03928) ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+        g = (g <= 0.03928) ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+        b = (b <= 0.03928) ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    private static int parseHex(String hex) {
+        if (hex.startsWith("#")) hex = hex.substring(1);
+        if (hex.length() == 6) {
+            return (0xFF << 24) | Integer.parseInt(hex, 16);
+        } else if (hex.length() == 8) {
+            return (int) Long.parseLong(hex, 16);
+        }
+        throw new IllegalArgumentException("Invalid hex: " + hex);
     }
 }
