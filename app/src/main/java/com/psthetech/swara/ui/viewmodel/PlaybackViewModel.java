@@ -433,7 +433,40 @@ public class PlaybackViewModel extends AndroidViewModel {
     }
 
     private void switchTrackPreservingPosition(@NonNull Song song, @androidx.annotation.Nullable String instrumentalFilePath, boolean isEnteringKorokae) {
-        // Stub in step 35
+        if (controller == null) return;
+        long currentPos = controller.getCurrentPosition();
+        boolean wasPlaying = controller.isPlaying();
+        long targetDuration = song.getDuration();
+        long safePos = Math.max(0, currentPos);
+        if (targetDuration > 0) {
+            safePos = Math.min(safePos, targetDuration);
+        }
+
+        int currentIndex = controller.getCurrentMediaItemIndex();
+        MediaItem newItem;
+        if (isEnteringKorokae && instrumentalFilePath != null) {
+            newItem = new MediaItem.Builder()
+                    .setMediaId(String.valueOf(song.getId()))
+                    .setUri(android.net.Uri.fromFile(new java.io.File(instrumentalFilePath)))
+                    .setMediaMetadata(new MediaMetadata.Builder()
+                            .setTitle(song.getTitle())
+                            .setArtist(song.getArtist())
+                            .setAlbumTitle(song.getAlbum())
+                            .setArtworkUri(new ArtworkRepository(getApplication()).getArtworkUri(song))
+                            .build())
+                    .build();
+        } else {
+            newItem = songToMediaItem(song);
+        }
+
+        if (currentIndex >= 0 && currentIndex < controller.getMediaItemCount()) {
+            controller.replaceMediaItem(currentIndex, newItem);
+            controller.seekTo(currentIndex, safePos);
+            if (wasPlaying) {
+                controller.play();
+            }
+        }
+        currentPositionMs.postValue(safePos);
     }
 
     private boolean isCurrentSong(long songId) {
