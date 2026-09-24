@@ -20,8 +20,8 @@
     Widget RemoteViews restrictions:
     - No ConstraintLayout, no custom views, no Glide.
     - Only: FrameLayout, LinearLayout, RelativeLayout, GridLayout,
-            TextView, ImageView, Button, ImageButton, ProgressBar, ViewFlipper,
-            ListView, GridView, StackView, AdapterViewFlipper, Chronometer.
+            TextView, ImageView, Button, ImageButton, ProgressBar,
+            ListView, GridView, StackView, Chronometer.
 -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
@@ -97,7 +97,7 @@
 
         </LinearLayout>
 
-        <!-- Sound Vibration Wave Pattern (Animates with song playback) -->
+        <!-- Sound Vibration Wave Pattern (Flowing waveform slider) -->
         <FrameLayout
             android:id="@+id/widget_wave_container"
             android:layout_width="match_parent"
@@ -105,44 +105,12 @@
             android:layout_marginTop="3dp"
             android:layout_marginBottom="1dp">
 
-            <ViewFlipper
-                android:id="@+id/widget_wave_flipper"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:flipInterval="150"
-                android:autoStart="false">
-
-                <ImageView
-                    android:id="@+id/widget_wave_frame_0"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-
-                <ImageView
-                    android:id="@+id/widget_wave_frame_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-
-                <ImageView
-                    android:id="@+id/widget_wave_frame_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-
-                <ImageView
-                    android:id="@+id/widget_wave_frame_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-
-            </ViewFlipper>
-
             <ImageView
-                android:id="@+id/widget_wave_idle"
+                android:id="@+id/widget_wave_progress"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="fitXY" />
+                android:scaleType="fitXY"
+                android:contentDescription="@string/cd_playback_progress" />
 
         </FrameLayout>
 
