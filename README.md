@@ -17,7 +17,7 @@
 - [User-Friendly Experience](#-user-friendly-experience)
 - [Design System & Themes](#-design-system--themes)
   - [Liquid Glass Morphism](#liquid-glass-morphism)
-  - [The 7 ColorThemes](#the-7-colorthemes)
+  - [The 8 ColorThemes](#the-8-colorthemes)
   - [Light Mode & Dark Mode Semantic Tokens](#light-mode--dark-mode-semantic-tokens)
 - [Key Features](#-key-features)
 - [Core Architecture](#-core-architecture)
@@ -66,8 +66,8 @@ Swara’s signature interface is built on **Liquid Glass**:
 - Authentic materials that preserve content integrity (e.g. user album and playlist artwork are never artificially tinted).
 - Elevation and corner radii calibrated dynamically for each device DPI.
 
-### The 7 ColorThemes
-Swara V2 introduces seven curated color themes, each offering tailored Light Mode and Dark Mode palettes:
+### The 8 ColorThemes
+Swara V2 introduces eight curated color themes, each offering tailored Light Mode and Dark Mode palettes:
 
 | ColorTheme | Accent | Mood / Identity | Light Accent & Distinction | Dark Obsidian Tone |
 |---|---|---|---|---|
@@ -78,10 +78,11 @@ Swara V2 introduces seven curated color themes, each offering tailored Light Mod
 | **ROSE** | Blush Rose (`#F472B6`) | Velvet crimson, high contrast & luxury | Deep Crimson Rose (`#C2185B`) | Midnight Wine (`#14070B`) |
 | **OCEAN** | Seafoam Teal (`#2DD4BF`) | Coastal depths, crisp and refreshing | Deep Sea Teal (`#0D9488`) | Mariana Obsidian (`#051012`) |
 | **FOREST** | Emerald Mint (`#34D399`) | Lush botanical, serene organic tones | Deep Pine Emerald (`#059669`)| Deep Woods Black (`#051209`) |
+| **OFF_WHITE**| Warm Mocha (`#8C733E`) | Minimalist warm cream and dark contrast | Deep Sepia (`#5C4A1E`) | Deep Charcoal (`#090807`) |
 
 ### Light Mode & Dark Mode Semantic Tokens
 Every screen element references dynamic semantic tokens from `DesignTokens` and `MorphismThemeManager`.
-- **WCAG AAA Compliance:** Primary text contrast exceeds **7.0:1** on both light and dark surfaces across all seven themes.
+- **WCAG AAA Compliance:** Primary text contrast exceeds **7.0:1** on both light and dark surfaces across all eight themes.
 - **Selective Hierarchy:** Accents are reserved for primary calls-to-action (e.g. "Play All", dialog confirms, active sliders), leaving body text crisp and readable.
 - **Surface Variant Blending:** Light mode surfaces use soft pastel variants (`#EDE6F7`, `#FCE4EC`, `#DCF0E3`) rather than harsh stark whites, reducing eye strain.
 
@@ -89,17 +90,17 @@ Every screen element references dynamic semantic tokens from `DesignTokens` and 
 
 ## ⚡ Key Features
 
-- **App Widget:** Add Swara's Now Playing widget to your home screen for instant playback control, real-time album art, and one-tap access to the app.
+- **App Widget:** Add Swara's Now Playing widget to your home screen for instant playback control (including +15s/-15s skip), real-time album art, and one-tap access to the app.
 - **Optimized Performance:** Addressed potential memory leaks in cursor usage and bitmap recycling to ensure sustained background performance.
 - **Media3 Playback Core:** Continuous background playback powered by `MediaSessionService` and ExoPlayer. Survives device orientation, lock screen, and process backgrounding.
 - **Lockscreen & Notification Media Controls:** High-resolution notification seekbar, artwork, playback actions, and favorite toggling via Android `MediaSession`.
 - **MediaStore Discovery:** Automatic indexing of on-device audio files with real-time metadata parsing and album art caching.
 - **Collapsible Mini-Player:** Edge-to-edge floating glass bar with live progress tracker, play/pause toggle, and gesture-driven bottom sheet expansion.
-- **Now Playing Experience:** Full-screen dialog with swipe-down dismissal, fluid waveform/progress scrubbing, repeat/shuffle modes, equalizer intent launch, and sleep timer.
+- **Now Playing Experience:** Full-screen dialog with swipe-down dismissal, fluid waveform (`WavySliderView`) scrubbing, premium rotating circular artwork (`CircularArtworkView`), repeat/shuffle modes, equalizer intent launch, and sleep timer.
 - **Playlist Management & Custom Artwork:** Full CRUD support, track reordering with `ItemTouchHelper`, custom photo picker artwork, automatic 2x2 collage generation, and instant runtime UI refresh.
 - **Queue System:** Live queue with drag-to-reorder, swipe-to-delete, play next, and queue clearing.
 - **Sleep Timer:** Countdown presets (15, 30, 45, 60 minutes) or intelligent **End-of-Song** sleep mode.
-- **Multi-Attribute Search:** Real-time multi-criteria filtering across songs, albums, artists, and user playlists.
+- **Multi-Attribute Search:** Elegant single-capsule search bar design with real-time multi-criteria filtering across songs, albums, artists, and user playlists.
 - **Favorite Songs:** Fluid heart bounce micro-animation with immediate Room persistence and quick Play/Shuffle all.
 
 ---
@@ -284,7 +285,7 @@ Swara V2 includes extensive unit testing across all layers:
   5. Artwork refresh and Glide signature cache busting
   6. Light Mode playback colors and contrast ratios ($>1.32:1$)
   7. Dark Mode obsidian playback colors and luminance
-  8. All 7 ColorThemes contrast compliance
+  8. All 8 ColorThemes contrast compliance
   9. Create Playlist theme semantics and button contrast
   10. Playlist Detail visual hierarchy (Play vs Shuffle)
   11. RecyclerView cell recycling safety contract
