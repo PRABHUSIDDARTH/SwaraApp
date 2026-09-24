@@ -139,6 +139,7 @@
     <string name="cd_favorite_empty">Add to favorites</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_drag_handle">Drag to reorder</string>
+    <string name="cd_playback_progress">Playback progress</string>
 
     <!-- Playlist feedback -->
     <string name="song_added_to_playlist">Added to %1$s</string>
