@@ -81,6 +81,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnSleepTimer;
     private ImageView btnEqualizer;
     private ImageView btnAudioOutput;
+    private View btnKorokae;
+    private ImageView ivKorokaeIcon;
+    private TextView tvKorokaeLabel;
+    @Nullable private android.animation.ValueAnimator korokaeAnimator;
 
     // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
@@ -143,6 +147,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
         btnAudioOutput = view.findViewById(R.id.btnAudioOutput);
+        btnKorokae    = view.findViewById(R.id.btnKorokae);
+        ivKorokaeIcon = view.findViewById(R.id.ivKorokaeIcon);
+        tvKorokaeLabel = view.findViewById(R.id.tvKorokaeLabel);
+
+        if (btnKorokae != null) {
+            com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnKorokae);
+            btnKorokae.setOnClickListener(v -> playbackViewModel.toggleKorokaeMode());
+        }
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
