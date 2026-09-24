@@ -34,6 +34,7 @@
     android:updatePeriodMillis="0"
 
     android:initialLayout="@layout/widget_swara_player"
+    android:previewLayout="@layout/widget_swara_player"
     android:previewImage="@mipmap/ic_launcher"
 
     android:resizeMode="horizontal|vertical"
