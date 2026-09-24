@@ -43,6 +43,8 @@ public final class SwaraWidgetUpdater {
     public static final String ACTION_PLAY_PAUSE   = "com.psthetech.swara.ACTION_PLAY_PAUSE";
     public static final String ACTION_NEXT         = "com.psthetech.swara.ACTION_NEXT";
     public static final String ACTION_PREV         = "com.psthetech.swara.ACTION_PREV";
+    public static final String ACTION_SEEK_FORWARD = "com.psthetech.swara.ACTION_SEEK_FORWARD";
+    public static final String ACTION_SEEK_BACKWARD = "com.psthetech.swara.ACTION_SEEK_BACKWARD";
     public static final String ACTION_WIDGET_UPDATE = "com.psthetech.swara.ACTION_WIDGET_UPDATE";
 
     // Extra keys carried on the update broadcast (used by SwaraPlaybackService)
