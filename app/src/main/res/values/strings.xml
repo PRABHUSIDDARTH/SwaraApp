@@ -28,6 +28,13 @@
     <string name="play_pause">Play / Pause</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
+    <string name="korokae_mode">Korokae</string>
+    <string name="karaoke_mode">Karaoke Mode</string>
+    <string name="karaoke_preparing">Preparing Karaoke… %1$d%%</string>
+    <string name="karaoke_unavailable">Karaoke unavailable</string>
+    <string name="korokae_on">Korokae Mode ON</string>
+    <string name="korokae_off">Korokae Mode OFF</string>
+    <string name="no_karaoke_found">No karaoke version found for this song</string>
     <string name="shuffle">Shuffle</string>
     <string name="shuffle_on">Shuffle on</string>
     <string name="shuffle_off">Shuffle off</string>
