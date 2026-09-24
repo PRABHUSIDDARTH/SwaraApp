@@ -245,7 +245,36 @@ public class WavySliderView extends View {
         float thumbX = trackLeft + progressRatio * trackWidth;
 
         // 1. Draw unplayed straight track (from thumbX to trackRight)
+                float cycleLength1 = 30.0f * density;
+        float cycleLength2 = 19.0f * density;
+        float cycleLength3 = 44.0f * density;
+        float w1 = (float) (2.0 * Math.PI / cycleLength1);
+        float w2 = (float) (2.0 * Math.PI / cycleLength2);
+        float w3 = (float) (2.0 * Math.PI / cycleLength3);
+        float a1 = maxWaveAmplitudePx * 0.85f;
+        float a2 = maxWaveAmplitudePx * 0.50f;
+        float a3 = maxWaveAmplitudePx * 0.32f;
+
         if (thumbX < trackRight) {
+            remainingWavePath.reset();
+            remainingWavePath.moveTo(thumbX, centerY);
+            float step = 3.0f * density;
+            for (float x = thumbX; x <= trackRight; x += step) {
+                float relX = x - trackLeft;
+                float waveY = centerY + WidgetWaveformRenderer.computeWave(
+                        relX, w1, w2, w3, a1 * 0.45f, a2 * 0.45f, a3 * 0.45f, currentPhase);
+                remainingWavePath.lineTo(x, waveY);
+            }
+            remainingWavePath.lineTo(trackRight, centerY);
+
+            trackPaintUnplayed.setStrokeWidth(1.8f * density);
+            trackPaintUnplayed.setColor(unplayedColor);
+            canvas.drawPath(remainingWavePath, trackPaintUnplayed);
+
+            trackPaintUnplayed.setStrokeWidth(1.0f * density);
+            int halfAlpha = Color.argb(Math.max(10, Color.alpha(unplayedColor) / 2),
+                    Color.red(unplayedColor), Color.green(unplayedColor), Color.blue(unplayedColor));
+            trackPaintUnplayed.setColor(halfAlpha);
             canvas.drawLine(thumbX, centerY, trackRight, centerY, trackPaintUnplayed);
         }
 
