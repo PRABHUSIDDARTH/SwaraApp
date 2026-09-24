@@ -281,14 +281,18 @@ public final class SwaraWidgetUpdater {
         views.setOnClickPendingIntent(R.id.widget_btn_play_pause, makeBroadcastPI(context, ACTION_PLAY_PAUSE, 1));
         views.setOnClickPendingIntent(R.id.widget_btn_prev,       makeBroadcastPI(context, ACTION_PREV,       2));
         views.setOnClickPendingIntent(R.id.widget_btn_next,       makeBroadcastPI(context, ACTION_NEXT,       3));
+        views.setOnClickPendingIntent(R.id.widget_wave_container, makeBroadcastPI(context, ACTION_SEEK_FORWARD, 4));
 
         // ── Tap widget body → open app ─────────────────────────────────────────
         Intent openApp = new Intent(context, MainActivity.class);
+        openApp.putExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING, true);
         openApp.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent openAppPI = PendingIntent.getActivity(
                 context, 0, openApp,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_root, openAppPI);
+        views.setOnClickPendingIntent(R.id.widget_album_art, openAppPI);
+        views.setOnClickPendingIntent(R.id.widget_info, openAppPI);
 
         return views;
     }
