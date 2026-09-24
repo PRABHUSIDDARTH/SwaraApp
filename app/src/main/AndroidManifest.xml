@@ -60,7 +60,7 @@
             appear in the system widget picker.
 
             The two required entries:
-              1. android.appwidget.action.APPWIDGET_UPDATE intent-filter — tells Android
+              1. APPWIDGET_UPDATE action intent-filter — tells Android
                  this receiver is an AppWidget provider.
               2. android.appwidget.provider meta-data pointing to the XML descriptor —
                  this is what the widget picker reads for size, description, preview, etc.
@@ -75,18 +75,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_swara_player_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.SwaraVerticalWidgetProvider"
-            android:exported="true"
-            android:label="@string/widget_name_vertical">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_swara_player_vertical_info" />
         </receiver>
 
         <!--
