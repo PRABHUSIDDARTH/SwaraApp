@@ -96,11 +96,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                             .applyToSearchInput(tilSearch, etSearch, tokens);
 
-                    // Apply glass pill to search bar container
-                    android.view.View glassContainer = view.findViewById(R.id.searchGlassContainer);
-                    if (glassContainer != null) {
-                        com.psthetech.swara.ui.glass.LiquidGlassRenderer.applyGlassPill(glassContainer, tokens);
-                    }
+
 
                     if (layoutPrompt != null) {
                         TextView promptTitle = layoutPrompt.findViewById(R.id.tvPromptTitle);
