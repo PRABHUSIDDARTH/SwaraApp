@@ -19,6 +19,7 @@ import androidx.media3.session.SessionToken;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.psthetech.swara.R;
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.data.repository.FavoritesRepository;
@@ -57,17 +58,15 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final MutableLiveData<Long> durationMs = new MutableLiveData<>(0L);
     private final MutableLiveData<Boolean> shuffleEnabled = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> repeatMode = new MutableLiveData<>(Player.REPEAT_MODE_OFF);
-    private final MutableLiveData<com.psthetech.swara.domain.model.KorokaeState> korokaeState =
-            new MutableLiveData<>(com.psthetech.swara.domain.model.KorokaeState.off(null));
-    public LiveData<com.psthetech.swara.domain.model.KorokaeState> getKorokaeState() { return korokaeState; }
-
-    private final java.util.concurrent.atomic.AtomicLong korokaeGenerationCounter =
-            new java.util.concurrent.atomic.AtomicLong(0);
-    @androidx.annotation.Nullable private com.psthetech.swara.util.KorokaeAudioProcessor activeKorokaeProcessor = null;
-    @androidx.annotation.Nullable private Song originalSongForKorokae = null;
     private final MutableLiveData<List<Song>> currentQueue = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Integer> currentQueueIndex = new MutableLiveData<>(-1);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>(null);
+    private final MutableLiveData<com.psthetech.swara.domain.model.KorokaeState> korokaeState =
+            new MutableLiveData<>(com.psthetech.swara.domain.model.KorokaeState.off(null));
+
+    public LiveData<com.psthetech.swara.domain.model.KorokaeState> getKorokaeState() {
+        return korokaeState;
+    }
 
     // ===== Internal =====
     private ListenableFuture<MediaController> controllerFuture;
@@ -147,8 +146,14 @@ public class PlaybackViewModel extends AndroidViewModel {
         MediaItem item = controller.getCurrentMediaItem();
         if (item != null) {
             Song song = mediaItemToSong(item);
-            currentSong.postValue(song);
-            updateDurationFromController(song);
+            com.psthetech.swara.domain.model.KorokaeState kState = korokaeState.getValue();
+            if (kState != null && kState.isActive() && kState.getOriginalSong() != null) {
+                currentSong.postValue(kState.getOriginalSong());
+                updateDurationFromController(kState.getOriginalSong());
+            } else {
+                currentSong.postValue(song);
+                updateDurationFromController(song);
+            }
         } else {
             currentSong.postValue(null);
             durationMs.postValue(0L);
@@ -200,9 +205,10 @@ public class PlaybackViewModel extends AndroidViewModel {
 
         @Override
         public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+            checkKorokaeSongTransition(mediaItem);
             updateCurrentSongFromController();
             if (controller != null) {
-                currentPositionMs.postValue(0L);
+                currentPositionMs.postValue(controller.getCurrentPosition());
             }
         }
 
@@ -370,12 +376,20 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
-        public void toggleKorokaeMode() {
+    // ===== Korokae Mode (On-Demand Vocal / Instrumental Separation) =====
+
+    private final java.util.concurrent.atomic.AtomicLong korokaeGenerationCounter =
+            new java.util.concurrent.atomic.AtomicLong(0);
+    @androidx.annotation.Nullable private com.psthetech.swara.util.KorokaeAudioProcessor activeKorokaeProcessor = null;
+    @androidx.annotation.Nullable private Song originalSongForKorokae = null;
+
+    public void toggleKorokaeMode() {
         Song song = currentSong.getValue();
         if (song == null) return;
         com.psthetech.swara.domain.model.KorokaeState state = korokaeState.getValue();
 
         if (state != null && state.isActive()) {
+            // Turning OFF -> restore original song
             if (activeKorokaeProcessor != null) {
                 activeKorokaeProcessor.cancel();
                 activeKorokaeProcessor = null;
@@ -389,6 +403,7 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
 
         if (state != null && state.isProcessing()) {
+            // User tapped while processing -> cancel and reset to OFF
             if (activeKorokaeProcessor != null) {
                 activeKorokaeProcessor.cancel();
                 activeKorokaeProcessor = null;
@@ -397,6 +412,7 @@ public class PlaybackViewModel extends AndroidViewModel {
             return;
         }
 
+        // Turning ON -> Check cache or start asynchronous on-device separation
         final long genId = korokaeGenerationCounter.incrementAndGet();
         final long songId = song.getId();
         final Song targetSong = song;
@@ -405,26 +421,34 @@ public class PlaybackViewModel extends AndroidViewModel {
         long modifiedTime = targetSong.getDateAdded() * 1000L;
         java.io.File cached = com.psthetech.swara.util.KorokaeCacheManager.getCachedStem(getApplication(), songId, modifiedTime);
         if (cached != null) {
+            // Cached instrumental available: immediate switch!
             switchTrackPreservingPosition(targetSong, cached.getAbsolutePath(), true);
             korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, cached.getAbsolutePath()));
             return;
         }
 
+        // Not cached: begin on-demand separation with progress
         korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, 0));
         activeKorokaeProcessor = new com.psthetech.swara.util.KorokaeAudioProcessor(songId, genId);
+
         activeKorokaeProcessor.process(getApplication(), targetSong, new com.psthetech.swara.util.KorokaeAudioProcessor.ProgressCallback() {
-            @Override public void onProgress(int percent) {
+            @Override
+            public void onProgress(int percent) {
                 if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
                     korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, percent));
                 }
             }
-            @Override public void onSuccess(@NonNull java.io.File instrumentalStem) {
+
+            @Override
+            public void onSuccess(@NonNull java.io.File instrumentalStem) {
                 if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
                     switchTrackPreservingPosition(targetSong, instrumentalStem.getAbsolutePath(), true);
                     korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, instrumentalStem.getAbsolutePath()));
                 }
             }
-            @Override public void onError(@NonNull String errorMessage) {
+
+            @Override
+            public void onError(@NonNull String errorMessage) {
                 if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
                     korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.failed(targetSong, errorMessage));
                 }
@@ -445,6 +469,7 @@ public class PlaybackViewModel extends AndroidViewModel {
         int currentIndex = controller.getCurrentMediaItemIndex();
         MediaItem newItem;
         if (isEnteringKorokae && instrumentalFilePath != null) {
+            // Point to temporary instrumental file while preserving logical song metadata
             newItem = new MediaItem.Builder()
                     .setMediaId(String.valueOf(song.getId()))
                     .setUri(android.net.Uri.fromFile(new java.io.File(instrumentalFilePath)))
@@ -469,12 +494,42 @@ public class PlaybackViewModel extends AndroidViewModel {
         currentPositionMs.postValue(safePos);
     }
 
+    private void checkKorokaeSongTransition(@Nullable MediaItem mediaItem) {
+        if (mediaItem == null) {
+            korokaeGenerationCounter.incrementAndGet();
+            if (activeKorokaeProcessor != null) {
+                activeKorokaeProcessor.cancel();
+                activeKorokaeProcessor = null;
+            }
+            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(null));
+            originalSongForKorokae = null;
+            return;
+        }
+
+        try {
+            long currentId = Long.parseLong(mediaItem.mediaId);
+            if (originalSongForKorokae != null && currentId == originalSongForKorokae.getId()) {
+                // Same logical song (either original or instrumental stem); preserve active state
+                return;
+            }
+
+            // User skipped to a different track: auto-cancel processing and reset mode
+            korokaeGenerationCounter.incrementAndGet();
+            if (activeKorokaeProcessor != null) {
+                activeKorokaeProcessor.cancel();
+                activeKorokaeProcessor = null;
+            }
+            originalSongForKorokae = null;
+            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(mediaItemToSong(mediaItem)));
+        } catch (NumberFormatException ignored) {}
+    }
+
     private boolean isCurrentSong(long songId) {
         Song current = currentSong.getValue();
         return current != null && current.getId() == songId;
     }
 
-public void toggleRepeatMode() {
+    public void toggleRepeatMode() {
         cycleRepeatMode();
     }
 
@@ -773,6 +828,10 @@ public void toggleRepeatMode() {
 
     @Override
     protected void onCleared() {
+        if (activeKorokaeProcessor != null) {
+            activeKorokaeProcessor.release();
+            activeKorokaeProcessor = null;
+        }
         positionHandler.removeCallbacks(positionUpdater);
         if (controller != null) {
             controller.removeListener(playerListener);
