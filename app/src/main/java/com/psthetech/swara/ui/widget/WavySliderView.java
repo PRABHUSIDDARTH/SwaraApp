@@ -40,6 +40,10 @@ public class WavySliderView extends View {
     private final Paint thumbStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private final Path playedWavePath = new Path();
+    private final Path primaryPath = new Path();
+    private final Path harmonicPath = new Path();
+    private final Path ambientPath = new Path();
+    private final Path remainingWavePath = new Path();
 
     private long progress = 0;
     private long max = 100;
