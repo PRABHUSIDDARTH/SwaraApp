@@ -64,6 +64,42 @@ public class WidgetHardeningTest {
         assertEquals(0.0f, WidgetWaveformRenderer.clampProgress(Float.POSITIVE_INFINITY), 1e-4);
     }
     @Test
+    public void testWaveformMathBoundedAndNoNaNOrInfinity() {
+        float[] testAmplitudes = {5.0f, 10.0f, 25.0f};
+        float[] phases = {0.0f, 0.5f, 1.0f, 3.14159f, 6.28f, 100.0f};
+
+        for (float amp : testAmplitudes) {
+            for (float phase : phases) {
+                for (float relX = 0f; relX <= 500f; relX += 10.5f) {
+                    float y = WidgetWaveformRenderer.computeWave(relX, 0.1f, 0.2f, 0.05f, amp * 0.85f, amp * 0.50f, amp * 0.32f, phase);
+                    assertFalse("Wave computed must not be NaN", Float.isNaN(y));
+                    assertFalse("Wave computed must not be Infinite", Float.isInfinite(y));
+                    float maxTheoretical = amp * (0.85f + 0.50f + 0.32f);
+                    assertTrue("Displacement should be within theoretical bounds", Math.abs(y) <= maxTheoretical + 0.001f);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testWaveformSuperpositionProducesNonIdenticalOrganicSamples() {
+        float relX1 = 15.0f;
+        float relX2 = 45.0f;
+        float y1 = WidgetWaveformRenderer.computeWave(relX1, 0.1f, 0.2f, 0.05f, 10f, 6f, 3f, 0f);
+        float y2 = WidgetWaveformRenderer.computeWave(relX2, 0.1f, 0.2f, 0.05f, 10f, 6f, 3f, 0f);
+        assertFalse("Superposition must produce organic variation across horizontal positions", Math.abs(y1 - y2) < 1e-4);
+    }
+
+    @Test
+    public void testPhaseProgressionAndPausePreservation() {
+        WidgetWaveformRenderer.setPhase(1.5f);
+        assertEquals(1.5f, WidgetWaveformRenderer.getCurrentPhase(), 1e-4);
+        WidgetWaveformRenderer.advancePhase(0.25f);
+        assertEquals(1.75f, WidgetWaveformRenderer.getCurrentPhase(), 1e-4);
+        WidgetWaveformRenderer.setPhase(0.0f);
+        assertEquals(0.0f, WidgetWaveformRenderer.getCurrentPhase(), 1e-4);
+    }
+    @Test
     public void testWidgetActionConstants() {
         assertEquals("com.psthetech.swara.ACTION_PLAY_PAUSE", SwaraWidgetUpdater.ACTION_PLAY_PAUSE);
         assertEquals("com.psthetech.swara.ACTION_NEXT", SwaraWidgetUpdater.ACTION_NEXT);
