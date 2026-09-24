@@ -278,21 +278,42 @@ public class WavySliderView extends View {
             canvas.drawLine(thumbX, centerY, trackRight, centerY, trackPaintUnplayed);
         }
 
-        // 2. Draw played wavy track (from trackLeft to thumbX)
+                // 2. Draw played wavy track (from trackLeft to thumbX)
         if (thumbX > trackLeft) {
             float playedLength = thumbX - trackLeft;
-            float currentAmplitude = maxWaveAmplitudePx * currentWaveAmplitudeRatio;
+            primaryPath.reset();
+            harmonicPath.reset();
+            ambientPath.reset();
 
-            if (currentAmplitude <= 0.2f || playedLength < 10f) {
-                // Flat line when paused or too short for waves
-                canvas.drawLine(trackLeft, centerY, thumbX, centerY, wavePaintPlayed);
-            } else {
-                buildWavyPath(playedWavePath, trackLeft, thumbX, centerY, currentAmplitude, currentPhase);
-                canvas.drawPath(playedWavePath, wavePaintPlayed);
+            primaryPath.moveTo(trackLeft, centerY);
+            harmonicPath.moveTo(trackLeft, centerY);
+            ambientPath.moveTo(trackLeft, centerY);
+
+            float step = 2.0f;
+            for (float x = trackLeft; x <= thumbX; x += step) {
+                float relX = x - trackLeft;
+                float normRemaining = (thumbX - x) / playedLength;
+                float taper = (float) Math.sin(Math.PI * 0.5 * Math.min(1.0f, normRemaining * 4.0f));
+
+                float y1 = centerY + (float) (Math.sin(relX * w1 - currentPhase) * a1 + Math.sin(relX * w3 - currentPhase * 0.6f + 2.0f) * a3 * 0.5f) * taper;
+                primaryPath.lineTo(x, y1);
+
+                float y2 = centerY + (float) (Math.sin(relX * w2 + currentPhase * 1.2f + 1.1f) * a2 + Math.sin(relX * w1 - currentPhase) * a1 * 0.35f) * taper;
+                harmonicPath.lineTo(x, y2);
+
+                float y3 = centerY + (float) (Math.sin(relX * w3 - currentPhase * 0.5f + 2.5f) * a3) * taper;
+                ambientPath.lineTo(x, y3);
             }
-        }
 
-        // 3. Draw circular thumb knob at (thumbX, centerY)
+            primaryPath.lineTo(thumbX, centerY);
+            harmonicPath.lineTo(thumbX, centerY);
+            ambientPath.lineTo(thumbX, centerY);
+
+            canvas.drawPath(ambientPath, wavePaintPlayed);
+            canvas.drawPath(harmonicPath, wavePaintPlayed);
+            canvas.drawPath(primaryPath, wavePaintPlayed);
+        }
+// 3. Draw circular thumb knob at (thumbX, centerY)
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbPaint);
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbStrokePaint);
     }
