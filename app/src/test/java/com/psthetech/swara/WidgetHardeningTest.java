@@ -7,12 +7,35 @@ import static org.junit.Assert.assertTrue;
 import com.psthetech.swara.widget.SwaraWidgetUpdater;
 
 import org.junit.Test;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import com.psthetech.swara.widget.SwaraWidgetProvider;
 
 /**
  * Hardening tests verifying widget broadcast contracts, actions, and memory bounds.
  */
 public class WidgetHardeningTest {
 
+    @Test
+    public void testCanonicalProviderClassName() {
+        assertEquals("com.psthetech.swara.widget.SwaraWidgetProvider", SwaraWidgetProvider.class.getName());
+    }
+
+    @Test
+    public void testExactlyOneWidgetProviderRegisteredInManifest() throws Exception {
+        File manifest = new File("src/main/AndroidManifest.xml");
+        if (!manifest.exists()) {
+            manifest = new File("app/src/main/AndroidManifest.xml");
+        }
+        assertTrue("AndroidManifest.xml must exist for audit", manifest.exists());
+        String xml = new String(Files.readAllBytes(manifest.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("SwaraWidgetProvider must be declared",
+                xml.contains(".widget.SwaraWidgetProvider") || xml.contains("SwaraWidgetProvider"));
+        assertFalse("SwaraVerticalWidgetProvider must not be declared as a separate provider",
+                xml.contains("SwaraVerticalWidgetProvider"));
+    }
     @Test
     public void testWidgetActionConstants() {
         assertEquals("com.psthetech.swara.ACTION_PLAY_PAUSE", SwaraWidgetUpdater.ACTION_PLAY_PAUSE);
