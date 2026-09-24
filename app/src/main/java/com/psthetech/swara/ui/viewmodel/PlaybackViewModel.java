@@ -57,6 +57,14 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final MutableLiveData<Long> durationMs = new MutableLiveData<>(0L);
     private final MutableLiveData<Boolean> shuffleEnabled = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> repeatMode = new MutableLiveData<>(Player.REPEAT_MODE_OFF);
+    private final MutableLiveData<com.psthetech.swara.domain.model.KorokaeState> korokaeState =
+            new MutableLiveData<>(com.psthetech.swara.domain.model.KorokaeState.off(null));
+    public LiveData<com.psthetech.swara.domain.model.KorokaeState> getKorokaeState() { return korokaeState; }
+
+    private final java.util.concurrent.atomic.AtomicLong korokaeGenerationCounter =
+            new java.util.concurrent.atomic.AtomicLong(0);
+    @androidx.annotation.Nullable private com.psthetech.swara.util.KorokaeAudioProcessor activeKorokaeProcessor = null;
+    @androidx.annotation.Nullable private Song originalSongForKorokae = null;
     private final MutableLiveData<List<Song>> currentQueue = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Integer> currentQueueIndex = new MutableLiveData<>(-1);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>(null);
