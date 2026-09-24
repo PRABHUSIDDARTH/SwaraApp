@@ -449,24 +449,6 @@ public class WavySliderView extends View {
                 return true;
         }
 
-                            return true;
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                if (isDragging) {
-                    isDragging = false;
-                    if (listener != null) {
-                        listener.onStopTrackingTouch(this);
-                    }
-                    if (getParent() != null) {
-                        getParent().requestDisallowInterceptTouchEvent(false);
-                    }
-                    invalidate();
-                    return true;
-                }
-                break;
-        }
         return super.onTouchEvent(event);
     }
 
