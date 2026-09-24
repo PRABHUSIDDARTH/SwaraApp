@@ -81,6 +81,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnSleepTimer;
     private ImageView btnEqualizer;
     private ImageView btnAudioOutput;
+
+    // ── Korokae Mode controls ──────────────────────────────────────────────────
     private View btnKorokae;
     private ImageView ivKorokaeIcon;
     private TextView tvKorokaeLabel;
@@ -471,7 +473,75 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     if (btnEqualizer != null) btnEqualizer.setColorFilter(tokens.getIconSecondaryColor());
                     if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
                     if (btnSleepTimer != null) btnSleepTimer.setColorFilter(tokens.getIconSecondaryColor());
+                    if (btnKorokae != null) {
+                        updateKorokaeUi(playbackViewModel.getKorokaeState().getValue());
+                    }
                 });
+
+        // Korokae Mode (Karaoke / Instrumental Playback)
+        playbackViewModel.getKorokaeState().observe(getViewLifecycleOwner(), this::updateKorokaeUi);
+    }
+
+    private void updateKorokaeUi(@Nullable com.psthetech.swara.domain.model.KorokaeState state) {
+        if (btnKorokae == null || ivKorokaeIcon == null || tvKorokaeLabel == null || getContext() == null) return;
+        com.psthetech.swara.ui.theme.DesignTokens tokens =
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+
+        int activeColor = tokens != null ? tokens.getAccentColor() : 0xFFC9A84C;
+        int inactiveColor = tokens != null ? tokens.getIconSecondaryColor() : 0xFF9B7EC8;
+
+        if (state == null || state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.OFF) {
+            if (korokaeAnimator != null) {
+                korokaeAnimator.cancel();
+                korokaeAnimator = null;
+            }
+            ivKorokaeIcon.setScaleX(1.0f);
+            ivKorokaeIcon.setScaleY(1.0f);
+            ivKorokaeIcon.setColorFilter(inactiveColor);
+            tvKorokaeLabel.setTextColor(inactiveColor);
+            tvKorokaeLabel.setText(R.string.karaoke_mode);
+            btnKorokae.setAlpha(0.7f);
+
+        } else if (state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.PROCESSING) {
+            ivKorokaeIcon.setColorFilter(activeColor);
+            tvKorokaeLabel.setTextColor(activeColor);
+            tvKorokaeLabel.setText(getString(R.string.karaoke_preparing, state.getProgressPercent()));
+            btnKorokae.setAlpha(1.0f);
+
+        } else if (state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.ACTIVE) {
+            ivKorokaeIcon.setColorFilter(activeColor);
+            tvKorokaeLabel.setTextColor(activeColor);
+            tvKorokaeLabel.setText(R.string.karaoke_mode);
+            btnKorokae.setAlpha(1.0f);
+
+            // Subtle scale bounce animation on activation
+            if (korokaeAnimator != null) korokaeAnimator.cancel();
+            korokaeAnimator = android.animation.ValueAnimator.ofFloat(1.0f, 1.14f, 1.0f);
+            korokaeAnimator.setDuration(260L);
+            korokaeAnimator.addUpdateListener(anim -> {
+                float val = (float) anim.getAnimatedValue();
+                ivKorokaeIcon.setScaleX(val);
+                ivKorokaeIcon.setScaleY(val);
+            });
+            korokaeAnimator.start();
+
+        } else if (state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.FAILED) {
+            if (korokaeAnimator != null) {
+                korokaeAnimator.cancel();
+                korokaeAnimator = null;
+            }
+            ivKorokaeIcon.setScaleX(1.0f);
+            ivKorokaeIcon.setScaleY(1.0f);
+            ivKorokaeIcon.setColorFilter(inactiveColor);
+            tvKorokaeLabel.setTextColor(inactiveColor);
+            tvKorokaeLabel.setText(R.string.karaoke_unavailable);
+            btnKorokae.setAlpha(0.6f);
+
+            String msg = state.getMessage();
+            if (msg != null && !msg.isEmpty() && isResumed()) {
+                com.google.android.material.snackbar.Snackbar.make(requireView(), msg, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
+            }
+        }
     }
 
     // ── Artwork Loading ──────────────────────────────────────────────────────────
@@ -611,6 +681,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         // Release rotation animator
         if (circularArtworkView != null) {
             circularArtworkView.pauseRotation();
+        }
+        if (korokaeAnimator != null) {
+            korokaeAnimator.cancel();
+            korokaeAnimator = null;
         }
         super.onDestroyView();
     }
