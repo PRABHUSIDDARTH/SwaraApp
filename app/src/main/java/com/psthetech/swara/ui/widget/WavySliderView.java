@@ -393,10 +393,10 @@ public class WavySliderView extends View {
         }
 
         // ── 3. Premium Circular Thumb at (thumbX, centerY) ──────────────────────
-        // thumb in next commit
+        canvas.drawCircle(thumbX, centerY, thumbGlowRadiusPx, thumbGlowPaint);
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbPaint);
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbStrokePaint);
-        
+        canvas.drawCircle(thumbX - thumbRadiusPx * 0.28f, centerY - thumbRadiusPx * 0.28f, thumbRadiusPx * 0.35f, thumbHighlightPaint);
     }
 
     @Override
@@ -449,6 +449,24 @@ public class WavySliderView extends View {
                 return true;
         }
 
+                            return true;
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (isDragging) {
+                    isDragging = false;
+                    if (listener != null) {
+                        listener.onStopTrackingTouch(this);
+                    }
+                    if (getParent() != null) {
+                        getParent().requestDisallowInterceptTouchEvent(false);
+                    }
+                    invalidate();
+                    return true;
+                }
+                break;
+        }
         return super.onTouchEvent(event);
     }
 
