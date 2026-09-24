@@ -136,6 +136,31 @@ public class MainActivity extends AppCompatActivity {
         if (!PermissionHelper.hasAudioPermission(this)) {
             PermissionHelper.requestAudioPermission(this);
         }
+
+        checkIntentForNowPlaying(getIntent());
+    }
+
+    public static final String EXTRA_OPEN_NOW_PLAYING = "extra_open_now_playing";
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        checkIntentForNowPlaying(intent);
+    }
+
+    private void checkIntentForNowPlaying(@Nullable android.content.Intent intent) {
+        if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_NOW_PLAYING, false)) {
+            openNowPlaying();
+        }
+    }
+
+    public void openNowPlaying() {
+        if (navController != null) {
+            try {
+                navController.navigate(R.id.nowPlayingFragment);
+            } catch (Exception ignored) {}
+        }
     }
 
     public void promptDeleteSong(Song song) {
