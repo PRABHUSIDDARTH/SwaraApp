@@ -256,6 +256,8 @@ public class MorphismThemeManager {
             if (til.getEndIconDrawable() != null) {
                 til.setEndIconTintList(ColorStateList.valueOf(tokens.getIconSecondaryColor()));
             }
+            float rPx = 28f * til.getContext().getResources().getDisplayMetrics().density;
+            til.setBoxCornerRadii(rPx, rPx, rPx, rPx);
         }
     }
 
