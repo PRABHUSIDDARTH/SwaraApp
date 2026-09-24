@@ -90,8 +90,7 @@ public final class WidgetWaveformRenderer {
      * @return Bounded, non-null Bitmap containing the rendered multi-layer waveform.
      */
     @NonNull
-    // live method in next commit
-    private static Bitmap _unused(@NonNull Context context,
+    public static Bitmap renderWaveform(@NonNull Context context,
                                         int widthPx,
                                         int heightPx,
                                         int accentColor,
