@@ -4,8 +4,10 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -13,18 +15,22 @@ import android.view.animation.LinearInterpolator;
 
 import androidx.annotation.Nullable;
 
+import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.ui.theme.DesignTokens;
+import com.psthetech.swara.widget.WidgetWaveformRenderer;
 
 /**
- * WavySliderView is an interactive Android 13/14 Material You-style squiggly/wavy seekbar.
+ * WavySliderView is an interactive organic flowing multi-layer waveform seekbar.
  *
- * Features:
- *  - Played track (left of thumb): An undulating sinusoidal wave with rounded caps that vibrates with music playback.
- *  - Thumb knob: A smooth circular pearl knob located at the current progress position.
- *  - Unplayed track (right of thumb): A straight, muted horizontal line.
- *  - Smooth flattening when paused: The wave flattens gracefully into a clean straight line.
+ * Visual Character:
+ *  - Multiple overlapping sinusoidal ribbon layers (Primary, Harmonic Crest, Ambient Swell, Soft Halo).
+ *  - Played region (left of thumb): Vibrant theme accent with glow and energy.
+ *  - Remaining region (right of thumb): Subtle muted continuous wave presence on track surface.
+ *  - Circular Thumb: Crisp circular knob with outer glow halo, theme styling, and specular highlight.
+ *  - Smooth continuous animation: Waves flow horizontally while playing.
+ *  - Pause preservation: When paused, immediately freezes current phase without resetting to zero.
  *  - Full touch scrubbing: Users can touch and drag anywhere along the track to seek.
- *  - Dynamic theme coloring: Colors react directly to DesignTokens.
+ *  - Dynamic theme coloring: Colors react directly to DesignTokens and all 8 themes.
  */
 public class WavySliderView extends View {
 
@@ -34,12 +40,22 @@ public class WavySliderView extends View {
         void onStopTrackingTouch(WavySliderView slider);
     }
 
-    private final Paint wavePaintPlayed = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Wave Paints
+    private final Paint wavePaintPrimary = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wavePaintHarmonic = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wavePaintAmbient = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wavePaintHalo = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // Track Paints
     private final Paint trackPaintUnplayed = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // Thumb Paints
     private final Paint thumbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint thumbStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint thumbGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint thumbHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    private final Path playedWavePath = new Path();
+    // Paths
     private final Path primaryPath = new Path();
     private final Path harmonicPath = new Path();
     private final Path ambientPath = new Path();
@@ -50,15 +66,13 @@ public class WavySliderView extends View {
     private boolean isPlaying = false;
     private boolean isTracking = false;
 
-    // Animation state
+    // Animation state — currentPhase is preserved across pause/resume
     private float currentPhase = 0f;
-    private float currentWaveAmplitudeRatio = 0f;
-    private float targetWaveAmplitudeRatio = 0f;
     private ValueAnimator waveAnimator;
 
     // Dimensions
-    private float strokeWidthPx;
     private float thumbRadiusPx;
+    private float thumbGlowRadiusPx;
     private float maxWaveAmplitudePx;
     private float trackPaddingPx;
 
@@ -66,6 +80,8 @@ public class WavySliderView extends View {
     private int accentColor = 0xFFC9A84C;
     private int unplayedColor = 0x4DFFFFFF;
     private int thumbColor = 0xFFFFFFFF;
+    private int thumbGlowColor = 0x33C9A84C;
+    private boolean isNightMode = true;
 
     private OnWavySliderChangeListener listener;
 
@@ -85,25 +101,43 @@ public class WavySliderView extends View {
     private void init() {
         float density = getResources().getDisplayMetrics().density;
 
-        strokeWidthPx = 4.5f * density;
-        thumbRadiusPx = 8.5f * density;
-        maxWaveAmplitudePx = 5.0f * density;
-        trackPaddingPx = thumbRadiusPx + (2f * density);
+        thumbRadiusPx = 7.0f * density;
+        thumbGlowRadiusPx = 13.5f * density;
+        maxWaveAmplitudePx = 4.0f * density;
+        trackPaddingPx = thumbGlowRadiusPx + (2f * density);
 
-        wavePaintPlayed.setStyle(Paint.Style.STROKE);
-        wavePaintPlayed.setStrokeWidth(strokeWidthPx);
-        wavePaintPlayed.setStrokeCap(Paint.Cap.ROUND);
-        wavePaintPlayed.setStrokeJoin(Paint.Join.ROUND);
+        wavePaintPrimary.setStyle(Paint.Style.STROKE);
+        wavePaintPrimary.setStrokeWidth(2.6f * density);
+        wavePaintPrimary.setStrokeCap(Paint.Cap.ROUND);
+        wavePaintPrimary.setStrokeJoin(Paint.Join.ROUND);
+
+        wavePaintHarmonic.setStyle(Paint.Style.STROKE);
+        wavePaintHarmonic.setStrokeWidth(1.8f * density);
+        wavePaintHarmonic.setStrokeCap(Paint.Cap.ROUND);
+        wavePaintHarmonic.setStrokeJoin(Paint.Join.ROUND);
+
+        wavePaintAmbient.setStyle(Paint.Style.STROKE);
+        wavePaintAmbient.setStrokeWidth(1.4f * density);
+        wavePaintAmbient.setStrokeCap(Paint.Cap.ROUND);
+        wavePaintAmbient.setStrokeJoin(Paint.Join.ROUND);
+
+        wavePaintHalo.setStyle(Paint.Style.STROKE);
+        wavePaintHalo.setStrokeWidth(5.0f * density);
+        wavePaintHalo.setStrokeCap(Paint.Cap.ROUND);
+        wavePaintHalo.setStrokeJoin(Paint.Join.ROUND);
 
         trackPaintUnplayed.setStyle(Paint.Style.STROKE);
-        trackPaintUnplayed.setStrokeWidth(strokeWidthPx);
         trackPaintUnplayed.setStrokeCap(Paint.Cap.ROUND);
 
+        thumbGlowPaint.setStyle(Paint.Style.FILL);
         thumbPaint.setStyle(Paint.Style.FILL);
 
         thumbStrokePaint.setStyle(Paint.Style.STROKE);
-        thumbStrokePaint.setStrokeWidth(1.5f * density);
-        thumbStrokePaint.setColor(Color.argb(70, 0, 0, 0));
+        thumbStrokePaint.setStrokeWidth(1.2f * density);
+        thumbStrokePaint.setColor(Color.argb(60, 0, 0, 0));
+
+        thumbHighlightPaint.setStyle(Paint.Style.FILL);
+        thumbHighlightPaint.setColor(Color.argb(150, 255, 255, 255));
 
         updateColors();
     }
@@ -138,10 +172,16 @@ public class WavySliderView extends View {
     public void setPlaying(boolean playing) {
         if (this.isPlaying == playing) return;
         this.isPlaying = playing;
-        this.targetWaveAmplitudeRatio = playing ? 1.0f : 0.0f;
 
         if (playing) {
             startWaveAnimation();
+        } else {
+            // When paused: stop animation immediately and preserve currentPhase
+            if (waveAnimator != null) {
+                waveAnimator.cancel();
+                waveAnimator = null;
+            }
+            invalidate();
         }
     }
 
@@ -151,27 +191,45 @@ public class WavySliderView extends View {
 
     public void setDesignTokens(DesignTokens tokens) {
         if (tokens == null) return;
-        this.accentColor = tokens.getAccentColor();
-        int r = Color.red(accentColor);
-        int g = Color.green(accentColor);
-        int b = Color.blue(accentColor);
+        this.isNightMode = tokens.isNightMode();
+        this.accentColor = tokens.getReadableAccentColor();
+        int r = (accentColor >> 16) & 0xFF;
+        int g = (accentColor >> 8) & 0xFF;
+        int b = accentColor & 0xFF;
 
-        this.unplayedColor = tokens.isNightMode()
-                ? Color.argb(65, 255, 255, 255)
-                : Color.argb(45, 0, 0, 0);
+        this.thumbGlowColor = Color.argb(isNightMode ? 75 : 55, r, g, b);
 
-        this.thumbColor = tokens.isNightMode()
-                ? Color.argb(255, 255, 255, 255)
-                : Color.rgb(r, g, b);
+        if (tokens.getColorTheme() == ColorTheme.OFF_WHITE && !isNightMode) {
+            this.unplayedColor = Color.argb(60, 92, 74, 30);
+            this.thumbColor = accentColor;
+        } else if (tokens.getColorTheme() == ColorTheme.ROSE && !isNightMode) {
+            this.unplayedColor = Color.argb(55, 120, 60, 80);
+            this.thumbColor = accentColor;
+        } else if (isNightMode) {
+            this.unplayedColor = Color.argb(50, 255, 255, 255);
+            this.thumbColor = Color.WHITE;
+        } else {
+            this.unplayedColor = Color.argb(45, 0, 0, 0);
+            this.thumbColor = accentColor;
+        }
 
         updateColors();
         invalidate();
     }
 
     private void updateColors() {
-        wavePaintPlayed.setColor(accentColor);
+        int r = (accentColor >> 16) & 0xFF;
+        int g = (accentColor >> 8) & 0xFF;
+        int b = accentColor & 0xFF;
+
+        wavePaintPrimary.setColor(accentColor);
+        wavePaintHarmonic.setColor(Color.argb(isNightMode ? 160 : 130, r, g, b));
+        wavePaintAmbient.setColor(Color.argb(isNightMode ? 95 : 75, r, g, b));
+        wavePaintHalo.setColor(Color.argb(isNightMode ? 45 : 30, r, g, b));
+
         trackPaintUnplayed.setColor(unplayedColor);
         thumbPaint.setColor(thumbColor);
+        thumbGlowPaint.setColor(thumbGlowColor);
     }
 
     private void startWaveAnimation() {
@@ -182,21 +240,12 @@ public class WavySliderView extends View {
         waveAnimator.setRepeatCount(ValueAnimator.INFINITE);
         waveAnimator.setInterpolator(new LinearInterpolator());
         waveAnimator.addUpdateListener(anim -> {
-            // Continuous phase advance
-            currentPhase += 0.12f;
-            if (currentPhase > (float) (Math.PI * 200)) {
-                currentPhase = 0f;
+            // Smooth horizontal wave flow
+            currentPhase += 0.08f;
+            float maxWrap = (float) (Math.PI * 200.0);
+            if (currentPhase > maxWrap) {
+                currentPhase = currentPhase % ((float) (Math.PI * 2.0));
             }
-
-            // Smooth amplitude interpolation
-            currentWaveAmplitudeRatio += (targetWaveAmplitudeRatio - currentWaveAmplitudeRatio) * 0.08f;
-
-            // If stopped and amplitude has faded to zero, stop animator
-            if (!isPlaying && currentWaveAmplitudeRatio < 0.005f) {
-                currentWaveAmplitudeRatio = 0f;
-                waveAnimator.cancel();
-            }
-
             invalidate();
         });
         waveAnimator.start();
@@ -215,6 +264,7 @@ public class WavySliderView extends View {
         super.onDetachedFromWindow();
         if (waveAnimator != null) {
             waveAnimator.cancel();
+            waveAnimator = null;
         }
     }
 
@@ -234,6 +284,7 @@ public class WavySliderView extends View {
         int height = getHeight();
         if (width <= 0 || height <= 0) return;
 
+        float density = getResources().getDisplayMetrics().density;
         float centerY = height / 2.0f;
         float trackLeft = trackPaddingPx;
         float trackRight = width - trackPaddingPx;
@@ -244,17 +295,24 @@ public class WavySliderView extends View {
 
         float thumbX = trackLeft + progressRatio * trackWidth;
 
-        // 1. Draw unplayed straight track (from thumbX to trackRight)
-                float cycleLength1 = 30.0f * density;
+        int r = (accentColor >> 16) & 0xFF;
+        int g = (accentColor >> 8) & 0xFF;
+        int b = accentColor & 0xFF;
+
+        // Wave parameters
+        float cycleLength1 = 30.0f * density;
         float cycleLength2 = 19.0f * density;
         float cycleLength3 = 44.0f * density;
+
         float w1 = (float) (2.0 * Math.PI / cycleLength1);
         float w2 = (float) (2.0 * Math.PI / cycleLength2);
         float w3 = (float) (2.0 * Math.PI / cycleLength3);
+
         float a1 = maxWaveAmplitudePx * 0.85f;
         float a2 = maxWaveAmplitudePx * 0.50f;
         float a3 = maxWaveAmplitudePx * 0.32f;
 
+        // ── 1. Unplayed Remaining Region (thumbX to trackRight) ─────────────────
         if (thumbX < trackRight) {
             remainingWavePath.reset();
             remainingWavePath.moveTo(thumbX, centerY);
@@ -271,6 +329,7 @@ public class WavySliderView extends View {
             trackPaintUnplayed.setColor(unplayedColor);
             canvas.drawPath(remainingWavePath, trackPaintUnplayed);
 
+            // Subtle center guide
             trackPaintUnplayed.setStrokeWidth(1.0f * density);
             int halfAlpha = Color.argb(Math.max(10, Color.alpha(unplayedColor) / 2),
                     Color.red(unplayedColor), Color.green(unplayedColor), Color.blue(unplayedColor));
@@ -278,9 +337,10 @@ public class WavySliderView extends View {
             canvas.drawLine(thumbX, centerY, trackRight, centerY, trackPaintUnplayed);
         }
 
-                // 2. Draw played wavy track (from trackLeft to thumbX)
+        // ── 2. Played Flowing Region (trackLeft to thumbX) ──────────────────────
         if (thumbX > trackLeft) {
             float playedLength = thumbX - trackLeft;
+
             primaryPath.reset();
             harmonicPath.reset();
             ambientPath.reset();
@@ -292,7 +352,8 @@ public class WavySliderView extends View {
             float step = 2.0f;
             for (float x = trackLeft; x <= thumbX; x += step) {
                 float relX = x - trackLeft;
-                float normRemaining = (thumbX - x) / playedLength;
+                float normRemaining = (thumbX - x) / playedLength; // 1 at start, 0 at thumb
+
                 float taper = (float) Math.sin(Math.PI * 0.5 * Math.min(1.0f, normRemaining * 4.0f));
 
                 float y1 = centerY + (float) (Math.sin(relX * w1 - currentPhase) * a1 + Math.sin(relX * w3 - currentPhase * 0.6f + 2.0f) * a3 * 0.5f) * taper;
@@ -309,44 +370,33 @@ public class WavySliderView extends View {
             harmonicPath.lineTo(thumbX, centerY);
             ambientPath.lineTo(thumbX, centerY);
 
-            canvas.drawPath(ambientPath, wavePaintPlayed);
-            canvas.drawPath(harmonicPath, wavePaintPlayed);
-            canvas.drawPath(primaryPath, wavePaintPlayed);
+            // Halo glow
+            canvas.drawPath(primaryPath, wavePaintHalo);
+
+            // Layer 3: Ambient swell
+            canvas.drawPath(ambientPath, wavePaintAmbient);
+
+            // Layer 2: Harmonic wave
+            canvas.drawPath(harmonicPath, wavePaintHarmonic);
+
+            // Layer 1: Primary vibrant waveform
+            wavePaintPrimary.setShader(new LinearGradient(
+                    trackLeft, 0, thumbX, 0,
+                    new int[]{
+                            Color.argb(180, r, g, b),
+                            Color.argb(255, r, g, b)
+                    },
+                    null,
+                    Shader.TileMode.CLAMP
+            ));
+            canvas.drawPath(primaryPath, wavePaintPrimary);
         }
-// 3. Draw circular thumb knob at (thumbX, centerY)
+
+        // ── 3. Premium Circular Thumb at (thumbX, centerY) ──────────────────────
+        // thumb in next commit
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbPaint);
         canvas.drawCircle(thumbX, centerY, thumbRadiusPx, thumbStrokePaint);
-    }
-
-    /**
-     * Constructs a smooth sinusoidal wave from startX to endX,
-     * tapering to amplitude 0 at endX (where it meets the thumb knob).
-     */
-    private void buildWavyPath(Path path, float startX, float endX, float centerY, float amplitude, float phase) {
-        path.reset();
-        float length = endX - startX;
-        if (length <= 0) return;
-
-        // Spatial frequency: wave cycle ~28dp
-        float cycleLength = 28f * getResources().getDisplayMetrics().density;
-        float angularFreq = (float) (2.0 * Math.PI / cycleLength);
-
-        path.moveTo(startX, centerY);
-        float step = 3f;
-
-        for (float x = startX; x <= endX; x += step) {
-            float relX = x - startX;
-            float normRemaining = (endX - x) / length; // 1 at start, 0 at thumb
-
-            // Taper envelope so wave joins thumb smoothly at centerY
-            float taper = (float) Math.sin(Math.PI * 0.5 * Math.min(1.0f, normRemaining * 4f));
-            float y = centerY + (float) (Math.sin(relX * angularFreq - phase) * amplitude * taper);
-
-            path.lineTo(x, y);
-        }
-
-        // Ensure path firmly terminates right at the center of the thumb
-        path.lineTo(endX, centerY);
+        
     }
 
     @Override
@@ -379,9 +429,8 @@ public class WavySliderView extends View {
                         listener.onProgressChanged(this, progress, true);
                     }
                     invalidate();
-                    return true;
                 }
-                break;
+                return true;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
@@ -396,9 +445,8 @@ public class WavySliderView extends View {
                         getParent().requestDisallowInterceptTouchEvent(false);
                     }
                     invalidate();
-                    return true;
                 }
-                break;
+                return true;
         }
 
         return super.onTouchEvent(event);
