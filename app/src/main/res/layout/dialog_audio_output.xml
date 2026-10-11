@@ -111,10 +111,9 @@
         android:id="@+id/tvAvailableHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="AVAILABLE OUTPUTS"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
+        android:text="@string/available_outputs"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
         android:textColor="@color/swara_text_dim"
         android:layout_marginStart="24dp"
         android:layout_marginBottom="8dp" />
