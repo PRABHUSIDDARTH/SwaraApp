@@ -83,10 +83,9 @@
     <!-- ===== CARD STYLES ===== -->
     <style name="Widget.Swara.Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/swara_light_surface</item>
-        <item name="cardElevation">@dimen/elevation_1</item>
+        <item name="cardElevation">0dp</item>
         <item name="cardCornerRadius">@dimen/radius_md</item>
-        <item name="strokeColor">@color/swara_light_stroke</item>
-        <item name="strokeWidth">@dimen/border_regular</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
     <style name="Widget.Swara.Card.Flat" parent="Widget.Material3.CardView.Filled">
@@ -100,6 +99,8 @@
     <!-- ===== BUTTON STYLES ===== -->
     <style name="Widget.Swara.Button.Primary" parent="Widget.Material3.Button">
         <item name="backgroundTint">@color/swara_purple</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
         <item name="android:textColor">#FFFFFF</item>
         <item name="android:textStyle">bold</item>
         <item name="cornerRadius">@dimen/radius_full</item>
@@ -135,19 +136,25 @@
     <style name="TextAppearance.Swara.Display" parent="TextAppearance.Material3.DisplayMedium">
         <item name="android:textColor">@color/swara_text_primary</item>
         <item name="android:textSize">@dimen/text_display</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.022</item>
     </style>
 
     <style name="TextAppearance.Swara.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
         <item name="android:textColor">@color/swara_text_primary</item>
         <item name="android:textSize">@dimen/text_headline_lg</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.022</item>
     </style>
 
     <style name="TextAppearance.Swara.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/swara_text_primary</item>
         <item name="android:textSize">@dimen/text_headline_md</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.015</item>
     </style>
 
     <style name="TextAppearance.Swara.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
