@@ -28,3 +28,6 @@ jobs:
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug
+
+      - name: Android lint
+        run: ./gradlew lintDebug
