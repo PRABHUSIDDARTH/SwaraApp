@@ -47,7 +47,7 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
 
         // Handle widget-update broadcast immediately (sync, no Media3 needed)
         if (SwaraWidgetUpdater.ACTION_WIDGET_UPDATE.equals(action)) {
-            SwaraWidgetUpdater.pushUpdate(context, null, false);
+            SwaraWidgetUpdater.refreshWithLastState(context);
             return;
         }
 
@@ -57,7 +57,10 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                         || SwaraWidgetUpdater.ACTION_NEXT.equals(action)
                         || SwaraWidgetUpdater.ACTION_PREV.equals(action)
                         || SwaraWidgetUpdater.ACTION_SEEK_FORWARD.equals(action)
-                        || SwaraWidgetUpdater.ACTION_SEEK_BACKWARD.equals(action);
+                        || SwaraWidgetUpdater.ACTION_SEEK_BACKWARD.equals(action)
+                        || SwaraWidgetUpdater.ACTION_SEEK_TO.equals(action)
+                        || SwaraWidgetUpdater.ACTION_TOGGLE_FAVORITE.equals(action)
+                        || SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE.equals(action);
 
         if (!isPlaybackAction) return;
 
@@ -111,6 +114,24 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                             controller.seekTo(target);
                             break;
                         }
+                        case SwaraWidgetUpdater.ACTION_SEEK_TO: {
+                            long dur = controller.getDuration();
+                            float f = intent.getFloatExtra(SwaraWidgetUpdater.EXTRA_SEEK_FRACTION, -1f);
+                            if (dur > 0 && f >= 0f) {
+                                controller.seekTo(seekTargetMs(f, dur));
+                            }
+                            break;
+                        }
+                        case SwaraWidgetUpdater.ACTION_TOGGLE_FAVORITE:
+                            controller.sendCustomCommand(new androidx.media3.session.SessionCommand(
+                                    SwaraPlaybackService.COMMAND_TOGGLE_FAVORITE, android.os.Bundle.EMPTY),
+                                    android.os.Bundle.EMPTY);
+                            break;
+                        case SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE:
+                            controller.sendCustomCommand(new androidx.media3.session.SessionCommand(
+                                    SwaraPlaybackService.COMMAND_TOGGLE_KOROKAE, android.os.Bundle.EMPTY),
+                                    android.os.Bundle.EMPTY);
+                            break;
                         case SwaraWidgetUpdater.ACTION_SEEK_BACKWARD: {
                             long cur = controller.getCurrentPosition();
                             long target = Math.max(0, cur - 15000L);
@@ -140,5 +161,12 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
             Log.e(TAG, "Failed to build MediaController for widget action: " + e.getMessage());
             finishOnce.run();
         }
+    }
+
+    /** Target position for a seek fraction, clamped to [0, duration). Package-private for tests. */
+    static long seekTargetMs(float fraction, long durationMs) {
+        if (durationMs <= 0 || Float.isNaN(fraction)) return 0L;
+        float f = Math.max(0f, Math.min(1f, fraction));
+        return Math.min(durationMs - 1, (long) (f * durationMs));
     }
 }

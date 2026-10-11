@@ -17,6 +17,25 @@
     <!-- Wake lock — Media3 handles this internally when playing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Package visibility (Android 11+): find share targets for song files and share cards -->
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <package android:name="com.instagram.android" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="audio/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="com.instagram.share.ADD_TO_STORY" />
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
+
     <application
         android:name=".SwaraApplication"
         android:allowBackup="true"
@@ -90,8 +109,22 @@
                 <action android:name="com.psthetech.swara.ACTION_NEXT" />
                 <action android:name="com.psthetech.swara.ACTION_PREV" />
                 <action android:name="com.psthetech.swara.ACTION_WIDGET_UPDATE" />
+                <action android:name="com.psthetech.swara.ACTION_SEEK_TO" />
+                <action android:name="com.psthetech.swara.ACTION_TOGGLE_FAVORITE" />
+                <action android:name="com.psthetech.swara.ACTION_TOGGLE_KOROKAE" />
             </intent-filter>
         </receiver>
+
+        <!-- Shares generated "now playing" cards (cache/share_cards only) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
