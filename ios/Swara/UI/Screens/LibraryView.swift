@@ -1,7 +1,7 @@
 import SwiftUI
 import SwaraCore
 
-private enum LibrarySegment: String, CaseIterable, Identifiable {
+enum LibrarySegment: String, CaseIterable, Identifiable {
     case songs = "Songs", albums = "Albums", artists = "Artists"
     var id: String { rawValue }
 }
@@ -72,7 +72,7 @@ struct LibraryView: View {
     private var sortMenu: some View {
         Menu {
             Picker("Sort by", selection: Bindable(settings).sortOrder) {
-                ForEach(SortOrder.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(SwaraCore.SortOrder.allCases, id: \.self) { Text($0.label).tag($0) }
             }
         } label: {
             Image(systemName: "arrow.up.arrow.down")

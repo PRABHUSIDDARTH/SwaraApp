@@ -23,7 +23,7 @@ struct HomeView: View {
         let _ = refreshToken
         let recent = SwaraDatabase.shared.recentlyPlayedIds(limit: 12).compactMap(library.song(id:))
         let most = SwaraDatabase.shared.mostPlayedIds(limit: 10).compactMap(library.song(id:))
-        let recentlyAdded = Array(SortOrder.dateAdded.apply(library.songs).prefix(12))
+        let recentlyAdded = Array(SwaraCore.SortOrder.dateAdded.apply(library.songs).prefix(12))
 
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {

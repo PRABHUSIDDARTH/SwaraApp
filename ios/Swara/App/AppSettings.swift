@@ -21,7 +21,7 @@ final class AppSettings {
     var themeMode: ThemeMode {
         didSet { defaults.set(themeMode.rawValue, forKey: "themeMode") }
     }
-    var sortOrder: SortOrder {
+    var sortOrder: SwaraCore.SortOrder {
         didSet { defaults.set(sortOrder.rawValue, forKey: "sortOrder") }
     }
     var customOrder: [Int64] {
@@ -32,7 +32,7 @@ final class AppSettings {
         colorTheme = ColorTheme.fromKey(defaults.string(forKey: "colorTheme"))
         // Android defaults to Dark when nothing is stored.
         themeMode = ThemeMode(rawValue: defaults.object(forKey: "themeMode") as? Int ?? 2) ?? .dark
-        sortOrder = SortOrder.fromKey(defaults.string(forKey: "sortOrder"))
+        sortOrder = SwaraCore.SortOrder.fromKey(defaults.string(forKey: "sortOrder"))
         customOrder = CustomSongOrder.decode(defaults.string(forKey: "customOrder"))
     }
 }
