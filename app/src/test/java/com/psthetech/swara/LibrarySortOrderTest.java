@@ -26,6 +26,19 @@ public class LibrarySortOrderTest {
     }
 
     @Test
+    public void persistedSortOrderRoundTripsByName() {
+        for (SortOrder order : SortOrder.values()) {
+            assertEquals(order, SortOrder.fromKey(order.name()));
+        }
+    }
+
+    @Test
+    public void missingOrUnknownPersistedSortOrderFallsBackToTitle() {
+        assertEquals(SortOrder.TITLE_ASC, SortOrder.fromKey(null));
+        assertEquals(SortOrder.TITLE_ASC, SortOrder.fromKey("NOT_A_SORT"));
+    }
+
+    @Test
     public void testSortTitleAscending() {
         sortSongs(sampleSongs, SortOrder.TITLE_ASC);
         assertEquals("Alpha Song", sampleSongs.get(0).getTitle());
