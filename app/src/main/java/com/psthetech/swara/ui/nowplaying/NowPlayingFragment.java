@@ -32,32 +32,30 @@ import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.nowplaying.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
-import com.psthetech.swara.ui.widget.CircularArtworkView;
 import com.psthetech.swara.util.ArtworkHelper;
 import com.psthetech.swara.util.EqualizerManager;
 import com.psthetech.swara.util.SleepTimerManager;
 import com.psthetech.swara.util.TimeFormatter;
 
 /**
- * NowPlayingFragment — Premium Now Playing screen with circular rotating artwork.
+ * NowPlayingFragment — Apple Music inspired Now Playing sheet.
  *
  * ARCHITECTURE:
  *  - Observes PlaybackViewModel (the ONLY playback source of truth)
- *  - CircularArtworkView handles: artwork display, rotation animation, circular seeking
- *  - WavySliderView handles: horizontal seeking (kept alongside circular seek)
- *  - Both seek methods control the same Media3 playback position via PlaybackViewModel.seekTo()
+ *  - CircularArtworkView: rotating artwork disc (spins only while playing) with a progress ring
+ *  - Artwork-tinted, blurred backdrop (RenderEffect on API 31+, tinted scrim everywhere)
+ *  - AppleScrubberView provides flat direct-manipulation seeking via PlaybackViewModel.seekTo()
  */
 public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private PlaybackViewModel playbackViewModel;
     private FavoritesViewModel favoritesViewModel;
 
-    // ── Premium Circular Artwork View ────────────────────────────────────────────
-    private CircularArtworkView circularArtworkView;
-
-    // ── Legacy compat views (kept as gone in layout for backward compat) ─────────
-    private ImageView ivArtwork;
-    private View viewArtworkGlow;
+    // ── Artwork ───────────────────────────────────────────────────────────────────
+    private com.psthetech.swara.ui.widget.CircularArtworkView circularArtworkView;
+    private ImageView ivBackdrop;
+    private View viewBackdropScrim;
+    private int artworkTint = android.graphics.Color.TRANSPARENT;
 
     // ── Song info ─────────────────────────────────────────────────────────────────
     private TextView tvTitle;
@@ -65,7 +63,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private TextView tvAlbum;
 
     // ── Horizontal seek bar ───────────────────────────────────────────────────────
-    private com.psthetech.swara.ui.widget.WavySliderView wavySlider;
+    private com.psthetech.swara.ui.widget.AppleScrubberView scrubber;
     private TextView tvCurrentTime;
     private TextView tvTotalTime;
 
@@ -79,6 +77,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnQueue;
     private ImageView btnCollapse;
     private ImageView btnSleepTimer;
+    private ImageView btnShare;
+    private ImageView btnShareCard;
     private ImageView btnEqualizer;
     private ImageView btnAudioOutput;
 
@@ -104,6 +104,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             BottomSheetDialog bsd = (BottomSheetDialog) d;
             View bottomSheet = bsd.findViewById(com.google.android.material.R.id.design_bottom_sheet);
             if (bottomSheet != null) {
+                // Full-height sheet whose own content draws the dark artwork material.
+                bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                android.view.ViewGroup.LayoutParams lp = bottomSheet.getLayoutParams();
+                lp.height = android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+                bottomSheet.setLayoutParams(lp);
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 behavior.setSkipCollapsed(true);
@@ -128,14 +133,29 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         favoritesViewModel = new ViewModelProvider(requireActivity()).get(FavoritesViewModel.class);
 
         // Find views
+        final float sheetRadius = 14f * getResources().getDisplayMetrics().density;
+        view.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View v, android.graphics.Outline outline) {
+                // Extend below the bottom edge so only the top corners are rounded.
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight() + Math.round(sheetRadius), sheetRadius);
+            }
+        });
+        view.setClipToOutline(true);
+
         circularArtworkView = view.findViewById(R.id.circularArtworkView);
-        ivArtwork = view.findViewById(R.id.ivArtwork);             // gone, kept for compat
-        viewArtworkGlow = view.findViewById(R.id.viewArtworkGlow); // gone, kept for compat
+        ivBackdrop = view.findViewById(R.id.ivBackdrop);
+        viewBackdropScrim = view.findViewById(R.id.viewBackdropScrim);
+        if (ivBackdrop != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            ivBackdrop.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(
+                    90f, 90f, android.graphics.Shader.TileMode.CLAMP));
+        }
 
         tvTitle = view.findViewById(R.id.tvTitle);
         tvArtist = view.findViewById(R.id.tvArtist);
         tvAlbum = view.findViewById(R.id.tvAlbum);
-        wavySlider = view.findViewById(R.id.wavySlider);
+        scrubber = view.findViewById(R.id.scrubber);
+        tvTitle.setSelected(true); // enables marquee for long titles
         tvCurrentTime = view.findViewById(R.id.tvCurrentTime);
         tvTotalTime = view.findViewById(R.id.tvTotalTime);
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
@@ -147,6 +167,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnQueue      = view.findViewById(R.id.btnQueue);
         btnCollapse   = view.findViewById(R.id.btnCollapse);
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
+        btnShare      = view.findViewById(R.id.btnShare);
+        btnShareCard  = view.findViewById(R.id.btnShareCard);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
         btnAudioOutput = view.findViewById(R.id.btnAudioOutput);
         btnKorokae    = view.findViewById(R.id.btnKorokae);
@@ -160,38 +182,28 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
-        // Circular artwork tap = edit artwork
+        // Artwork tap = edit artwork; dragging around the ring seeks (retro "scratch").
         if (circularArtworkView != null) {
             circularArtworkView.setOnClickListener(v -> {
                 if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
                     ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
                 }
             });
-
-            // Wire circular seek → Media3
-            circularArtworkView.setSeekListener(new CircularArtworkView.SeekListener() {
+            circularArtworkView.setSeekListener(new com.psthetech.swara.ui.widget.CircularArtworkView.SeekListener() {
                 @Override
                 public void onSeekDelta(float deltaSeconds) {
                     Long currentPos = playbackViewModel.getCurrentPositionMs().getValue();
                     Long duration = playbackViewModel.getDurationMs().getValue();
                     if (currentPos == null || duration == null || duration <= 0) return;
-
-                    long newPos = currentPos + (long) (deltaSeconds * 1000f);
-                    newPos = Math.max(0, Math.min(newPos, duration));
+                    long newPos = Math.max(0, Math.min(currentPos + (long) (deltaSeconds * 1000f), duration));
                     playbackViewModel.seekTo(newPos);
-
-                    // Update time displays immediately for responsiveness
                     tvCurrentTime.setText(TimeFormatter.formatMs(newPos));
-                    if (wavySlider != null) wavySlider.setProgress(newPos);
-                    if (circularArtworkView != null && duration > 0) {
-                        circularArtworkView.setProgress((float) newPos / (float) duration);
-                    }
+                    if (scrubber != null) scrubber.setProgress(newPos);
+                    circularArtworkView.setProgress((float) newPos / (float) duration);
                 }
 
                 @Override
-                public void onSeekEnd() {
-                    // Nothing extra needed; seekTo() was called on each delta
-                }
+                public void onSeekEnd() { }
             });
         }
 
@@ -207,6 +219,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
         if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
         if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
+        if (btnShare != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShare);
+        if (btnShareCard != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShareCard);
 
         setupListeners();
         observeViewModel();
@@ -234,6 +248,29 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             }
         });
 
+        if (btnShare != null) {
+            // Tap: send the song file via Quick Share / Nearby. Long-press: full share sheet.
+            btnShare.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    com.psthetech.swara.ui.share.SongShareHelper.shareSongNearby(requireActivity(), currentSong);
+                }
+            });
+            btnShare.setOnLongClickListener(v -> {
+                if (getActivity() != null) {
+                    com.psthetech.swara.ui.share.SongShareHelper.shareSongWithChooser(requireActivity(), currentSong);
+                }
+                return true;
+            });
+        }
+
+        if (btnShareCard != null) {
+            btnShareCard.setOnClickListener(v -> {
+                if (currentSong == null) return;
+                com.psthetech.swara.ui.share.ShareCardBottomSheet.newInstance()
+                        .show(getParentFragmentManager(), com.psthetech.swara.ui.share.ShareCardBottomSheet.TAG);
+            });
+        }
+
         btnQueue.setOnClickListener(v -> {
             QueueFragment queueFragment = new QueueFragment();
             queueFragment.show(getParentFragmentManager(), "QueueFragment");
@@ -255,7 +292,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                         btnSleepTimer.setColorFilter(
                                 Boolean.TRUE.equals(isActive)
                                         ? tokens.getAccentColor()
-                                        : tokens.getIconSecondaryColor());
+                                        : android.graphics.Color.argb(166, 255, 255, 255));
                     }
                 }
             });
@@ -277,26 +314,22 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             });
         }
 
-        // Horizontal seek bar (WavySlider) — kept working alongside circular seek
-        wavySlider.setOnWavySliderChangeListener(new com.psthetech.swara.ui.widget.WavySliderView.OnWavySliderChangeListener() {
+        scrubber.setOnScrubListener(new com.psthetech.swara.ui.widget.AppleScrubberView.OnScrubListener() {
             @Override
-            public void onProgressChanged(com.psthetech.swara.ui.widget.WavySliderView slider, long progress, boolean fromUser) {
-                if (fromUser) {
-                    tvCurrentTime.setText(TimeFormatter.formatMs(progress));
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(com.psthetech.swara.ui.widget.WavySliderView slider) {
+            public void onScrubStart(com.psthetech.swara.ui.widget.AppleScrubberView view) {
                 isUserSeeking = true;
             }
 
             @Override
-            public void onStopTrackingTouch(com.psthetech.swara.ui.widget.WavySliderView slider) {
+            public void onScrubMove(com.psthetech.swara.ui.widget.AppleScrubberView view, long positionMs) {
+                tvCurrentTime.setText(TimeFormatter.formatMs(positionMs));
+            }
+
+            @Override
+            public void onScrubEnd(com.psthetech.swara.ui.widget.AppleScrubberView view, long positionMs) {
                 isUserSeeking = false;
-                long target = Math.max(0, slider.getProgress());
-                long max = slider.getMax();
-                if (max > 0) target = Math.min(target, max);
+                long max = view.getMax();
+                long target = Math.max(0, max > 0 ? Math.min(positionMs, max) : positionMs);
                 playbackViewModel.seekTo(target);
             }
         });
@@ -323,21 +356,17 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     }
                 }
 
-                if (song.getDuration() > 0 && wavySlider != null) {
-                    wavySlider.setMax(song.getDuration());
+                if (song.getDuration() > 0 && scrubber != null) {
+                    scrubber.setMax(song.getDuration());
                     tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
                 }
 
                 if (isSongChange) {
                     lastSongId = song.getId();
-                    // Reset artwork rotation for new song
                     if (circularArtworkView != null) circularArtworkView.resetRotation();
-                    // Load artwork into circular view
-                    loadCircularArtwork(song);
-                    // Check if currently playing to start rotation
-                    Boolean playing = playbackViewModel.getIsPlaying().getValue();
-                    if (Boolean.TRUE.equals(playing) && circularArtworkView != null) {
-                        circularArtworkView.startRotation();
+                    loadArtwork(song);
+                    if (circularArtworkView != null) {
+                        circularArtworkView.setPlaying(Boolean.TRUE.equals(playbackViewModel.getIsPlaying().getValue()));
                     }
                 }
 
@@ -346,8 +375,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
 
         playbackViewModel.getDurationMs().observe(getViewLifecycleOwner(), duration -> {
-            if (duration != null && duration > 0 && wavySlider != null) {
-                wavySlider.setMax(duration);
+            if (duration != null && duration > 0 && scrubber != null) {
+                scrubber.setMax(duration);
                 tvTotalTime.setText(TimeFormatter.formatMs(duration));
             }
         });
@@ -357,25 +386,18 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             btnPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
             btnPlayPause.setContentDescription(getString(playing ? R.string.pause : R.string.play));
 
-            if (wavySlider != null) wavySlider.setPlaying(playing);
-
-            // Rotate artwork while playing, stop when paused
-            if (circularArtworkView != null) {
-                circularArtworkView.setPlaying(playing);
-            }
+            if (circularArtworkView != null) circularArtworkView.setPlaying(playing);
         });
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
-            if (!isUserSeeking && position != null && wavySlider != null) {
+            if (!isUserSeeking && position != null && scrubber != null) {
                 long pos = Math.max(0, position);
-                long max = wavySlider.getMax();
+                long max = scrubber.getMax();
                 if (max > 0) {
                     pos = Math.min(pos, max);
                 }
-                wavySlider.setProgress(pos);
+                scrubber.setProgress(pos);
                 tvCurrentTime.setText(TimeFormatter.formatMs(pos));
-
-                // Update circular progress
                 if (circularArtworkView != null && max > 0) {
                     circularArtworkView.setProgress((float) pos / (float) max);
                 }
@@ -384,7 +406,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         playbackViewModel.getShuffleMode().observe(getViewLifecycleOwner(), enabled -> {
             boolean active = Boolean.TRUE.equals(enabled);
-            btnShuffle.setAlpha(active ? 1.0f : 0.4f);
+            btnShuffle.setAlpha(active ? 1.0f : 0.45f);
             btnShuffle.setContentDescription(getString(active ? R.string.shuffle_on : R.string.shuffle_off));
         });
 
@@ -428,51 +450,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-                    View v = getView();
-                    v.setBackground(tokens.createAmbientDrawable());
-
-                    TextView header = v.findViewById(R.id.nowPlayingHeader);
-                    if (header != null) header.setTextColor(tokens.getSecondaryTextColor());
-
-                    tvTitle.setTextColor(tokens.getPrimaryTextColor());
-                    tvArtist.setTextColor(tokens.getSecondaryTextColor());
-                    if (tvAlbum != null) tvAlbum.setTextColor(tokens.getTextTertiaryColor());
-                    tvCurrentTime.setTextColor(tokens.getSecondaryTextColor());
-                    tvTotalTime.setTextColor(tokens.getSecondaryTextColor());
-
-                    // Circular artwork theme colors
-                    if (circularArtworkView != null) {
-                        int accent = tokens.getAccentColor();
-                        int ar = android.graphics.Color.red(accent);
-                        int ag = android.graphics.Color.green(accent);
-                        int ab = android.graphics.Color.blue(accent);
-                        int trackAlpha = tokens.isNightMode() ? 50 : 40;
-                        int glowAlpha = tokens.isNightMode() ? 70 : 45;
-                        circularArtworkView.setThemeColors(
-                                android.graphics.Color.argb(glowAlpha, ar, ag, ab),   // glow
-                                accent,                                                  // progress arc
-                                android.graphics.Color.argb(trackAlpha, ar, ag, ab),   // progress track
-                                tokens.getGlassBorderColor(),                            // border
-                                accent,                                                  // knob
-                                tokens.isNightMode()
-                        );
-                    }
-
-                    btnPlayPause.setBackground(tokens.createPlayButtonDrawable(requireContext()));
-                    btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
-
-                    if (wavySlider != null) wavySlider.setDesignTokens(tokens);
-
-                    btnShuffle.setColorFilter(tokens.getAccentColor());
-                    btnRepeat.setColorFilter(tokens.getAccentColor());
-                    btnPrevious.setColorFilter(tokens.getAccentColor());
-                    btnNext.setColorFilter(tokens.getAccentColor());
-                    btnFavorite.setColorFilter(tokens.getAccentColor());
-                    btnQueue.setColorFilter(tokens.getAccentColor());
-                    if (btnAudioOutput != null) btnAudioOutput.setColorFilter(tokens.getIconSecondaryColor());
-                    if (btnEqualizer != null) btnEqualizer.setColorFilter(tokens.getIconSecondaryColor());
-                    if (btnCollapse != null) btnCollapse.setColorFilter(tokens.getPrimaryTextColor());
-                    if (btnSleepTimer != null) btnSleepTimer.setColorFilter(tokens.getIconSecondaryColor());
+                    applyNowPlayingColors(tokens);
                     if (btnKorokae != null) {
                         updateKorokaeUi(playbackViewModel.getKorokaeState().getValue());
                     }
@@ -487,8 +465,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         com.psthetech.swara.ui.theme.DesignTokens tokens =
                 com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
 
-        int activeColor = tokens != null ? tokens.getAccentColor() : 0xFFC9A84C;
-        int inactiveColor = tokens != null ? tokens.getIconSecondaryColor() : 0xFF9B7EC8;
+        // Now Playing is always a dark material, so the inactive tone is a fixed light grey.
+        int activeColor = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
+        int inactiveColor = android.graphics.Color.argb(200, 255, 255, 255);
 
         if (state == null || state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.OFF) {
             if (korokaeAnimator != null) {
@@ -505,7 +484,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         } else if (state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.PROCESSING) {
             ivKorokaeIcon.setColorFilter(activeColor);
             tvKorokaeLabel.setTextColor(activeColor);
-            tvKorokaeLabel.setText(getString(R.string.karaoke_preparing, state.getProgressPercent()));
+            tvKorokaeLabel.setText(R.string.karaoke_loading);
             btnKorokae.setAlpha(1.0f);
 
         } else if (state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.ACTIVE) {
@@ -544,17 +523,98 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         }
     }
 
-    // ── Artwork Loading ──────────────────────────────────────────────────────────
+    // ── Colours ──────────────────────────────────────────────────────────────────
 
     /**
-     * Load artwork from the existing Swara priority pipeline into the CircularArtworkView.
-     * Uses Glide to decode the bitmap, then passes it to CircularArtworkView.setArtworkBitmap().
-     * This reuses the same ArtworkRepository / CustomArtworkStore used everywhere else.
+     * Now Playing always renders as a dark, artwork-tinted material (like Apple Music),
+     * so foreground colours are fixed light tones independent of the app's light/dark mode.
      */
-    private void loadCircularArtwork(Song song) {
+    private void applyNowPlayingColors(@NonNull com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        if (getView() == null) return;
+        int base = artworkTint != android.graphics.Color.TRANSPARENT ? artworkTint : tokens.getAccentColor();
+        // Deep, desaturated tint of the artwork colour; keeps white text >= 7:1.
+        float[] hsv = new float[3];
+        android.graphics.Color.colorToHSV(base, hsv);
+        hsv[1] = Math.min(hsv[1], 0.55f);
+        hsv[2] = 0.20f;
+        int top = android.graphics.Color.HSVToColor(hsv);
+        hsv[2] = 0.08f;
+        int bottom = android.graphics.Color.HSVToColor(hsv);
+        if (viewBackdropScrim != null) {
+            android.graphics.drawable.GradientDrawable scrim = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                    new int[]{withAlpha(top, 200), withAlpha(bottom, 235)});
+            viewBackdropScrim.setBackground(scrim);
+        }
+        getView().setBackgroundColor(bottom);
+
+        int primary = android.graphics.Color.WHITE;
+        int secondary = android.graphics.Color.argb(166, 255, 255, 255);
+        int tertiary = android.graphics.Color.argb(140, 255, 255, 255);
+
+        TextView header = getView().findViewById(R.id.nowPlayingHeader);
+        if (header != null) header.setTextColor(secondary);
+        tvTitle.setTextColor(primary);
+        tvArtist.setTextColor(secondary);
+        if (tvAlbum != null) tvAlbum.setTextColor(tertiary);
+        tvCurrentTime.setTextColor(tertiary);
+        tvTotalTime.setTextColor(tertiary);
+        if (scrubber != null) {
+            scrubber.setColors(android.graphics.Color.argb(56, 255, 255, 255),
+                    android.graphics.Color.argb(225, 255, 255, 255));
+        }
+
+        if (circularArtworkView != null) {
+            // Quiet white ring on the dark material; glow picks up the artwork colour.
+            circularArtworkView.setThemeColors(
+                    withAlpha(base, 70),
+                    android.graphics.Color.argb(225, 255, 255, 255),
+                    android.graphics.Color.argb(46, 255, 255, 255),
+                    android.graphics.Color.argb(40, 255, 255, 255),
+                    android.graphics.Color.WHITE,
+                    true);
+        }
+
+        btnPlayPause.setBackground(null);
+        btnPlayPause.setBackgroundResource(R.drawable.ripple_circle);
+        btnPlayPause.setColorFilter(primary);
+        btnPrevious.setColorFilter(primary);
+        btnNext.setColorFilter(primary);
+        btnShuffle.setColorFilter(primary);
+        btnRepeat.setColorFilter(primary);
+        btnQueue.setColorFilter(secondary);
+        if (btnShare != null) btnShare.setColorFilter(secondary);
+        if (btnShareCard != null) btnShareCard.setColorFilter(secondary);
+        if (btnCollapse != null) btnCollapse.setColorFilter(secondary);
+        if (btnAudioOutput != null) btnAudioOutput.setColorFilter(secondary);
+        if (btnEqualizer != null) btnEqualizer.setColorFilter(secondary);
+        if (btnSleepTimer != null) {
+            boolean timerActive = Boolean.TRUE.equals(SleepTimerManager.getInstance().getActive().getValue());
+            btnSleepTimer.setColorFilter(timerActive ? tokens.getAccentColor() : secondary);
+        }
+        tintFavorite(tokens);
+        updateKorokaeUi(playbackViewModel.getKorokaeState().getValue());
+    }
+
+    private boolean isFavoriteState = false;
+
+    private void tintFavorite(@Nullable com.psthetech.swara.ui.theme.DesignTokens tokens) {
+        if (btnFavorite == null) return;
+        int active = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
+        btnFavorite.setColorFilter(isFavoriteState ? active : android.graphics.Color.argb(166, 255, 255, 255));
+    }
+
+    private static int withAlpha(int color, int alpha) {
+        return android.graphics.Color.argb(alpha, android.graphics.Color.red(color),
+                android.graphics.Color.green(color), android.graphics.Color.blue(color));
+    }
+
+    // ── Artwork Loading ──────────────────────────────────────────────────────────
+
+    /** Loads artwork through the same priority pipeline used elsewhere (custom > MediaStore > fallback). */
+    private void loadArtwork(Song song) {
         if (getContext() == null || circularArtworkView == null) return;
 
-        // Cancel any pending load
         if (artworkTarget != null) {
             try {
                 Glide.with(requireContext()).clear(artworkTarget);
@@ -562,42 +622,35 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             artworkTarget = null;
         }
 
-        // Build the same request chain that ArtworkHelper.loadNowPlayingArt uses
         ArtworkRepository repo = new ArtworkRepository(requireContext());
         Object artworkSource;
-
-        // Priority 1: custom artwork override
         java.io.File customFile = repo.getCustomArtworkStore().getArtworkFile(song.getId());
         if (customFile.exists()) {
             artworkSource = customFile;
         } else {
-            // Priority 2: album art from MediaStore
             android.net.Uri albumUri = ArtworkRepository.getAlbumArtUri(song.getAlbumId());
             artworkSource = (albumUri != null) ? albumUri : R.drawable.ic_artwork_fallback;
         }
 
-        final int targetSize = 512; // Enough resolution for circular disc
+        final int targetSize = 768;
         artworkTarget = new CustomTarget<Bitmap>(targetSize, targetSize) {
             @Override
             public void onResourceReady(@NonNull Bitmap resource,
                                         @Nullable Transition<? super Bitmap> transition) {
-                if (circularArtworkView != null) {
-                    circularArtworkView.setArtworkBitmap(resource);
-                }
-                // Extract dominant color for glow
-                extractAndApplyGlowColor(resource);
+                if (circularArtworkView != null) circularArtworkView.setArtworkBitmap(resource);
+                if (ivBackdrop != null) ivBackdrop.setImageBitmap(resource);
+                extractArtworkTint();
             }
 
             @Override
             public void onLoadFailed(@Nullable android.graphics.drawable.Drawable errorDrawable) {
-                if (circularArtworkView != null) {
-                    circularArtworkView.setArtworkBitmap(null);
-                }
+                if (circularArtworkView != null) circularArtworkView.setArtworkBitmap(null);
+                if (ivBackdrop != null) ivBackdrop.setImageDrawable(null);
             }
 
             @Override
             public void onLoadCleared(@Nullable android.graphics.drawable.Drawable placeholder) {
-                // Glide cleared the resource; don't touch circularArtworkView
+                // Glide cleared the resource; leave the views as they are.
             }
         };
 
@@ -606,7 +659,6 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 .load(artworkSource)
                 .apply(new RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .placeholder(R.drawable.ic_artwork_fallback)
                         .error(R.drawable.ic_artwork_fallback)
                         .centerCrop())
                 .error(Glide.with(requireContext())
@@ -615,42 +667,16 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 .into(artworkTarget);
     }
 
-    /** Extract the dominant color from the artwork bitmap and apply it as the glow color. */
-    private void extractAndApplyGlowColor(Bitmap bitmap) {
-        if (bitmap == null || circularArtworkView == null || getContext() == null) return;
+    /** Tints the backdrop with the artwork's dominant colour. */
+    private void extractArtworkTint() {
+        if (getContext() == null) return;
         com.psthetech.swara.ui.theme.DesignTokens tokens =
                 com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
-        int fallback = tokens != null ? tokens.getAccentColor() : 0xFFC9A84C;
-
-        // Delegate to existing ArtworkHelper color extraction
-        ArtworkHelper.extractArtworkColor(requireContext(), currentSong, fallback, glowColor -> {
-            if (circularArtworkView == null || tokens == null || getContext() == null) return;
-            int ar = android.graphics.Color.red(glowColor);
-            int ag = android.graphics.Color.green(glowColor);
-            int ab = android.graphics.Color.blue(glowColor);
-
-            // Luminance-adaptive alpha prevents wash-out on bright art and keeps glow visible on dark art
-            double luminance = (0.299 * ar + 0.587 * ag + 0.114 * ab) / 255.0;
-            int glowAlpha;
-            if (tokens.isNightMode()) {
-                glowAlpha = luminance > 0.75 ? 45 : (luminance < 0.20 ? 80 : 65);
-            } else {
-                glowAlpha = luminance < 0.25 ? 55 : (luminance > 0.80 ? 30 : 42);
-            }
-
-            int accent = tokens.getAccentColor();
-            int trackAlpha = tokens.isNightMode() ? 50 : 40;
-            circularArtworkView.setThemeColors(
-                    android.graphics.Color.argb(glowAlpha, ar, ag, ab),
-                    accent,
-                    android.graphics.Color.argb(trackAlpha,
-                            android.graphics.Color.red(accent),
-                            android.graphics.Color.green(accent),
-                            android.graphics.Color.blue(accent)),
-                    tokens.getGlassBorderColor(),
-                    accent,
-                    tokens.isNightMode()
-            );
+        int fallback = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
+        ArtworkHelper.extractArtworkColor(requireContext(), currentSong, fallback, color -> {
+            if (getView() == null || tokens == null) return;
+            artworkTint = color;
+            applyNowPlayingColors(tokens);
         });
     }
 
@@ -658,12 +684,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         favoritesViewModel.isFavorite(songId).observe(getViewLifecycleOwner(), isFav -> {
             boolean favorite = Boolean.TRUE.equals(isFav);
             btnFavorite.setImageResource(favorite ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
-            btnFavorite.setAlpha(favorite ? 1.0f : 0.7f);
-            com.psthetech.swara.ui.theme.DesignTokens tokens =
-                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
-            if (tokens != null) {
-                btnFavorite.setColorFilter(favorite ? tokens.getFavoriteActiveColor() : tokens.getFavoriteInactiveColor());
-            }
+            btnFavorite.setAlpha(1.0f);
+            isFavoriteState = favorite;
+            tintFavorite(com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens());
         });
     }
 
@@ -678,10 +701,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             } catch (Exception ignored) { /* detached */ }
             artworkTarget = null;
         }
-        // Release rotation animator
-        if (circularArtworkView != null) {
-            circularArtworkView.pauseRotation();
-        }
+        if (circularArtworkView != null) circularArtworkView.pauseRotation();
         if (korokaeAnimator != null) {
             korokaeAnimator.cancel();
             korokaeAnimator = null;
