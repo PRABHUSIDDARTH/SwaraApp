@@ -26,8 +26,8 @@ python3 export.py                # writes the app asset + Java parity fixture
 
 `export.py` produces:
 
-- `app/src/main/assets/models/korokae_v1.bin` ("KRK1" header + little-endian float32 weights), shipped in the APK.
-- `app/src/test/resources/korokae_parity.bin`, used by `KorokaeEngineParityTest` to verify the Java engine matches PyTorch.
+- `android/app/src/main/assets/models/korokae_v1.bin` ("KRK1" header + little-endian float32 weights), shipped in the APK and bundled by reference into the iOS app.
+- `android/app/src/test/resources/korokae_parity.bin`, used by `KorokaeEngineParityTest` (Java) and `KorokaeEngineTests` (Swift, `ios/SwaraCore`) to verify both engines match PyTorch.
 
 Datasets, decoded audio, and checkpoints are git-ignored (see the root `.gitignore`).
 MUSDB18 is licensed for research use; check its terms before distributing a model trained on it commercially.

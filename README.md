@@ -7,6 +7,7 @@
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue.svg?style=flat-square)](https://developer.android.com/about/versions/14)
 [![Media3](https://img.shields.io/badge/Jetpack-Media3%201.2.1-orange.svg?style=flat-square)](https://developer.android.com/media/media3)
 [![Room](https://img.shields.io/badge/Room-v3%20Migration-purple.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
+[![iOS CI](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/ios.yml/badge.svg)](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/ios.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
 
 ---
@@ -213,37 +214,24 @@ public void onViewRecycled(@NonNull ViewHolder holder) {
 
 ```
 SwaraApp/
-├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/psthetech/swara/
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── db/              # Room database, DAOs, entities, migrations
-│   │   │   │   │   ├── preference/      # ThemePreferences, ColorThemes
-│   │   │   │   │   └── repository/      # MusicRepo, PlaylistRepo, PlaylistArtworkStore
-│   │   │   │   ├── domain/              # Models (Song, Album, Artist, ColorTheme)
-│   │   │   │   ├── service/             # SwaraPlaybackService (Media3 MediaSessionService)
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── adapter/         # SongAdapter, PlaylistAdapter, QueueAdapter, SearchAdapter
-│   │   │   │   │   ├── home/            # HomeFragment, HomePlaylistAdapter
-│   │   │   │   │   ├── library/         # SongsFragment, AlbumsFragment, ArtistsFragment
-│   │   │   │   │   ├── playlists/       # PlaylistsFragment, PlaylistDetailFragment, Dialogs
-│   │   │   │   │   ├── nowplaying/      # NowPlayingFragment, SleepTimerDialog
-│   │   │   │   │   ├── miniplayer/      # MiniPlayerFragment
-│   │   │   │   │   ├── theme/           # DesignTokens, MorphismThemeManager, ThemedDialogHelper
-│   │   │   │   │   └── viewmodel/       # Playback, Library, Playlist, Favorites ViewModels
-│   │   │   │   └── util/                # PlaylistArtworkHelper, FavoriteAnimationHelper
-│   │   │   └── res/
-│   │   │       ├── layout/              # All Liquid Glass XML screens & custom dialogs
-│   │   │       ├── values/              # Semantic colors, strings, themes
-│   │   │       └── values-night/        # Obsidian night mode themes
-│   │   └── test/java/com/psthetech/swara/
-│   │       ├── PlaylistPolishPass2Test.java       # 12-criteria comprehensive test suite
-│   │       ├── ThemeContrastAndSemanticsTest.java # WCAG AA/AAA contrast validation
-│   │       ├── PlaylistArtworkTest.java           # Artwork priority, collage & cache invalidation
-│   │       ├── MorphismThemeTest.java             # ColorTheme & Liquid Glass tokens test
-│   │       └── SearchLogicTest.java               # Search filtering verification
-└── gradle/                                        # Gradle wrapper and version catalog
+├── android/                 # Android app (Gradle project, Java 17)
+│   ├── app/
+│   │   ├── src/main/java/com/psthetech/swara/
+│   │   │   ├── data/        # Room DB, repositories, preferences, artwork stores
+│   │   │   ├── domain/      # Models (Song, Album, Artist, ColorTheme)
+│   │   │   ├── service/     # SwaraPlaybackService (Media3 MediaSessionService)
+│   │   │   └── ui/          # Fragments, adapters, view models, theme
+│   │   ├── src/main/res/    # Liquid Glass layouts, values, values-night
+│   │   └── src/test/        # JVM unit tests
+│   ├── build.gradle, settings.gradle, gradlew
+├── ios/                     # iOS app (SwiftUI, XcodeGen project)
+│   ├── Swara/               # App, Data, Playback, UI
+│   ├── SwaraCore/           # Platform-independent Swift package + tests
+│   ├── SwaraTests/          # App-hosted XCTest bundle
+│   └── project.yml          # XcodeGen spec
+├── ml/korokae/              # Korokae vocal-removal model training and export
+├── docs/
+└── .github/workflows/       # gradle.yml (Android), ios.yml (iOS)
 ```
 
 ---
@@ -260,7 +248,7 @@ SwaraApp/
 ```bash
 # Clone repository
 git clone https://github.com/PRABHUSIDDARTH/SwaraApp.git
-cd SwaraApp
+cd SwaraApp/android
 
 # Run complete unit test suite
 ./gradlew test
@@ -270,6 +258,13 @@ cd SwaraApp
 
 # Install directly to connected device (e.g. Samsung Galaxy S21+)
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+### iOS
+The iOS app lives in `ios/` and is built on a Mac with Xcode 15+. See [ios/README.md](ios/README.md).
+
+```bash
+cd ios && xcodegen generate && open Swara.xcodeproj
 ```
 
 ---
@@ -293,7 +288,7 @@ Swara V2 includes extensive unit testing across all layers:
 - **`ThemeContrastAndSemanticsTest`**: Formulaic WCAG AAA verification across all light and dark palettes.
 - **`PlaylistArtworkTest`**: File lifecycle, collision avoidance, and disk cleanup verification.
 
-All tests run cleanly via `./gradlew test` with zero warnings or failures.
+All tests run cleanly via `./gradlew test` (run from `android/`) with zero warnings or failures.
 
 ---
 

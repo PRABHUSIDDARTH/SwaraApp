@@ -2,13 +2,22 @@ name: Android CI
 
 on:
   push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/gradle.yml'
   pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/gradle.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: android
 
     steps:
       - name: Checkout

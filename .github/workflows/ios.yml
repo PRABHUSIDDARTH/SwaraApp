@@ -1,0 +1,53 @@
+name: iOS CI
+
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - 'android/app/src/main/assets/models/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'android/app/src/main/assets/models/**'
+      - '.github/workflows/ios.yml'
+
+jobs:
+  core-linux:
+    name: SwaraCore tests (Linux)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ios/SwaraCore
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Swift
+        uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: '6.0'
+      - name: Run tests
+        run: swift test
+
+  app-macos:
+    name: Build and test app (macOS)
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build and test (simulator, no signing)
+        run: |
+          xcodebuild test \
+            -project Swara.xcodeproj \
+            -scheme Swara \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            CODE_SIGNING_ALLOWED=NO
