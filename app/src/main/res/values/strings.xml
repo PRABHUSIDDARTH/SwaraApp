@@ -3,10 +3,23 @@
     <string name="app_name">Swara</string>
 
     <!-- Widget -->
-    <string name="widget_description">Now playing controls for Swara</string>
+    <string name="widget_description">See what\'s playing and control Swara. Follows your in-app theme.</string>
     <string name="widget_vertical_description">Compact vertical now playing card for Swara</string>
     <string name="widget_name_vertical">Swara Card (Vertical)</string>
     <string name="widget_no_song">Nothing playing</string>
+    <string name="widget_eyebrow_playing">Now Playing</string>
+    <string name="widget_eyebrow_paused">Paused</string>
+    <string name="widget_eyebrow_idle">Swara</string>
+    <string name="widget_tap_to_play">Tap to start listening</string>
+    <string name="cd_widget_artwork">Album artwork</string>
+    <string name="cd_widget_previous">Previous</string>
+    <string name="cd_widget_play_pause">Play or pause</string>
+    <string name="cd_widget_next">Next</string>
+    <string name="cd_widget_favorite">Add to favorites</string>
+    <string name="cd_widget_unfavorite">Remove from favorites</string>
+    <string name="cd_widget_korokae">Toggle Korokae vocal removal</string>
+    <string name="cd_widget_seek_zone">Jump to %1$d percent</string>
+    <string name="widget_eyebrow_korokae">Korokae on</string>
     <string name="view_mode">View Mode</string>
     <string name="view_mode_compact">Switch to compact list</string>
     <string name="view_mode_expanded">Switch to expanded cards</string>
@@ -30,7 +43,7 @@
     <string name="previous">Previous</string>
     <string name="korokae_mode">Korokae</string>
     <string name="karaoke_mode">Karaoke Mode</string>
-    <string name="karaoke_preparing">Preparing Karaoke… %1$d%%</string>
+    <string name="karaoke_loading">Loading Karaoke…</string>
     <string name="karaoke_unavailable">Karaoke unavailable</string>
     <string name="korokae_on">Korokae Mode ON</string>
     <string name="korokae_off">Korokae Mode OFF</string>
@@ -239,6 +252,7 @@
     <string name="sort_artist_az">Artist (A–Z)</string>
     <string name="sort_date_added">Recently Added</string>
     <string name="sort_duration">Duration (Shortest)</string>
+    <string name="sort_custom">Custom (drag to arrange)</string>
 
     <!-- Library labels -->
     <string name="songs">Songs</string>
@@ -291,4 +305,22 @@
     <string name="invalid_track">Enter a valid track number (1–999)</string>
     <string name="invalid_disc">Enter a valid disc number (1–99)</string>
 
+    <string name="available_outputs">Available outputs</string>
+    <string name="cd_seek_bar">Playback position</string>
+    <string name="audio_output">Audio output</string>
+    <string name="share_nearby">Share song</string>
+    <string name="share_card">Share as card</string>
+    <string name="share_card_title">Share card</string>
+    <string name="share_card_whatsapp">WhatsApp</string>
+    <string name="share_card_ig_story">Instagram Story</string>
+    <string name="share_card_ig_message">Instagram</string>
+    <string name="share_card_more">More</string>
+    <string name="share_card_save">Save</string>
+    <string name="share_card_saved">Card saved to Pictures</string>
+    <string name="share_card_failed">Couldn\'t create the card</string>
+    <string name="share_app_not_installed">%1$s isn\'t installed</string>
+    <string name="share_file_unavailable">This song\'s file isn\'t available to share</string>
+    <string name="share_listening_on">Listening on Swara</string>
+    <!-- Optional: Facebook App ID enables Instagram's direct "Add to story" intent. -->
+    <string name="facebook_app_id" translatable="false"></string>
 </resources>
