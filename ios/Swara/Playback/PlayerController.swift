@@ -267,7 +267,8 @@ final class PlayerController {
         // Attach the Korokae tap asynchronously; audio starts immediately and the tap
         // joins as soon as the track is loaded (no audible gap when disabled).
         Task {
-            let model = korokaeEnabled ? await KorokaeModelProvider.shared.model() : nil
+            var model: KorokaeModel?
+            if korokaeEnabled { model = await KorokaeModelProvider.shared.model() }
             ctx.setEnabled(korokaeEnabled, model: model)
             let mix = await KorokaeTap.makeAudioMix(for: asset, context: ctx)
             guard token == loadToken else { return }
@@ -298,7 +299,8 @@ final class PlayerController {
         korokaeEnabled = on
         korokaeMessage = nil
         Task {
-            let model = on ? await KorokaeModelProvider.shared.model() : nil
+            var model: KorokaeModel?
+            if on { model = await KorokaeModelProvider.shared.model() }
             if on && model == nil {
                 korokaeEnabled = false
                 korokaeMessage = await KorokaeModelProvider.shared.error ?? "Karaoke model unavailable"

@@ -22,9 +22,9 @@ final class LibraryStore {
     let db = SwaraDatabase.shared
     private var byId: [Int64: Song] = [:]
 
-    static let audioExtensions: Set<String> = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "alac", "mp4"]
+    nonisolated static let audioExtensions: Set<String> = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "alac", "mp4"]
 
-    static var root: URL {
+    nonisolated static var root: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
@@ -36,8 +36,9 @@ final class LibraryStore {
         isScanning = true
         defer { isScanning = false }
         let cache = db.metadataCache()
+        let root = Self.root
         let scanned = await Task.detached(priority: .userInitiated) {
-            await Self.scan(root: Self.root, cache: cache)
+            await Self.scan(root: root, cache: cache)
         }.value
         db.saveMetadataCache(scanned.cache)
         apply(scanned.songs)

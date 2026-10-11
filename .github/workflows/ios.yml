@@ -97,6 +97,18 @@ jobs:
           cd dist && zip -qr Swara-unsigned.ipa Payload && cd ..
           ls -la dist
 
+      # GitHub only exposes job logs to repo admins. Surface compiler errors as
+      # annotations so they are readable on the run page.
+      - name: Annotate compiler errors
+        if: failure()
+        run: |
+          for f in ios/build-sim.log ios/test-sim.log ios/build-device.log; do
+            [ -f "$f" ] || continue
+            sed 's/\x1b\[[0-9;]*m//g' "$f" | grep -E ': error:' | head -40 | while IFS= read -r line; do
+              echo "::error title=$(basename $f)::${line//::/ }"
+            done
+          done
+
       - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
