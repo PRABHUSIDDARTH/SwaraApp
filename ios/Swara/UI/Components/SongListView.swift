@@ -36,10 +36,8 @@ struct SongListView<Header: View>: View {
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
             }
-            .onMove { onMove?($0, $1) }
-            .moveDisabled(onMove == nil)
-            .onDelete { onDelete?($0) }
-            .deleteDisabled(onDelete == nil)
+            .onMove { indices, dest in onMove?(indices, dest) }
+            .onDelete { indices in onDelete?(indices) }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
