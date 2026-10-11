@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.widget.RemoteViews;
 
-import com.psthetech.swara.R;
 
 /**
  * Swara Now Playing AppWidgetProvider.
@@ -37,7 +36,8 @@ public class SwaraWidgetProvider extends AppWidgetProvider {
         //
         // We draw an idle state (no song, play button showing) as the placeholder.
         // SwaraPlaybackService will push a real update as soon as it's connected.
-        RemoteViews views = SwaraWidgetUpdater.buildViews(context, /* song= */ null, /* isPlaying= */ false);
+        RemoteViews views = SwaraWidgetUpdater.buildViews(
+                context, SwaraWidgetUpdater.getLastSong(), SwaraWidgetUpdater.getLastIsPlaying());
         for (int id : appWidgetIds) {
             appWidgetManager.updateAppWidget(id, views);
         }
@@ -48,8 +48,7 @@ public class SwaraWidgetProvider extends AppWidgetProvider {
                                           AppWidgetManager appWidgetManager,
                                           int appWidgetId,
                                           android.os.Bundle newOptions) {
-        SwaraWidgetUpdater.pushSingleWidgetUpdate(
-                context, appWidgetManager, appWidgetId, null, false, null, R.layout.widget_swara_player);
+        SwaraWidgetUpdater.pushSingleWidgetUpdate(context, appWidgetManager, appWidgetId);
     }
 
     @Override
