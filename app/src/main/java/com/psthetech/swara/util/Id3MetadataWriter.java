@@ -3,7 +3,6 @@ package com.psthetech.swara.util;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -31,7 +30,8 @@ import java.util.Set;
  * Guarantees:
  * 1. Embedded artwork (APIC frames), lyrics (USLT frames), and custom tags are 100% preserved.
  * 2. UTF-16 with BOM encoding for all text frames ensures global Unicode support (Tamil, Hindi, etc.).
- * 3. Atomic, staged rewriting via a temporary cache file guarantees zero file corruption or truncation.
+ * 3. Staged rewriting with a verified backup: a failed write-back restores the original bytes.
+ * 4. Tags that cannot be rewritten safely (v2.2, unsynchronised, malformed) are left untouched.
  */
 public final class Id3MetadataWriter {
 
@@ -83,37 +83,36 @@ public final class Id3MetadataWriter {
         File stagingFile = null;
 
         try {
-            // Step 1: Open input stream to parse existing ID3 tag and locate audio offset
+            // Step 1: Parse the existing tag (if any) and locate the start of the audio stream.
             List<RawFrame> preservedFrames = new ArrayList<>();
-            int oldTagSize = 0;
+            long oldTagSize = 0;
+            long sourceLength;
 
             try (InputStream in = resolver.openInputStream(uri)) {
                 if (in == null) {
                     Log.e(TAG, "Cannot open input stream for URI: " + uri);
                     return false;
                 }
-
                 byte[] header = new byte[10];
-                int read = in.read(header);
+                int read = readFully(in, header, 0, 10);
                 if (read == 10 && header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
-                    int version = header[3];
-                    int flags = header[5];
-                    int tagBodySize = decodeSyncsafeInteger(header, 6);
-                    oldTagSize = 10 + tagBodySize;
-                    if ((flags & 0x10) != 0) { // Footer present in v2.4
-                        oldTagSize += 10;
+                    TagLayout layout = parseHeader(header);
+                    if (layout == null) {
+                        Log.w(TAG, "Unsupported ID3 layout, skipping embedded write: " + uri);
+                        return false;
                     }
-
-                    // Read existing tag payload to preserve unmanaged frames (e.g. APIC artwork)
-                    byte[] tagData = new byte[tagBodySize];
-                    int totalRead = 0;
-                    while (totalRead < tagBodySize) {
-                        int r = in.read(tagData, totalRead, tagBodySize - totalRead);
-                        if (r <= 0) break;
-                        totalRead += r;
+                    byte[] tagData = new byte[layout.bodySize];
+                    if (readFully(in, tagData, 0, layout.bodySize) != layout.bodySize) {
+                        Log.e(TAG, "Truncated ID3 tag, skipping embedded write: " + uri);
+                        return false;
                     }
-
-                    parseAndPreserveFrames(tagData, version, preservedFrames);
+                    List<RawFrame> frames = parseFrames(tagData, layout);
+                    if (frames == null) {
+                        Log.w(TAG, "Unparseable ID3 frames, skipping embedded write: " + uri);
+                        return false;
+                    }
+                    preservedFrames.addAll(frames);
+                    oldTagSize = layout.totalSize;
                 }
             }
 
@@ -121,75 +120,58 @@ public final class Id3MetadataWriter {
             byte[] newTagPayload = buildId3v23TagPayload(metadata, preservedFrames);
             byte[] newTagHeader = buildId3Header(newTagPayload.length);
 
-            // Step 3: Write staged file (Header + TagPayload + Original Audio Data)
+            // Step 3: Stage (new tag + original audio) in app cache.
             stagingFile = File.createTempFile("swara_meta_", ".tmp", context.getCacheDir());
-
+            long audioBytes;
             try (FileOutputStream out = new FileOutputStream(stagingFile);
                  InputStream in = resolver.openInputStream(uri)) {
-
                 if (in == null) return false;
-
-                // Write ID3 header and frames
                 out.write(newTagHeader);
                 out.write(newTagPayload);
-
-                // Skip the old ID3 tag to reach audio stream
-                long skipped = 0;
-                while (skipped < oldTagSize) {
-                    long s = in.skip(oldTagSize - skipped);
-                    if (s <= 0) {
-                        // Fallback to read-skipping
-                        int toRead = (int) Math.min(4096, oldTagSize - skipped);
-                        byte[] dummy = new byte[toRead];
-                        int r = in.read(dummy);
-                        if (r <= 0) break;
-                        skipped += r;
-                    } else {
-                        skipped += s;
-                    }
+                if (skipFully(in, oldTagSize) != oldTagSize) {
+                    Log.e(TAG, "Source shorter than its ID3 tag: " + uri);
+                    return false;
                 }
-
-                // Stream the exact audio payload
-                byte[] buffer = new byte[16384];
-                int bytesRead;
-                long audioBytesWritten = 0;
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
-                    audioBytesWritten += bytesRead;
-                }
-
-                out.flush();
-
-                if (audioBytesWritten == 0 && oldTagSize > 0) {
-                    Log.w(TAG, "Audio data appears empty after skipping old tag: " + uri);
-                }
+                audioBytes = copy(in, out);
+                out.getFD().sync();
             }
+            sourceLength = oldTagSize + audioBytes;
 
-            // Step 4: Verify staged file integrity before writing back
-            if (!stagingFile.exists() || stagingFile.length() < 10) {
-                Log.e(TAG, "Staging file verification failed: file missing or too small");
+            long expected = newTagHeader.length + newTagPayload.length + audioBytes;
+            if (audioBytes <= 0 || stagingFile.length() != expected) {
+                Log.e(TAG, "Staging verification failed (audio=" + audioBytes + ")");
                 return false;
             }
 
-            // Step 5: Atomically copy staged file to the actual MediaStore URI
-            try (OutputStream targetOut = resolver.openOutputStream(uri, "wt");
-                 FileInputStream stagingIn = new FileInputStream(stagingFile)) {
-
-                if (targetOut == null) {
-                    Log.e(TAG, "Cannot open target output stream for URI: " + uri);
+            // Step 4: Back up the original so a failed write-back can be rolled back.
+            File backup = new File(context.getCacheDir(), stagingFile.getName() + ".orig");
+            try (InputStream in = resolver.openInputStream(uri);
+                 FileOutputStream out = new FileOutputStream(backup)) {
+                if (in == null || copy(in, out) != sourceLength) {
+                    backup.delete();
+                    Log.e(TAG, "Could not back up original before rewrite: " + uri);
                     return false;
                 }
-
-                byte[] buffer = new byte[16384];
-                int bytesRead;
-                while ((bytesRead = stagingIn.read(buffer)) != -1) {
-                    targetOut.write(buffer, 0, bytesRead);
-                }
-                targetOut.flush();
+                out.getFD().sync();
             }
 
-            Log.d(TAG, "Successfully wrote ID3 metadata for URI: " + uri);
-            return true;
+            // Step 5: Write back. On any failure, restore the original bytes.
+            try {
+                writeFileTo(resolver, uri, stagingFile);
+                Log.d(TAG, "Successfully wrote ID3 metadata for URI: " + uri);
+                return true;
+            } catch (Exception writeError) {
+                Log.e(TAG, "Write-back failed, restoring original: " + uri, writeError);
+                try {
+                    writeFileTo(resolver, uri, backup);
+                } catch (Exception restoreError) {
+                    Log.e(TAG, "CRITICAL: restore failed; original kept at " + backup, restoreError);
+                    backup = null; // keep the backup on disk for manual recovery
+                }
+                return false;
+            } finally {
+                if (backup != null) backup.delete();
+            }
 
         } catch (Exception e) {
             Log.e(TAG, "Failed writing ID3 metadata for URI: " + uri, e);
@@ -201,49 +183,167 @@ public final class Id3MetadataWriter {
         }
     }
 
+    private static void writeFileTo(ContentResolver resolver, Uri uri, File source) throws IOException {
+        try (OutputStream targetOut = resolver.openOutputStream(uri, "wt");
+             FileInputStream in = new FileInputStream(source)) {
+            if (targetOut == null) throw new IOException("Cannot open output stream for " + uri);
+            long written = copy(in, targetOut);
+            targetOut.flush();
+            if (written != source.length()) throw new IOException("Short write to " + uri);
+        }
+    }
+
+    private static long copy(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[65536];
+        long total = 0;
+        int r;
+        while ((r = in.read(buffer)) != -1) {
+            out.write(buffer, 0, r);
+            total += r;
+        }
+        return total;
+    }
+
+    static int readFully(InputStream in, byte[] buf, int off, int len) throws IOException {
+        int total = 0;
+        while (total < len) {
+            int r = in.read(buf, off + total, len - total);
+            if (r < 0) break;
+            total += r;
+        }
+        return total;
+    }
+
+    private static long skipFully(InputStream in, long n) throws IOException {
+        long done = 0;
+        byte[] dummy = null;
+        while (done < n) {
+            long s = in.skip(n - done);
+            if (s > 0) {
+                done += s;
+                continue;
+            }
+            if (dummy == null) dummy = new byte[4096];
+            int r = in.read(dummy, 0, (int) Math.min(dummy.length, n - done));
+            if (r < 0) break;
+            done += r;
+        }
+        return done;
+    }
+
+    // ===== Tag layout =====
+
+    /** Parsed ID3v2 header facts needed to safely rewrite a tag. */
+    static final class TagLayout {
+        final int version;
+        final int flags;
+        final int bodySize;
+        final long totalSize;
+
+        TagLayout(int version, int flags, int bodySize, long totalSize) {
+            this.version = version;
+            this.flags = flags;
+            this.bodySize = bodySize;
+            this.totalSize = totalSize;
+        }
+    }
+
+    /**
+     * Returns the layout of an ID3v2.3/2.4 tag, or null if rewriting it would be unsafe
+     * (v2.2 and older, unknown versions, tag-level unsynchronisation, or invalid sizes).
+     */
+    @Nullable
+    static TagLayout parseHeader(byte[] header) {
+        int version = header[3] & 0xFF;
+        int flags = header[5] & 0xFF;
+        if (version != 3 && version != 4) return null;
+        if ((flags & 0x80) != 0) return null; // unsynchronisation
+        for (int i = 6; i < 10; i++) {
+            if ((header[i] & 0x80) != 0) return null; // not a valid syncsafe integer
+        }
+        int bodySize = decodeSyncsafeInteger(header, 6);
+        long total = 10L + bodySize + ((version == 4 && (flags & 0x10) != 0) ? 10 : 0);
+        return new TagLayout(version, flags, bodySize, total);
+    }
+
+    /**
+     * Parses frames after any extended header and converts them to ID3v2.3 layout.
+     * Returns null if a frame cannot be represented safely in v2.3.
+     */
+    @Nullable
+    static List<RawFrame> parseFrames(byte[] data, TagLayout layout) {
+        int offset = 0;
+        if ((layout.flags & 0x40) != 0) { // extended header
+            if (data.length < 4) return null;
+            int extSize;
+            if (layout.version == 4) {
+                extSize = decodeSyncsafeInteger(data, 0); // includes the size field itself
+            } else {
+                extSize = 4 + (((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16)
+                        | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF));
+            }
+            if (extSize < 4 || extSize > data.length) return null;
+            offset = extSize;
+        }
+
+        List<RawFrame> preserved = new ArrayList<>();
+        while (offset + 10 <= data.length) {
+            if (data[offset] == 0) break; // padding
+            for (int i = 0; i < 4; i++) {
+                byte c = data[offset + i];
+                if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) return null;
+            }
+            String frameId = new String(data, offset, 4, StandardCharsets.ISO_8859_1);
+            int frameSize = layout.version == 4
+                    ? decodeSyncsafeInteger(data, offset + 4)
+                    : ((data[offset + 4] & 0xFF) << 24) | ((data[offset + 5] & 0xFF) << 16)
+                      | ((data[offset + 6] & 0xFF) << 8) | (data[offset + 7] & 0xFF);
+            if (frameSize < 0 || offset + 10L + frameSize > data.length) return null;
+
+            int formatFlags = data[offset + 9] & 0xFF;
+            if (!MANAGED_FRAMES.contains(frameId)) {
+                if (layout.version == 4) {
+                    // v2.4 per-frame compression/encryption/unsync/data-length cannot be
+                    // carried into v2.3 verbatim; drop only those exotic frames.
+                    if ((formatFlags & 0x0F) != 0 || (formatFlags & 0x40) != 0) {
+                        Log.w(TAG, "Dropping v2.4 frame with format flags: " + frameId);
+                    } else {
+                        preserved.add(new RawFrame(frameId, toV23Frame(data, offset, frameSize)));
+                    }
+                } else {
+                    byte[] raw = new byte[10 + frameSize];
+                    System.arraycopy(data, offset, raw, 0, raw.length);
+                    preserved.add(new RawFrame(frameId, raw));
+                }
+            }
+            offset += 10 + frameSize;
+        }
+        return preserved;
+    }
+
+    /** Re-encodes a v2.4 frame header (syncsafe size) as v2.3 (plain 32-bit size). */
+    private static byte[] toV23Frame(byte[] data, int offset, int frameSize) {
+        byte[] raw = new byte[10 + frameSize];
+        System.arraycopy(data, offset, raw, 0, raw.length);
+        raw[4] = (byte) ((frameSize >> 24) & 0xFF);
+        raw[5] = (byte) ((frameSize >> 16) & 0xFF);
+        raw[6] = (byte) ((frameSize >> 8) & 0xFF);
+        raw[7] = (byte) (frameSize & 0xFF);
+        // v2.4 status flags (%0abc0000) -> v2.3 (%abc00000); format flags cleared.
+        raw[8] = (byte) ((data[offset + 8] << 1) & 0xE0);
+        raw[9] = 0;
+        return raw;
+    }
+
     // ===== Internal Frame Parsing & Preservation =====
 
-    private static class RawFrame {
+    static final class RawFrame {
         final String id;
         final byte[] rawData;
 
         RawFrame(String id, byte[] rawData) {
             this.id = id;
             this.rawData = rawData;
-        }
-    }
-
-    private static void parseAndPreserveFrames(byte[] data, int version, List<RawFrame> preserved) {
-        int offset = 0;
-        int max = data.length;
-
-        while (offset + 10 <= max) {
-            // Padding reached (0x00 bytes)
-            if (data[offset] == 0) break;
-
-            String frameId = new String(data, offset, 4, StandardCharsets.ISO_8859_1);
-            int frameSize;
-            if (version == 4) {
-                frameSize = decodeSyncsafeInteger(data, offset + 4);
-            } else {
-                frameSize = ((data[offset + 4] & 0xFF) << 24)
-                        | ((data[offset + 5] & 0xFF) << 16)
-                        | ((data[offset + 6] & 0xFF) << 8)
-                        | (data[offset + 7] & 0xFF);
-            }
-
-            if (frameSize <= 0 || offset + 10 + frameSize > max) {
-                break;
-            }
-
-            // Only preserve frames not handled by our editor (e.g. APIC album art, USLT lyrics)
-            if (!MANAGED_FRAMES.contains(frameId)) {
-                byte[] rawFrame = new byte[10 + frameSize];
-                System.arraycopy(data, offset, rawFrame, 0, 10 + frameSize);
-                preserved.add(new RawFrame(frameId, rawFrame));
-            }
-
-            offset += 10 + frameSize;
         }
     }
 
