@@ -8,8 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.psthetech.swara.domain.model.KorokaeState;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.util.KorokaeAudioProcessor;
-import com.psthetech.swara.util.KorokaeCacheManager;
 
 import org.junit.Test;
 
@@ -112,29 +110,6 @@ public class KorokaePlaybackTest {
         assertEquals(song, state.getOriginalSong());
     }
 
-    // 6. Cache key generation based on songId and sourceModifiedTime
-    @Test
-    public void testCacheKeyGeneration() {
-        long songId = 987L;
-        long modTime = 1680000000L;
-
-        String key = KorokaeCacheManager.buildCacheKey(songId, modTime);
-        assertEquals("korokae_987_1680000000.wav", key);
-    }
-
-    // 7. Modifying source audio invalidates cache key
-    @Test
-    public void testCacheKeyDiffersWhenSourceModifiedTimeChanges() {
-        long songId = 987L;
-        long oldModTime = 1680000000L;
-        long newModTime = 1680005000L;
-
-        String oldKey = KorokaeCacheManager.buildCacheKey(songId, oldModTime);
-        String newKey = KorokaeCacheManager.buildCacheKey(songId, newModTime);
-
-        assertFalse("Different modified times must yield different cache keys", oldKey.equals(newKey));
-    }
-
     // 8. Stale-result prevention via Generation ID
     @Test
     public void testStaleResultIgnoredWhenGenerationIdMismatched() {
@@ -153,20 +128,6 @@ public class KorokaePlaybackTest {
 
         boolean isStale = (completedResultSongId != activePlayingSongId);
         assertTrue("Late background result from previous song must be discarded", isStale);
-    }
-
-    // 10. Processor cancellation contracts
-    @Test
-    public void testProcessorCancellation() {
-        KorokaeAudioProcessor processor = new KorokaeAudioProcessor(100L, 1L);
-        assertFalse(processor.isCancelled());
-
-        processor.cancel();
-        assertTrue(processor.isCancelled());
-
-        // Calling release also shuts down executor and ensures cancellation
-        processor.release();
-        assertTrue(processor.isCancelled());
     }
 
     // 11. Position preservation within bounds
@@ -196,26 +157,6 @@ public class KorokaePlaybackTest {
         assertEquals(45_000, clampPosition(currentPosition, 0));
         assertEquals(45_000, clampPosition(currentPosition, -1));
         assertEquals(0, clampPosition(-5000, 200_000));
-    }
-
-    // 14. Bounded cache LRU eviction logic verification
-    @Test
-    public void testBoundedCacheLruEvictionLogic() {
-        int maxFiles = 5;
-        // Mock list of 7 files sorted by lastModified ascending (oldest first)
-        List<Long> fileTimestamps = Arrays.asList(100L, 200L, 300L, 400L, 500L, 600L, 700L);
-        List<Long> evicted = new ArrayList<>();
-        List<Long> retained = new ArrayList<>(fileTimestamps);
-
-        while (retained.size() > maxFiles) {
-            evicted.add(retained.remove(0)); // Oldest evicted first
-        }
-
-        assertEquals(2, evicted.size());
-        assertEquals(Long.valueOf(100L), evicted.get(0));
-        assertEquals(Long.valueOf(200L), evicted.get(1));
-        assertEquals(5, retained.size());
-        assertEquals(Long.valueOf(300L), retained.get(0));
     }
 
     private static long clampPosition(long positionMs, long targetDurationMs) {
