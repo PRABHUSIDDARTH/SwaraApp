@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -27,13 +28,15 @@ import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 import com.psthetech.swara.ui.viewmodel.SortOrder;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 /**
  * Displays the full song list with sort options.
  *
- * Sort order is persisted in LibraryViewModel for the lifetime of the Activity.
+ * Sort order (including a drag-arranged "Custom" order) is persisted by LibraryViewModel.
+ * Long-press a row and drag it up or down to reorder.
  */
 public class SongsFragment extends Fragment implements SongAdapter.Listener {
 
@@ -89,6 +92,7 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
+        new ItemTouchHelper(new DragReorderCallback()).attachToRecyclerView(recyclerView);
 
         if (btnViewMode != null) {
             btnViewMode.setOnClickListener(v -> {
@@ -126,6 +130,11 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         popup.getMenu().add(0, 2, 2, getString(R.string.sort_artist_az));
         popup.getMenu().add(0, 3, 3, getString(R.string.sort_date_added));
         popup.getMenu().add(0, 4, 4, getString(R.string.sort_duration));
+        popup.getMenu().add(0, 5, 5, getString(R.string.sort_custom));
+
+        // Show the persisted choice as checked.
+        popup.getMenu().setGroupCheckable(0, true, true);
+        popup.getMenu().getItem(libraryViewModel.getActiveSortOrder().ordinal()).setChecked(true);
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -134,6 +143,7 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
                 case 2: libraryViewModel.setSortOrder(SortOrder.ARTIST_ASC);  return true;
                 case 3: libraryViewModel.setSortOrder(SortOrder.DATE_ADDED);  return true;
                 case 4: libraryViewModel.setSortOrder(SortOrder.DURATION_ASC);return true;
+                case 5: libraryViewModel.setSortOrder(SortOrder.CUSTOM);      return true;
             }
             return false;
         });
@@ -193,6 +203,7 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
             } else {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.GONE);
                 recyclerView.setVisibility(View.VISIBLE);
+                if (dragList != null) return; // don't fight an in-progress drag
                 songAdapter.submitList(songs);
             }
         });
@@ -252,6 +263,71 @@ public class SongsFragment extends Fragment implements SongAdapter.Listener {
         if (songAdapter != null) {
             songAdapter.notifyDataSetChanged();
         }
+    }
+
+    // ===== Drag to reorder =====
+
+    /** Working copy while a row is being dragged; null when no drag is active. */
+    @Nullable private List<Song> dragList;
+    private boolean dragMoved = false;
+
+    private class DragReorderCallback extends ItemTouchHelper.SimpleCallback {
+
+        DragReorderCallback() {
+            super(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
+        }
+
+        @Override
+        public boolean isLongPressDragEnabled() {
+            return true;
+        }
+
+        @Override
+        public boolean onMove(@NonNull RecyclerView rv,
+                              @NonNull RecyclerView.ViewHolder from,
+                              @NonNull RecyclerView.ViewHolder to) {
+            if (dragList == null) dragList = new ArrayList<>(songAdapter.getCurrentList());
+            int fromPos = from.getBindingAdapterPosition();
+            int toPos = to.getBindingAdapterPosition();
+            if (fromPos < 0 || toPos < 0 || fromPos >= dragList.size() || toPos >= dragList.size()) {
+                return false;
+            }
+            dragList.add(toPos, dragList.remove(fromPos));
+            dragMoved = true;
+            songAdapter.submitList(new ArrayList<>(dragList));
+            return true;
+        }
+
+        @Override
+        public void onSelectedChanged(@Nullable RecyclerView.ViewHolder holder, int actionState) {
+            super.onSelectedChanged(holder, actionState);
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && holder != null) {
+                dragList = new ArrayList<>(songAdapter.getCurrentList());
+                dragMoved = false;
+                holder.itemView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                // Lift the row so it reads as picked up.
+                holder.itemView.animate().scaleX(1.03f).scaleY(1.03f)
+                        .translationZ(12f * getResources().getDisplayMetrics().density)
+                        .setDuration(150).start();
+            }
+        }
+
+        @Override
+        public void clearView(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder holder) {
+            super.clearView(rv, holder);
+            holder.itemView.animate().scaleX(1f).scaleY(1f).translationZ(0f).setDuration(150).start();
+            List<Song> finalOrder = dragList;
+            boolean moved = dragMoved;
+            dragList = null;
+            dragMoved = false;
+            if (moved && finalOrder != null) {
+                // Persist and switch to the Custom order so it survives relaunches.
+                libraryViewModel.setCustomOrder(finalOrder);
+            }
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder holder, int direction) { }
     }
 
     // ===== SongAdapter.Listener =====
