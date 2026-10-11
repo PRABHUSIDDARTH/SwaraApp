@@ -42,8 +42,11 @@ public final class LiquidGlassRenderer {
     // BitChord-derived constants
     public static final float BLUR_RADIUS_DP = 8f;
     private static final float SCALE_ON_PRESS = 0.97f;
-    private static final long PRESS_ANIM_DURATION_MS = 80;
-    private static final long RELEASE_ANIM_DURATION_MS = 160;
+    private static final long PRESS_ANIM_DURATION_MS = 90;
+    private static final long RELEASE_ANIM_DURATION_MS = 320;
+    /** Approximates a critically damped spring (no overshoot), Apple's default for UI motion. */
+    public static final android.view.animation.Interpolator SPRING_CRITICAL =
+            new android.view.animation.PathInterpolator(0.25f, 1f, 0.5f, 1f);
 
     private LiquidGlassRenderer() { /* static utility */ }
 
@@ -108,7 +111,7 @@ public final class LiquidGlassRenderer {
         view.setClipToOutline(true);
 
         // Elevation for floating effect
-        ViewCompat.setElevation(view, 6 * density);
+        ViewCompat.setElevation(view, 3 * density);
     }
 
     /**
@@ -117,7 +120,7 @@ public final class LiquidGlassRenderer {
     public static void applyGlassPill(@NonNull View view, @NonNull DesignTokens tokens) {
         view.setBackground(tokens.createGlassPillDrawable(view.getContext()));
         view.setClipToOutline(true);
-        ViewCompat.setElevation(view, 2 * view.getContext().getResources().getDisplayMetrics().density);
+        ViewCompat.setElevation(view, 0f);
     }
 
     /**
@@ -126,7 +129,7 @@ public final class LiquidGlassRenderer {
     public static void applyGlassCard(@NonNull View view, @NonNull DesignTokens tokens) {
         view.setBackground(tokens.createGlassCardDrawable(view.getContext()));
         view.setClipToOutline(true);
-        ViewCompat.setElevation(view, 3 * view.getContext().getResources().getDisplayMetrics().density);
+        ViewCompat.setElevation(view, 0f);
     }
 
     // ===== Press Interaction =====
@@ -149,7 +152,7 @@ public final class LiquidGlassRenderer {
                             .scaleX(SCALE_ON_PRESS)
                             .scaleY(SCALE_ON_PRESS)
                             .setDuration(PRESS_ANIM_DURATION_MS)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .setInterpolator(SPRING_CRITICAL)
                             .start();
                     break;
                 case android.view.MotionEvent.ACTION_UP:
@@ -158,7 +161,7 @@ public final class LiquidGlassRenderer {
                             .scaleX(1.0f)
                             .scaleY(1.0f)
                             .setDuration(RELEASE_ANIM_DURATION_MS)
-                            .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
+                            .setInterpolator(SPRING_CRITICAL)
                             .start();
                     break;
             }
