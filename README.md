@@ -1,294 +1,172 @@
-# 🎵 Swara V2.2 — Premium Offline Android Music Player
+<div align="center">
 
-> **An exquisite, offline-first Android music player engineered purely in modern Java — zero Kotlin, zero bloat, uncompromising craftsmanship.**
+# Swara
+
+**An offline-first music player for Android and iOS, with on-device real-time vocal removal.**
 
 [![Android CI](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml/badge.svg)](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml)
-[![API](https://img.shields.io/badge/API-24%2B%20(Android%207.0%2B)-brightgreen.svg?style=flat-square)](https://android-arsenal.com/api?level=24)
-[![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue.svg?style=flat-square)](https://developer.android.com/about/versions/14)
-[![Media3](https://img.shields.io/badge/Jetpack-Media3%201.2.1-orange.svg?style=flat-square)](https://developer.android.com/media/media3)
-[![Room](https://img.shields.io/badge/Room-v3%20Migration-purple.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
 [![iOS CI](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/ios.yml/badge.svg)](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/ios.yml)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
+![Android](https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3DDC84?logo=android&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-17%2B-000000?logo=apple&logoColor=white)
+![Version](https://img.shields.io/badge/version-2.1-informational)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+</div>
 
 ---
 
-## 📑 Table of Contents
+## Overview
 
-- [Overview & USP](#-overview--unique-selling-proposition-usp)
-- [User-Friendly Experience](#-user-friendly-experience)
-- [Design System & Themes](#-design-system--themes)
-  - [Liquid Glass Morphism](#liquid-glass-morphism)
-  - [The 8 ColorThemes](#the-8-colorthemes)
-  - [Light Mode & Dark Mode Semantic Tokens](#light-mode--dark-mode-semantic-tokens)
-- [Key Features](#-key-features)
-- [Core Architecture](#-core-architecture)
-  - [MVVM + Repository Layering](#mvvm--repository-layering)
-  - [Authoritative Media3 Audio Engine](#authoritative-media3-audio-engine)
-  - [Room Database & Schema v3 Migration](#room-database--schema-v3-migration)
-- [Specialized Subsystems](#-specialized-subsystems)
-  - [Authoritative Playlist Artwork Engine](#authoritative-playlist-artwork-engine)
-  - [Themed Dialog System & Entrance Animations](#themed-dialog-system--entrance-animations)
-  - [Accessible Current-Playing Indicator](#accessible-current-playing-indicator)
-  - [RecyclerView Recycling Safety Contract](#recyclerview-recycling-safety-contract)
-- [Project Directory Structure](#-project-directory-structure)
-- [Building & Installation](#-building--installation)
-- [Test Suite & Quality Verification](#-test-suite--quality-verification)
-- [License](#-license)
+Swara plays the music already on your device. It needs no account and no network connection, and it never sends your library anywhere. The repository contains two native apps and the model they share:
 
----
+| Component | Path | Stack |
+| --- | --- | --- |
+| Android app | [`android/`](android) | Java (no Kotlin), Jetpack Media3, Room, Navigation, Glide |
+| iOS app | [`ios/`](ios) | SwiftUI, AVFoundation, XcodeGen, `SwaraCore` Swift package |
+| Korokae model | [`ml/korokae/`](ml/korokae) | PyTorch training and export of the on-device vocal-removal network |
 
-## 🌟 Overview & Unique Selling Proposition (USP)
+## Features
 
-**Swara** is a production-grade, offline-first Android music player crafted purely in modern Java. It is designed to deliver an uncompromising, audiophile-grade playback experience wrapped in a breathtakingly fluid **Liquid Glass** aesthetic.
+- **Local library.** Songs, albums, artists, and folders, indexed from MediaStore on Android and from the app's Documents folder on iOS.
+- **Korokae karaoke mode.** A small streaming neural network strips vocals in real time inside the audio pipeline. It renders no files and adds about 23 ms of latency.
+- **Karaoke matching.** Swara detects when a library already contains a karaoke or instrumental version of a track.
+- **Playlists.** Create, edit, and reorder playlists. Artwork comes from a custom photo or an automatic 2x2 collage of the playlist's songs.
+- **Queue and playback.** Drag to reorder, swipe to remove, play next, shuffle, repeat, and a sleep timer with presets or an end-of-song option.
+- **Favorites and history.** Includes recently played and most played lists.
+- **Search.** Results update as you type and cover songs, albums, artists, and playlists.
+- **Background playback.** Lock-screen, notification, and headset controls (Media3 `MediaSessionService` on Android, `MPRemoteCommandCenter` on iOS).
+- **Home-screen widgets** (Android). Horizontal and vertical player widgets with artwork, seek, and +/-15 s skip.
+- **Themes.** Eight color themes (Swara, Midnight, Lavender, Champagne, Rose, Ocean, Forest, Off-White), each with light, dark, and system modes. Swara calls this design style "Liquid Glass".
+- **Metadata editing.** Edit song tags and artwork from inside the app.
 
-### Why Swara?
-- **Pure Java Craftsmanship:** Built strictly with Java 17, Swara is a testament to native Android performance without the overhead of heavy third-party frameworks or forced Kotlin migration.
-- **Offline-First & Private:** Your music, your device. Swara indexes your local library instantly without requiring an internet connection or phoning home.
-- **Zero Bloat:** Every animation, dialog, and interface element is highly optimized. Swara leverages robust Android Jetpack architecture components (Media3, Navigation, Room) for maximum reliability and minimal resource consumption.
+## Architecture
 
-## 🫂 User-Friendly Experience
+### Android
 
-Swara is meticulously designed to put the user first, ensuring every interaction feels natural, accessible, and deeply personal:
-
-- **Tailored Aesthetics:** Choose from 7 curated color themes (such as Midnight, Lavender, and Ocean), each dynamically adjusting to provide beautifully distinct Light and Dark modes.
-- **Accessibility by Design (WCAG AAA):** Swara prioritizes readability. Text contrast exceeds **7.0:1** on all surfaces, ensuring crisp clarity in any lighting condition. Specialized indicators ensure you can easily identify what's playing even under extreme ambient sunlight.
-- **Intuitive Controls:** Navigate effortlessly with a collapsible edge-to-edge mini-player, fluid swipe-down dismissal for the Now Playing screen, and drag-and-drop playlist reordering.
-- **Smart Search & Organization:** Find any track instantly with real-time, multi-attribute search across songs, albums, artists, and playlists. Automatically generate dynamic 2x2 collage artwork or upload custom photos for a truly personalized library.
-- **Uninterrupted Listening:** Fall asleep to your favorite tracks with the built-in intelligent sleep timer (or end-of-song mode) and manage your queue with simple swipe-to-delete gestures.
-
----
-
-## 🎨 Design System & Themes
-
-### Liquid Glass Morphism
-Swara’s signature interface is built on **Liquid Glass**:
-- Translucent, soft-lit surfaces with subtle accent strokes.
-- Controlled background blurs and atmospheric glows.
-- Authentic materials that preserve content integrity (e.g. user album and playlist artwork are never artificially tinted).
-- Elevation and corner radii calibrated dynamically for each device DPI.
-
-### The 8 ColorThemes
-Swara V2 introduces eight curated color themes, each offering tailored Light Mode and Dark Mode palettes:
-
-| ColorTheme | Accent | Mood / Identity | Light Accent & Distinction | Dark Obsidian Tone |
-|---|---|---|---|---|
-| **SWARA** | Royal Gold (`#E6A23C`) | Signature imperial purple & obsidian gold | Warm Bronze Gold (`#946E14`) | Deep Obsidian Violet (`#0D0B14`) |
-| **MIDNIGHT** | Sky Cyan (`#38BDF8`) | Deep navy glass, modern cyber aesthetic | Ocean Azure (`#0284C7`) | Abyss Slate (`#070B12`) |
-| **LAVENDER** | Amethyst (`#C084FC`) | Soft violet dream, royal and calm | Royal Purple (`#7E22CE`) | Nightshade Black (`#0C0714`) |
-| **CHAMPAGNE**| Amber Gold (`#FBBF24`) | Warm candlelight, vintage sophistication | Rich Warm Amber (`#B45309`) | Smoked Espresso (`#120D06`) |
-| **ROSE** | Blush Rose (`#F472B6`) | Velvet crimson, high contrast & luxury | Deep Crimson Rose (`#C2185B`) | Midnight Wine (`#14070B`) |
-| **OCEAN** | Seafoam Teal (`#2DD4BF`) | Coastal depths, crisp and refreshing | Deep Sea Teal (`#0D9488`) | Mariana Obsidian (`#051012`) |
-| **FOREST** | Emerald Mint (`#34D399`) | Lush botanical, serene organic tones | Deep Pine Emerald (`#059669`)| Deep Woods Black (`#051209`) |
-| **OFF_WHITE**| Warm Mocha (`#8C733E`) | Minimalist warm cream and dark contrast | Deep Sepia (`#5C4A1E`) | Deep Charcoal (`#090807`) |
-
-### Light Mode & Dark Mode Semantic Tokens
-Every screen element references dynamic semantic tokens from `DesignTokens` and `MorphismThemeManager`.
-- **WCAG AAA Compliance:** Primary text contrast exceeds **7.0:1** on both light and dark surfaces across all eight themes.
-- **Selective Hierarchy:** Accents are reserved for primary calls-to-action (e.g. "Play All", dialog confirms, active sliders), leaving body text crisp and readable.
-- **Surface Variant Blending:** Light mode surfaces use soft pastel variants (`#EDE6F7`, `#FCE4EC`, `#DCF0E3`) rather than harsh stark whites, reducing eye strain.
-
----
-
-## ⚡ Key Features
-
-- **App Widget:** Add Swara's Now Playing widget to your home screen for instant playback control (including +15s/-15s skip), real-time album art, and one-tap access to the app.
-- **Optimized Performance:** Addressed potential memory leaks in cursor usage and bitmap recycling to ensure sustained background performance.
-- **Media3 Playback Core:** Continuous background playback powered by `MediaSessionService` and ExoPlayer. Survives device orientation, lock screen, and process backgrounding.
-- **Lockscreen & Notification Media Controls:** High-resolution notification seekbar, artwork, playback actions, and favorite toggling via Android `MediaSession`.
-- **MediaStore Discovery:** Automatic indexing of on-device audio files with real-time metadata parsing and album art caching.
-- **Collapsible Mini-Player:** Edge-to-edge floating glass bar with live progress tracker, play/pause toggle, and gesture-driven bottom sheet expansion.
-- **Now Playing Experience:** Full-screen dialog with swipe-down dismissal, fluid waveform (`WavySliderView`) scrubbing, premium rotating circular artwork (`CircularArtworkView`), repeat/shuffle modes, equalizer intent launch, and sleep timer.
-- **Playlist Management & Custom Artwork:** Full CRUD support, track reordering with `ItemTouchHelper`, custom photo picker artwork, automatic 2x2 collage generation, and instant runtime UI refresh.
-- **Queue System:** Live queue with drag-to-reorder, swipe-to-delete, play next, and queue clearing.
-- **Sleep Timer:** Countdown presets (15, 30, 45, 60 minutes) or intelligent **End-of-Song** sleep mode.
-- **Multi-Attribute Search:** Elegant single-capsule search bar design with real-time multi-criteria filtering across songs, albums, artists, and user playlists.
-- **Favorite Songs:** Fluid heart bounce micro-animation with immediate Room persistence and quick Play/Shuffle all.
-
----
-
-## 🏛 Core Architecture
-
-### MVVM + Repository Layering
+The Android app uses MVVM with a repository layer. All playback state lives in one Media3 service, and the UI observes it through `LiveData`.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                                 UI Layer                                 │
-│  MainActivity ── NavHostFragment ── NavController                        │
-│  HomeFragment │ LibraryFragment │ SearchFragment │ FavoritesFragment     │
-│  PlaylistsFragment │ PlaylistDetailFragment │ QueueFragment              │
-│  MiniPlayerFragment │ NowPlayingFragment │ SettingsFragment              │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ observes LiveData
-┌────────────────────────────────────▼─────────────────────────────────────┐
-│                             ViewModel Layer                              │
-│  PlaybackViewModel │ LibraryViewModel │ FavoritesViewModel               │
-│  PlaylistViewModel                                                       │
-└────────────┬───────────────────────────────────┬─────────────────────────┘
-             │ MediaController                   │ Repository calls
-┌────────────▼──────────────┐      ┌─────────────▼─────────────────────────┐
-│   SwaraPlaybackService    │      │           Repository Layer            │
-│  (MediaSessionService +   │      │  MusicRepository │ ArtworkRepository  │
-│   ExoPlayer Engine)       │      │  PlaylistRepository │ FavRepository   │
-└───────────────────────────┘      │  PlaylistArtworkStore │ HistoryRepo   │
-                                   └─────────────┬─────────────────────────┘
-                                                 │
-                                   ┌─────────────▼─────────────────────────┐
-                                   │              Data Layer               │
-                                   │  Room AppDatabase (v3 Schema)         │
-                                   │  PlaylistDao │ FavoriteDao │ History  │
-                                   │  MediaStore ContentResolver           │
-                                   └───────────────────────────────────────┘
+UI (Fragments, Adapters, Widgets)
+        |  observes LiveData
+ViewModels (Playback, Library, Playlist, Favorites)
+        |                         |
+MediaController            Repositories
+        |                         |
+SwaraPlaybackService       Room AppDatabase (schema v3)
+(ExoPlayer + Korokae       MediaStore ContentResolver
+ AudioProcessor)           Artwork stores
 ```
 
-### Authoritative Media3 Audio Engine
-- Playback state is strictly centralized in `SwaraPlaybackService`.
-- All fragments and adapters observe `PlaybackViewModel.getCurrentSong()` and `PlaybackViewModel.getPlaybackState()`.
-- State updates dispatch atomically; no UI component maintains its own decoupled playing state.
+| Package | Responsibility |
+| --- | --- |
+| `data` | Room database, DAOs, repositories, preferences, artwork storage |
+| `domain` | Models such as `Song`, `Album`, `Artist`, and `ColorTheme` |
+| `service` | `SwaraPlaybackService` (Media3 `MediaSessionService`) |
+| `korokae` | `KorokaeEngine`, model loader, and Media3 `AudioProcessor` |
+| `ui` | Fragments, adapters, view models, and the theme system |
+| `widget` | Home-screen App Widget providers |
+| `util` | Shared helpers |
 
-### Room Database & Schema v3 Migration
-- Seamless migration from schema version 2 to 3:
-  ```sql
-  ALTER TABLE playlists ADD COLUMN artworkPath TEXT DEFAULT NULL;
-  ```
-- Added `modifiedAt` timestamp column with automatic `touchModifiedAt(playlistId)` on every artwork and song list change to facilitate `DiffUtil` detection and Glide cache busting.
+### iOS
 
----
+The SwiftUI app is split into `App`, `Data`, `Playback`, and `UI`. Logic that does not depend on the platform is in the [`SwaraCore`](ios/SwaraCore) Swift package, which builds and tests on Linux as well as macOS. `SwaraCore` covers models, shuffle, sorting, artist identity, karaoke matching, and the Korokae DSP. Korokae runs through an `MTAudioProcessingTap`. See [ios/README.md](ios/README.md) for platform-specific details.
 
-## 🛠 Specialized Subsystems
+### Korokae model
 
-### Authoritative Playlist Artwork Engine
-Every playlist UI surface (Home cards, Playlists tab, Playlist Detail header, Search results) resolves artwork via `PlaylistArtworkHelper`:
+| Item | Detail |
+| --- | --- |
+| Transform | STFT with an N_FFT of 1024, a hop of 512, and a sqrt-Hann window |
+| Network | Linear 513 to 256 with ReLU, a two-layer causal GRU(256), then Linear 256 to 513 with a sigmoid mask |
+| Asset | `android/app/src/main/assets/models/korokae_v1.bin`, a "KRK1" header followed by float32 LE weights |
 
-$$\mathbf{Priority\ 1:\ Custom\ Artwork} \longrightarrow \mathbf{Priority\ 2:\ 2\times2\ Collage} \longrightarrow \mathbf{Priority\ 3:\ Fallback\ Icon}$$
+The iOS app bundles the same asset by reference. A shared parity fixture lets the Java and Swift test suites check that both engines match PyTorch. To retrain the model, follow [ml/korokae/README.md](ml/korokae/README.md).
 
-1. **Custom Artwork:** User-selected image stored in internal application sandbox (`filesDir/playlist_artwork/<id>.jpg`). Never tinted or modified.
-2. **Dynamic 2x2 Collage:** Automatically constructed from the album art of the first four songs in the playlist.
-3. **Swara Fallback:** High-definition vector fallback icon (`ic_playlist`).
-4. **Instant Invalidation:** Handled through Glide signature keys:
-   ```java
-   .signature(new ObjectKey(file.lastModified() + "_" + playlist.modifiedAt))
-   ```
-   Ensures changes are immediately visible across all screens without restarting the app.
-
-### Themed Dialog System & Entrance Animations
-Centralized in `ThemedDialogHelper`:
-- **Liquid Glass Container:** Dynamically styled background with rounded corners, elevated theme background, and accent-derived stroke.
-- **Visual Input Focus:** Input text container with responsive focus listeners that highlight the border with the active theme accent on user touch.
-- **Entrance Animation:** Subtle scale ($0.95 \to 1.0$) and opacity ($0 \to 1.0$) entrance transition using a decelerate curve over 220ms.
-- **Button Contrast:** Positive actions render with solid theme accent and high-contrast text; negative actions render in muted secondary typography.
-
-### Accessible Current-Playing Indicator
-Designed to overcome visibility issues on high-brightness AMOLED displays:
-- **Light Mode Highlight:** Blends 18% theme accent into `surfaceVariantColor` ($>1.32:1$ card separation from background, $>10:1$ WCAG AAA text contrast).
-- **Light Mode Glow Stroke:** High-definition 55% alpha (`0x8C`) border stroke.
-- **Dark Mode Highlight:** 14% accent blended into `surfaceElevatedColor` with soft 31% alpha glow.
-- **Non-Motion Accessible Cue:** The playing track title automatically switches to `Typeface.BOLD`, providing instant identification even under extreme ambient sunlight.
-- **State Invariance:** Indicator remains clearly visible when playback is paused.
-
-### RecyclerView Recycling Safety Contract
-To prevent visual leakage, ghost glows, or stale artwork when scrolling rapidly:
-```java
-@Override
-public void onViewRecycled(@NonNull ViewHolder holder) {
-    super.onViewRecycled(holder);
-    // 1. Clear Glide image decoding tasks
-    Glide.with(holder.itemView).clear(holder.ivArtwork);
-    holder.ivArtwork.setImageDrawable(null);
-    
-    // 2. Reset view transformations
-    holder.itemView.setScaleX(1.0f);
-    holder.itemView.setScaleY(1.0f);
-    holder.itemView.setAlpha(1.0f);
-    holder.itemView.setTranslationX(0f);
-    holder.itemView.setTranslationY(0f);
-    
-    // 3. Clear playback highlights & reset typography
-    holder.itemView.setBackground(defaultBackgroundDrawable);
-    holder.tvTitle.setTypeface(Typeface.DEFAULT);
-}
-```
-
----
-
-## 📂 Project Directory Structure
-
-```
-SwaraApp/
-├── android/                 # Android app (Gradle project, Java 17)
-│   ├── app/
-│   │   ├── src/main/java/com/psthetech/swara/
-│   │   │   ├── data/        # Room DB, repositories, preferences, artwork stores
-│   │   │   ├── domain/      # Models (Song, Album, Artist, ColorTheme)
-│   │   │   ├── service/     # SwaraPlaybackService (Media3 MediaSessionService)
-│   │   │   └── ui/          # Fragments, adapters, view models, theme
-│   │   ├── src/main/res/    # Liquid Glass layouts, values, values-night
-│   │   └── src/test/        # JVM unit tests
-│   ├── build.gradle, settings.gradle, gradlew
-├── ios/                     # iOS app (SwiftUI, XcodeGen project)
-│   ├── Swara/               # App, Data, Playback, UI
-│   ├── SwaraCore/           # Platform-independent Swift package + tests
-│   ├── SwaraTests/          # App-hosted XCTest bundle
-│   └── project.yml          # XcodeGen spec
-├── ml/korokae/              # Korokae vocal-removal model training and export
-├── docs/
-└── .github/workflows/       # gradle.yml (Android), ios.yml (iOS)
-```
-
----
-
-## 🚀 Building & Installation
+## Getting Started
 
 ### Prerequisites
-- **JDK:** Java 17 or higher
-- **Android SDK:** Platform 34 (Android 14)
-- **Build Tools:** 34.0.0
-- **Gradle:** 8.4+
 
-### Command-Line Build
+| Target | Requirements |
+| --- | --- |
+| Android | JDK 17, Android SDK 36, and a device or emulator on API 24 or later |
+| iOS | macOS with Xcode 15 or later, plus [XcodeGen](https://github.com/yonaskolb/XcodeGen) |
+| SwaraCore only | Swift 5.9 or later on Linux or macOS |
+| Model training | Python 3, `torch`, `numpy`, and `ffmpeg` |
+
+### Android
+
 ```bash
-# Clone repository
 git clone https://github.com/PRABHUSIDDARTH/SwaraApp.git
 cd SwaraApp/android
 
-# Run complete unit test suite
-./gradlew test
-
-# Build debug APK
-./gradlew assembleDebug
-
-# Install directly to connected device (e.g. Samsung Galaxy S21+)
+./gradlew testDebugUnitTest      # run the JVM unit tests
+./gradlew assembleDebug          # build the debug APK
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### iOS
-The iOS app lives in `ios/` and is built on a Mac with Xcode 15+. See [ios/README.md](ios/README.md).
 
 ```bash
-cd ios && xcodegen generate && open Swara.xcodeproj
+brew install xcodegen
+cd SwaraApp/ios
+xcodegen generate                # Swara.xcodeproj is generated and git-ignored
+open Swara.xcodeproj
 ```
 
----
+Before running on a physical device, choose your Apple team under **Signing & Capabilities**. To import music, use the in-app import button, the Files app (**On My iPhone > Swara**), Finder file sharing, or AirDrop.
 
-## 🧪 Test Suite & Quality Verification
+### Core tests without Xcode
 
-Swara V2 includes extensive unit testing across all layers:
-- **`PlaylistPolishPass2Test`**: Verifies 12 critical criteria:
-  1. Multi-tier artwork resolution priority
-  2. Custom artwork precedence over collage
-  3. Dynamic collage generation fallback
-  4. Home playlist adapter wiring & album ID lookup
-  5. Artwork refresh and Glide signature cache busting
-  6. Light Mode playback colors and contrast ratios ($>1.32:1$)
-  7. Dark Mode obsidian playback colors and luminance
-  8. All 8 ColorThemes contrast compliance
-  9. Create Playlist theme semantics and button contrast
-  10. Playlist Detail visual hierarchy (Play vs Shuffle)
-  11. RecyclerView cell recycling safety contract
-  12. Media3 playing/paused state lifecycle invariants
-- **`ThemeContrastAndSemanticsTest`**: Formulaic WCAG AAA verification across all light and dark palettes.
-- **`PlaylistArtworkTest`**: File lifecycle, collision avoidance, and disk cleanup verification.
+```bash
+cd ios/SwaraCore && swift test
+```
 
-All tests run cleanly via `./gradlew test` (run from `android/`) with zero warnings or failures.
+## Testing and CI
 
----
+| Workflow | Runner | Steps |
+| --- | --- | --- |
+| [`gradle.yml`](.github/workflows/gradle.yml) | Ubuntu, JDK 17 | Unit tests, debug APK, Android lint |
+| [`ios.yml`](.github/workflows/ios.yml) | Ubuntu and macOS 15 | `SwaraCore` tests on Linux; on macOS, a simulator build, XCTest, and an unsigned `.ipa` artifact |
 
+On Android, the tests cover queue and shuffle logic, search, playlists and artwork resolution, theme contrast, widgets, seek math, and Korokae engine parity. On iOS, `SwaraCoreTests` and `SwaraTests` cover the shared logic, the database layer, and the Korokae engine.
+
+## Project Structure
+
+```
+SwaraApp/
+|-- android/              Android app (Gradle)
+|   `-- app/src/
+|       |-- main/         Java sources, resources, Korokae model asset
+|       `-- test/         JVM unit tests and Korokae parity fixture
+|-- ios/
+|   |-- Swara/            SwiftUI app (App, Data, Playback, UI)
+|   |-- SwaraCore/        Platform-independent Swift package and tests
+|   |-- SwaraTests/       App-hosted XCTest bundle
+|   `-- project.yml       XcodeGen spec
+|-- ml/korokae/           Model training, data preparation, and export
+|-- docs/                 Documentation assets
+`-- .github/workflows/    Android and iOS CI
+```
+
+## Permissions (Android)
+
+| Permission | Purpose |
+| --- | --- |
+| `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Read the local music library. Which one is used depends on the API level. |
+| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Keep playback running in the background |
+| `POST_NOTIFICATIONS` | Show the media notification on Android 13 and later |
+| `WAKE_LOCK` | Keep playback going while the screen is off |
+
+Swara does not request network access for playback.
+
+## Contributing
+
+1. Fork the repository and create a feature branch.
+2. Keep the Android code in Java, and put shared iOS logic in `SwaraCore` with tests.
+3. Before opening a pull request, run `./gradlew testDebugUnitTest` and `swift test`.
+4. Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) format, for example `fix(ios): ...` or `feat(android): ...`.
+
+## License
+
+Swara is licensed under the [Apache License 2.0](LICENSE).
+
+The Korokae model is trained on MUSDB18, which is licensed for research use only. Check its terms before you distribute a model trained on it for commercial use.
