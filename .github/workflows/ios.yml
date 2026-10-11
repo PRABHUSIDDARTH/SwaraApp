@@ -11,6 +11,7 @@ on:
       - 'ios/**'
       - 'android/app/src/main/assets/models/**'
       - '.github/workflows/ios.yml'
+  workflow_dispatch:
 
 jobs:
   core-linux:
@@ -31,23 +32,83 @@ jobs:
         run: swift test
 
   app-macos:
-    name: Build and test app (macOS)
-    runs-on: macos-latest
+    name: Build app (macOS)
+    runs-on: macos-15
+    timeout-minutes: 60
     permissions:
       contents: read
     defaults:
       run:
+        shell: bash
         working-directory: ios
     steps:
       - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available | grep -i iphone | head -20
+
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Generate project
+
+      - name: Generate Xcode project
         run: xcodegen generate
-      - name: Build and test (simulator, no signing)
+
+      # Full compile of the app for the simulator. Output is kept as an artifact.
+      - name: Build for simulator
         run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Swara.xcodeproj -scheme Swara \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build-sim.log
+
+      # Unit tests on a real simulator device (first available iPhone).
+      - name: Run unit tests on simulator
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available | grep -i "iphone" | grep -v unavailable | head -1 | sed -E 's/^ *(.+) \(([0-9A-F-]{36})\).*/\1/')
+          echo "Simulator: $DEVICE"
           xcodebuild test \
-            -project Swara.xcodeproj \
-            -scheme Swara \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
-            CODE_SIGNING_ALLOWED=NO
+            -project Swara.xcodeproj -scheme Swara \
+            -destination "platform=iOS Simulator,name=$DEVICE" \
+            -derivedDataPath build/sim \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee test-sim.log
+
+      # Unsigned device build packaged as .ipa. Install it with a signing tool
+      # (for example Sideloadly or AltStore with an Apple ID) or sign it in Xcode.
+      - name: Build unsigned device .ipa
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Swara.xcodeproj -scheme Swara \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build-device.log
+          APP=$(find build/device/Build/Products/Release-iphoneos -maxdepth 1 -name 'Swara.app' | head -1)
+          mkdir -p dist/Payload
+          cp -R "$APP" dist/Payload/
+          cd dist && zip -qr Swara-unsigned.ipa Payload && cd ..
+          ls -la dist
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs
+          path: ios/*.log
+          if-no-files-found: warn
+
+      - name: Upload unsigned iPhone app
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Swara-unsigned-ipa
+          path: ios/dist/Swara-unsigned.ipa
+          if-no-files-found: error
