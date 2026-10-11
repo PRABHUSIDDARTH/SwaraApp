@@ -40,14 +40,14 @@
     <dimen name="home_section_art_size">120dp</dimen>
 
     <!-- ===== TYPOGRAPHY ===== -->
-    <dimen name="text_display">32sp</dimen>
-    <dimen name="text_headline_lg">26sp</dimen>
+    <dimen name="text_display">34sp</dimen>
+    <dimen name="text_headline_lg">28sp</dimen>
     <dimen name="text_headline_md">22sp</dimen>
-    <dimen name="text_title_lg">18sp</dimen>
+    <dimen name="text_title_lg">17sp</dimen>
     <dimen name="text_title_md">15sp</dimen>
     <dimen name="text_body_md">14sp</dimen>
     <dimen name="text_body_sm">12sp</dimen>
-    <dimen name="text_label_md">11sp</dimen>
+    <dimen name="text_label_md">12sp</dimen>
 
     <!-- ===== BORDERS ===== -->
     <dimen name="border_thin">0.5dp</dimen>
