@@ -87,7 +87,7 @@
             android:background="@drawable/ripple_circle"
             android:padding="8dp"
             android:contentDescription="@string/cd_favorite_empty"
-            android:tint="@color/swara_lavender" />
+            app:tint="@color/swara_lavender" />
 
         <!-- Overflow menu -->
         <ImageView
@@ -99,7 +99,7 @@
             android:background="@drawable/ripple_circle"
             android:padding="8dp"
             android:contentDescription="@string/cd_more_options"
-            android:tint="@color/swara_text_dim" />
+            app:tint="@color/swara_text_dim" />
 
     </LinearLayout>
 
