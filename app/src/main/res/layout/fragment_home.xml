@@ -18,8 +18,8 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="@dimen/dp_24"
-            android:paddingTop="@dimen/dp_24"
-            android:paddingBottom="@dimen/dp_16">
+            android:paddingTop="@dimen/dp_16"
+            android:paddingBottom="@dimen/dp_8">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -28,24 +28,23 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvGreeting"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/good_morning"
-                    android:textSize="@dimen/text_label_md"
-                    android:textColor="@color/swara_text_secondary"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.1" />
-
-                <TextView
                     android:id="@+id/tvAppName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/app_name"
-                    android:textSize="32sp"
+                    android:textSize="15sp"
                     android:textColor="@color/swara_gold"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginTop="@dimen/dp_2" />
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/tvGreeting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/good_morning"
+                    android:textAppearance="@style/TextAppearance.Swara.Display"
+                    android:textColor="@color/swara_text_primary"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
             </LinearLayout>
 
@@ -55,7 +54,7 @@
                 android:layout_height="48dp"
                 android:src="@drawable/ic_settings"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/swara_gold"
+                app:tint="@color/swara_text_secondary"
                 android:contentDescription="@string/appearance" />
 
         </LinearLayout>
@@ -96,9 +95,11 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/recently_played"
-                            android:textSize="@dimen/text_title_lg"
+                            android:textSize="@dimen/text_headline_md"
+                            android:textStyle="bold"
+                            android:letterSpacing="-0.015"
                             android:textColor="?android:attr/textColorPrimary"
-                            android:fontFamily="sans-serif-medium" />
+                            android:fontFamily="sans-serif" />
 
                         <TextView
                             android:id="@+id/btnClearHistory"
@@ -145,9 +146,11 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/playlists"
-                            android:textSize="@dimen/text_title_lg"
+                            android:textSize="@dimen/text_headline_md"
+                            android:textStyle="bold"
+                            android:letterSpacing="-0.015"
                             android:textColor="?android:attr/textColorPrimary"
-                            android:fontFamily="sans-serif-medium" />
+                            android:fontFamily="sans-serif" />
 
                         <TextView
                             android:id="@+id/tvSeeAllPlaylists"
@@ -186,9 +189,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/recently_added"
-                        android:textSize="@dimen/text_title_lg"
+                        android:textSize="@dimen/text_headline_md"
+                            android:textStyle="bold"
+                            android:letterSpacing="-0.015"
                         android:textColor="?android:attr/textColorPrimary"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="sans-serif"
                         android:paddingHorizontal="@dimen/dp_24"
                         android:paddingTop="@dimen/dp_24"
                         android:paddingBottom="@dimen/dp_12" />
