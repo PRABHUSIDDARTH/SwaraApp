@@ -114,10 +114,11 @@ enum KorokaeTap {
                 ctx.process(UnsafeMutableAudioBufferListPointer(bufferList), frames: Int(framesOut.pointee))
             })
 
-        var tap: MTAudioProcessingTap?
+        // The SDK writes an Unmanaged<MTAudioProcessingTap> out-parameter; take the retained value.
+        var tapOut: Unmanaged<MTAudioProcessingTap>?
         let err = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks,
-                                             kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
-        guard err == noErr, let tap else {
+                                             kMTAudioProcessingTapCreationFlag_PostEffects, &tapOut)
+        guard err == noErr, let tap = tapOut?.takeRetainedValue() else {
             Unmanaged<KorokaeTapContext>.fromOpaque(callbacks.clientInfo!).release()
             return nil
         }
