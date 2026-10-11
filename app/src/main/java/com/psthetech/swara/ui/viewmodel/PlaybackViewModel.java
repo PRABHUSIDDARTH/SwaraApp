@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
  * This ViewModel does NOT compete with ExoPlayer as a state authority —
  * it is simply a bridge that converts Player.Listener events into LiveData.
  */
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public class PlaybackViewModel extends AndroidViewModel {
 
     private static final String TAG = "PlaybackViewModel";
@@ -107,7 +108,14 @@ public class PlaybackViewModel extends AndroidViewModel {
                 getApplication(),
                 new ComponentName(getApplication(), SwaraPlaybackService.class)
         );
-        controllerFuture = new MediaController.Builder(getApplication(), sessionToken).buildAsync();
+        controllerFuture = new MediaController.Builder(getApplication(), sessionToken)
+                .setListener(new MediaController.Listener() {
+                    @Override
+                    public void onExtrasChanged(@NonNull MediaController c, @NonNull android.os.Bundle extras) {
+                        applyKorokaeExtras(extras);
+                    }
+                })
+                .buildAsync();
         controllerFuture.addListener(() -> {
             try {
                 controller = controllerFuture.get();
@@ -120,6 +128,7 @@ public class PlaybackViewModel extends AndroidViewModel {
 
                 // Sync initial state in case service was already playing
                 syncStateFromController();
+                applyKorokaeExtras(controller.getSessionExtras());
                 Log.d(TAG, "MediaController connected to SwaraPlaybackService");
             } catch (java.util.concurrent.ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Failed to connect MediaController", e);
@@ -146,14 +155,8 @@ public class PlaybackViewModel extends AndroidViewModel {
         MediaItem item = controller.getCurrentMediaItem();
         if (item != null) {
             Song song = mediaItemToSong(item);
-            com.psthetech.swara.domain.model.KorokaeState kState = korokaeState.getValue();
-            if (kState != null && kState.isActive() && kState.getOriginalSong() != null) {
-                currentSong.postValue(kState.getOriginalSong());
-                updateDurationFromController(kState.getOriginalSong());
-            } else {
-                currentSong.postValue(song);
-                updateDurationFromController(song);
-            }
+            currentSong.postValue(song);
+            updateDurationFromController(song);
         } else {
             currentSong.postValue(null);
             durationMs.postValue(0L);
@@ -205,7 +208,6 @@ public class PlaybackViewModel extends AndroidViewModel {
 
         @Override
         public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
-            checkKorokaeSongTransition(mediaItem);
             updateCurrentSongFromController();
             if (controller != null) {
                 currentPositionMs.postValue(controller.getCurrentPosition());
@@ -376,157 +378,49 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
-    // ===== Korokae Mode (On-Demand Vocal / Instrumental Separation) =====
+    // ===== Korokae Mode (Real-time on-device vocal removal) =====
+    //
+    // Vocal removal runs inside the playback service's audio pipeline (KorokaeAudioProcessor),
+    // so the same MediaItem keeps playing and no files are generated. The ViewModel only sends
+    // the SET_KOROKAE session command and mirrors the service's session extras into LiveData.
 
-    private final java.util.concurrent.atomic.AtomicLong korokaeGenerationCounter =
-            new java.util.concurrent.atomic.AtomicLong(0);
-    @androidx.annotation.Nullable private com.psthetech.swara.util.KorokaeAudioProcessor activeKorokaeProcessor = null;
-    @androidx.annotation.Nullable private Song originalSongForKorokae = null;
+    private boolean korokaeRequested = false;
 
     public void toggleKorokaeMode() {
-        Song song = currentSong.getValue();
-        if (song == null) return;
-        com.psthetech.swara.domain.model.KorokaeState state = korokaeState.getValue();
-
-        if (state != null && state.isActive()) {
-            // Turning OFF -> restore original song
-            if (activeKorokaeProcessor != null) {
-                activeKorokaeProcessor.cancel();
-                activeKorokaeProcessor = null;
-            }
-            if (originalSongForKorokae != null) {
-                switchTrackPreservingPosition(originalSongForKorokae, null, false);
-            }
-            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(song));
-            originalSongForKorokae = null;
-            return;
-        }
-
-        if (state != null && state.isProcessing()) {
-            // User tapped while processing -> cancel and reset to OFF
-            if (activeKorokaeProcessor != null) {
-                activeKorokaeProcessor.cancel();
-                activeKorokaeProcessor = null;
-            }
-            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(song));
-            return;
-        }
-
-        // Turning ON -> Check cache or start asynchronous on-device separation
-        final long genId = korokaeGenerationCounter.incrementAndGet();
-        final long songId = song.getId();
-        final Song targetSong = song;
-        originalSongForKorokae = targetSong;
-
-        long modifiedTime = targetSong.getDateAdded() * 1000L;
-        java.io.File cached = com.psthetech.swara.util.KorokaeCacheManager.getCachedStem(getApplication(), songId, modifiedTime);
-        if (cached != null) {
-            // Cached instrumental available: immediate switch!
-            switchTrackPreservingPosition(targetSong, cached.getAbsolutePath(), true);
-            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, cached.getAbsolutePath()));
-            return;
-        }
-
-        // Not cached: begin on-demand separation with progress
-        korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, 0));
-        activeKorokaeProcessor = new com.psthetech.swara.util.KorokaeAudioProcessor(songId, genId);
-
-        activeKorokaeProcessor.process(getApplication(), targetSong, new com.psthetech.swara.util.KorokaeAudioProcessor.ProgressCallback() {
-            @Override
-            public void onProgress(int percent) {
-                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
-                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.processing(targetSong, genId, percent));
-                }
-            }
-
-            @Override
-            public void onSuccess(@NonNull java.io.File instrumentalStem) {
-                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
-                    switchTrackPreservingPosition(targetSong, instrumentalStem.getAbsolutePath(), true);
-                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.active(targetSong, genId, instrumentalStem.getAbsolutePath()));
-                }
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                if (genId == korokaeGenerationCounter.get() && isCurrentSong(songId)) {
-                    korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.failed(targetSong, errorMessage));
-                }
-            }
-        });
-    }
-
-    private void switchTrackPreservingPosition(@NonNull Song song, @androidx.annotation.Nullable String instrumentalFilePath, boolean isEnteringKorokae) {
         if (controller == null) return;
-        long currentPos = controller.getCurrentPosition();
-        boolean wasPlaying = controller.isPlaying();
-        long targetDuration = song.getDuration();
-        long safePos = Math.max(0, currentPos);
-        if (targetDuration > 0) {
-            safePos = Math.min(safePos, targetDuration);
-        }
+        boolean enable = !korokaeRequested;
+        korokaeRequested = enable;
+        Song song = currentSong.getValue();
+        korokaeState.setValue(enable
+                ? com.psthetech.swara.domain.model.KorokaeState.processing(song, 0L, 0)
+                : com.psthetech.swara.domain.model.KorokaeState.off(song));
+        android.os.Bundle args = new android.os.Bundle();
+        args.putBoolean(SwaraPlaybackService.EXTRA_KOROKAE_ENABLED, enable);
+        controller.sendCustomCommand(
+                new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_SET_KOROKAE,
+                        android.os.Bundle.EMPTY),
+                args);
+    }
 
-        int currentIndex = controller.getCurrentMediaItemIndex();
-        MediaItem newItem;
-        if (isEnteringKorokae && instrumentalFilePath != null) {
-            // Point to temporary instrumental file while preserving logical song metadata
-            newItem = new MediaItem.Builder()
-                    .setMediaId(String.valueOf(song.getId()))
-                    .setUri(android.net.Uri.fromFile(new java.io.File(instrumentalFilePath)))
-                    .setMediaMetadata(new MediaMetadata.Builder()
-                            .setTitle(song.getTitle())
-                            .setArtist(song.getArtist())
-                            .setAlbumTitle(song.getAlbum())
-                            .setArtworkUri(new ArtworkRepository(getApplication()).getArtworkUri(song))
-                            .build())
-                    .build();
+    /** Maps the service's session extras onto the UI-facing KorokaeState. */
+    private void applyKorokaeExtras(@Nullable android.os.Bundle extras) {
+        Song song = currentSong.getValue();
+        if (extras == null) return;
+        boolean enabled = extras.getBoolean("korokae_enabled", false);
+        boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ACTIVE, false);
+        String error = extras.getString(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ERROR);
+        korokaeRequested = enabled;
+        com.psthetech.swara.domain.model.KorokaeState next;
+        if (enabled && error != null) {
+            next = com.psthetech.swara.domain.model.KorokaeState.failed(song, error);
+        } else if (active) {
+            next = com.psthetech.swara.domain.model.KorokaeState.active(song, 0L, "realtime");
+        } else if (enabled) {
+            next = com.psthetech.swara.domain.model.KorokaeState.processing(song, 0L, 0);
         } else {
-            newItem = songToMediaItem(song);
+            next = com.psthetech.swara.domain.model.KorokaeState.off(song);
         }
-
-        if (currentIndex >= 0 && currentIndex < controller.getMediaItemCount()) {
-            controller.replaceMediaItem(currentIndex, newItem);
-            controller.seekTo(currentIndex, safePos);
-            if (wasPlaying) {
-                controller.play();
-            }
-        }
-        currentPositionMs.postValue(safePos);
-    }
-
-    private void checkKorokaeSongTransition(@Nullable MediaItem mediaItem) {
-        if (mediaItem == null) {
-            korokaeGenerationCounter.incrementAndGet();
-            if (activeKorokaeProcessor != null) {
-                activeKorokaeProcessor.cancel();
-                activeKorokaeProcessor = null;
-            }
-            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(null));
-            originalSongForKorokae = null;
-            return;
-        }
-
-        try {
-            long currentId = Long.parseLong(mediaItem.mediaId);
-            if (originalSongForKorokae != null && currentId == originalSongForKorokae.getId()) {
-                // Same logical song (either original or instrumental stem); preserve active state
-                return;
-            }
-
-            // User skipped to a different track: auto-cancel processing and reset mode
-            korokaeGenerationCounter.incrementAndGet();
-            if (activeKorokaeProcessor != null) {
-                activeKorokaeProcessor.cancel();
-                activeKorokaeProcessor = null;
-            }
-            originalSongForKorokae = null;
-            korokaeState.postValue(com.psthetech.swara.domain.model.KorokaeState.off(mediaItemToSong(mediaItem)));
-        } catch (NumberFormatException ignored) {}
-    }
-
-    private boolean isCurrentSong(long songId) {
-        Song current = currentSong.getValue();
-        return current != null && current.getId() == songId;
+        korokaeState.postValue(next);
     }
 
     public void toggleRepeatMode() {
@@ -828,10 +722,6 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     @Override
     protected void onCleared() {
-        if (activeKorokaeProcessor != null) {
-            activeKorokaeProcessor.release();
-            activeKorokaeProcessor = null;
-        }
         positionHandler.removeCallbacks(positionUpdater);
         if (controller != null) {
             controller.removeListener(playerListener);

@@ -41,6 +41,9 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
     private SearchResultsAdapter searchAdapter;
 
+    private com.psthetech.swara.ui.viewmodel.LibraryViewModel libraryViewModel;
+    @Nullable private java.util.List<Song> librarySongs;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -69,6 +72,11 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         searchAdapter.setPlaylistArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(searchAdapter);
+
+        // Keep the user-ordered library list warm for building the search queue
+        libraryViewModel = new ViewModelProvider(requireActivity())
+                .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class);
+        libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> librarySongs = songs);
 
         // --- Observe current playing song for glow highlight ---
         playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
@@ -168,10 +176,16 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
     @Override
     public void onSongClick(Song song) {
-        // Play the tapped song (single-song queue)
+        // Queue the whole library in the user's Songs order, starting at the tapped
+        // song, so playback continues to the next tracks instead of stopping.
+        java.util.List<Song> library = librarySongs;
+        if ((library == null || library.isEmpty()) && libraryViewModel != null) {
+            library = libraryViewModel.getAllSongs().getValue();
+        }
+        SearchQueueBuilder.Queue queue = SearchQueueBuilder.build(library, song);
         new ViewModelProvider(requireActivity())
                 .get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class)
-                .playSong(song);
+                .playSongs(queue.songs, queue.startIndex);
     }
 
     @Override
