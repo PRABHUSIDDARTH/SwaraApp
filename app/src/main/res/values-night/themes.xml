@@ -2,8 +2,8 @@
 <resources>
     <!-- ===== NIGHT APPLICATION THEME ===== -->
     <style name="Theme.Swara" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/swara_purple</item>
-        <item name="colorOnPrimary">@color/swara_cream</item>
+        <item name="colorPrimary">@color/swara_gold</item>
+        <item name="colorOnPrimary">@color/swara_night</item>
         <item name="colorPrimaryContainer">@color/swara_surface_2</item>
         <item name="colorOnPrimaryContainer">@color/swara_cream</item>
         <item name="colorSecondary">@color/swara_gold</item>
@@ -45,11 +45,10 @@
 
     <!-- ===== NIGHT CARD STYLES ===== -->
     <style name="Widget.Swara.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardBackgroundColor">@color/swara_surface_2</item>
-        <item name="cardElevation">@dimen/elevation_1</item>
+        <item name="cardBackgroundColor">@color/swara_surface_1</item>
+        <item name="cardElevation">0dp</item>
         <item name="cardCornerRadius">@dimen/radius_md</item>
-        <item name="strokeColor">@color/swara_glass_stroke</item>
-        <item name="strokeWidth">@dimen/border_regular</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
     <style name="Widget.Swara.Card.Flat" parent="Widget.Material3.CardView.Filled">
