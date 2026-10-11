@@ -136,6 +136,11 @@ public class MorphismThemeManager {
         DesignTokens tokens = new DesignTokens(ctx, colorTheme, style, isNight);
 
         designTokensLiveData.setValue(tokens);
+
+        // Home-screen widget mirrors the in-app theme: re-render it with the new tokens.
+        try {
+            com.psthetech.swara.widget.SwaraWidgetUpdater.refreshWithLastState(ctx);
+        } catch (RuntimeException ignored) { /* widget refresh is best-effort */ }
     }
 
     public static boolean isNightMode(Context context, ThemeMode mode) {
