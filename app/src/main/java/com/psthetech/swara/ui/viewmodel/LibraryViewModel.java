@@ -35,8 +35,16 @@ public class LibraryViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Album>>  allAlbums  = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Artist>> allArtists = new MutableLiveData<>(new ArrayList<>());
 
-    // Active sort order (default: A–Z by title)
-    private final MutableLiveData<SortOrder> activeSortOrder = new MutableLiveData<>(SortOrder.TITLE_ASC);
+    static final String PREFS_NAME = "swara_library_prefs";
+    static final String KEY_SORT_ORDER = "songs_sort_order";
+    static final String KEY_CUSTOM_ORDER = "songs_custom_order";
+
+    // Hand-arranged order used by SortOrder.CUSTOM
+    private List<Long> customOrderIds = new ArrayList<>();
+
+    // Active sort order, restored from preferences (default: A–Z by title)
+    private final android.content.SharedPreferences libraryPrefs;
+    private final MutableLiveData<SortOrder> activeSortOrder;
 
     // Derived sorted view of allSongs, updated whenever allSongs or activeSortOrder changes
     private final LiveData<List<Song>> sortedSongs;
@@ -59,6 +67,9 @@ public class LibraryViewModel extends AndroidViewModel {
 
     public LibraryViewModel(@NonNull Application application) {
         super(application);
+        libraryPrefs = application.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
+        activeSortOrder = new MutableLiveData<>(SortOrder.fromKey(libraryPrefs.getString(KEY_SORT_ORDER, null)));
+        customOrderIds = CustomSongOrder.decode(libraryPrefs.getString(KEY_CUSTOM_ORDER, null));
         musicRepository = new MusicRepository(application);
         AppDatabase db = AppDatabase.getInstance(application);
         historyRepository = new PlayHistoryRepository(db);
@@ -90,8 +101,9 @@ public class LibraryViewModel extends AndroidViewModel {
     }
 
     /** Apply sort order to a list (always returns a fresh mutable copy). */
-    private static List<Song> applySortOrder(List<Song> songs, SortOrder order) {
+    private List<Song> applySortOrder(List<Song> songs, SortOrder order) {
         if (songs == null) return Collections.emptyList();
+        if (order == SortOrder.CUSTOM) return CustomSongOrder.apply(songs, customOrderIds);
         List<Song> sorted = new ArrayList<>(songs);
         switch (order) {
             case TITLE_DESC:
@@ -116,7 +128,20 @@ public class LibraryViewModel extends AndroidViewModel {
 
     /** Change the active sort order; sortedSongs will automatically update. */
     public void setSortOrder(SortOrder order) {
+        if (order == null) order = SortOrder.TITLE_ASC;
+        libraryPrefs.edit().putString(KEY_SORT_ORDER, order.name()).apply();
         activeSortOrder.setValue(order);
+    }
+
+    /** Saves a drag-arranged order and switches the Songs list to it (persisted across launches). */
+    public void setCustomOrder(List<Song> orderedSongs) {
+        String encoded = CustomSongOrder.encode(orderedSongs);
+        customOrderIds = CustomSongOrder.decode(encoded);
+        libraryPrefs.edit()
+                .putString(KEY_CUSTOM_ORDER, encoded)
+                .putString(KEY_SORT_ORDER, SortOrder.CUSTOM.name())
+                .apply();
+        activeSortOrder.setValue(SortOrder.CUSTOM);
     }
 
     public SortOrder getActiveSortOrder() {

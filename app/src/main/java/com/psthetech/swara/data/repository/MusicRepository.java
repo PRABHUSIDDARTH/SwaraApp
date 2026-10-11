@@ -100,6 +100,10 @@ public class MusicRepository {
         });
     }
 
+    private static List<Song> capResults(List<Song> songs, int max) {
+        return songs.size() > max ? new ArrayList<>(songs.subList(0, max)) : songs;
+    }
+
     /** Loads recently added songs (last 30 days) asynchronously. */
     public void loadRecentlyAdded(Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
@@ -108,8 +112,9 @@ public class MusicRepository {
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
                         + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND "
                         + MediaStore.Audio.Media.DATE_ADDED + " >= " + thirtyDaysAgoSec;
-                List<Song> songs = querySongs(selection, null,
-                        MediaStore.Audio.Media.DATE_ADDED + " DESC LIMIT 50");
+                // MediaProvider rejects "LIMIT" inside sortOrder on Android 11+; cap in Java.
+                List<Song> songs = capResults(querySongs(selection, null,
+                        MediaStore.Audio.Media.DATE_ADDED + " DESC"), 50);
                 mainHandler.post(() -> callback.onResult(songs));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load recently added", e);
@@ -200,8 +205,8 @@ public class MusicRepository {
                         + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
                         + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
                 String[] args = new String[]{"%" + lower + "%", "%" + lower + "%", "%" + lower + "%"};
-                List<Song> results = querySongs(selection, args,
-                        MediaStore.Audio.Media.TITLE + " ASC LIMIT 100");
+                List<Song> results = capResults(querySongs(selection, args,
+                        MediaStore.Audio.Media.TITLE + " ASC"), 100);
                 mainHandler.post(() -> callback.onResult(results));
             } catch (Exception e) {
                 Log.e(TAG, "Search failed", e);
