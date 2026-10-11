@@ -97,15 +97,28 @@ jobs:
           cd dist && zip -qr Swara-unsigned.ipa Payload && cd ..
           ls -la dist
 
-      # GitHub only exposes job logs to repo admins. Surface compiler errors as
-      # annotations so they are readable on the run page.
-      - name: Annotate compiler errors
+      # Job logs need repo-admin access. Put compiler errors in the public job summary
+      # and as annotations. Paths are relative to the step's working directory (ios/).
+      - name: Summarize compiler errors
         if: failure()
         run: |
-          for f in ios/build-sim.log ios/test-sim.log ios/build-device.log; do
+          {
+            echo "## xcodebuild errors"
+            echo '```'
+            for f in build-sim.log test-sim.log build-device.log; do
+              [ -f "$f" ] || continue
+              sed 's/\x1b\[[0-9;]*m//g' "$f" | grep -E 'error:|fatal' | head -60
+            done
+            echo '```'
+            echo "## Last 80 lines of build-sim.log"
+            echo '```'
+            [ -f build-sim.log ] && tail -80 build-sim.log | sed 's/\x1b\[[0-9;]*m//g'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in build-sim.log test-sim.log build-device.log; do
             [ -f "$f" ] || continue
-            sed 's/\x1b\[[0-9;]*m//g' "$f" | grep -E ': error:' | head -40 | while IFS= read -r line; do
-              echo "::error title=$(basename $f)::${line//::/ }"
+            sed 's/\x1b\[[0-9;]*m//g' "$f" | grep -E 'error:' | head -20 | while IFS= read -r line; do
+              echo "::error title=$f::${line//::/ }"
             done
           done
 
