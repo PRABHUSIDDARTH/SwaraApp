@@ -1,6 +1,6 @@
 package com.psthetech.swara.ui.widget;
 
-import android.animation.ValueAnimator;
+import android.animation.TimeAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
@@ -14,7 +14,6 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -25,7 +24,7 @@ import androidx.annotation.Nullable;
  *
  * Visual architecture:
  *  - High-res song artwork filled in a circular disc via BitmapShader (no fake CD textures)
- *  - Disc-only rotation: smoothly animated via ValueAnimator without rotating the view or progress ring
+ *  - Disc-only rotation driven by a frame-based spin engine (follows scratch gestures, keeps fling momentum)
  *  - Pause/resume preserves exact rotational angle without snapping back to 0°
  *  - Song change resets rotation cleanly to 0°
  *  - Stationary circular progress arc beginning at 12 o'clock (-90°)
@@ -38,6 +37,13 @@ public class CircularArtworkView extends View {
 
     // One full rotation every 10 seconds (standard physical LP speed feel)
     private static final long ROTATION_DURATION_MS = 10_000L;
+    private static final float BASE_DEG_PER_MS = 360f / ROTATION_DURATION_MS;
+    // How quickly a flung disc sheds its extra speed, and how quickly it spins up from rest
+    private static final float FLING_DECAY_TAU_MS = 420f;
+    private static final float SPIN_UP_TAU_MS = 260f;
+    private static final float STOP_EPSILON_DEG_PER_MS = 0.002f;
+    // Fastest release spin we honour (about 3 turns per second)
+    private static final float MAX_FLING_DEG_PER_MS = 1.1f;
     // Dead-zone degrees to ignore accidental micro-movements
     private static final float SEEK_DEAD_ZONE_DEG = CircularSeekHelper.DEFAULT_DEAD_ZONE_DEG;
     // Degrees of drag mapped per second of seek
@@ -46,8 +52,10 @@ public class CircularArtworkView extends View {
     private static final long SEEK_THROTTLE_MS = 80L;
 
     // Disc Rotation
-    private ValueAnimator rotationAnimator;
+    @Nullable private TimeAnimator spinAnimator;
     private float discRotation = 0f;
+    private float spinVelocity = 0f;   // deg per ms, positive = clockwise
+    private boolean playing = false;
 
     // Progress
     private float progress = 0f;
@@ -89,6 +97,9 @@ public class CircularArtworkView extends View {
     private float touchStartAngle = 0f;
     private float lastTouchAngle = 0f;
     private long lastSeekTime = 0L;
+    private long lastMoveTime = 0L;
+    private float pendingSeekDeg = 0f;
+    private float totalDragDeg = 0f;
 
     @Nullable private SeekListener seekListener;
 
@@ -179,43 +190,59 @@ public class CircularArtworkView extends View {
         setMeasuredDimension(size, size);
     }
 
-    // ── Rotation ─────────────────────────────────────────────────────────────────
+    // ── Rotation engine ──────────────────────────────────────────────────────────
+    //
+    // A single frame-driven engine replaces a fixed ValueAnimator so the disc behaves like
+    // a physical platter: it follows the finger 1:1 while scratching, keeps the release
+    // momentum, then eases back to playback speed (or spins down when paused).
 
     private void setupRotationAnimator() {
-        if (rotationAnimator != null) return;
-        rotationAnimator = ValueAnimator.ofFloat(0f, 360f);
-        rotationAnimator.setDuration(ROTATION_DURATION_MS);
-        rotationAnimator.setInterpolator(new LinearInterpolator());
-        rotationAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        rotationAnimator.setRepeatMode(ValueAnimator.RESTART);
-        rotationAnimator.addUpdateListener(animation -> {
-            discRotation = (float) animation.getAnimatedValue();
-            invalidate();
-        });
+        if (spinAnimator != null) return;
+        spinAnimator = new TimeAnimator();
+        spinAnimator.setTimeListener((animation, totalTime, deltaTime) -> onSpinFrame(deltaTime));
     }
 
-    /** Start/resume continuous rotation from current angle without resetting. */
+    private void onSpinFrame(long deltaMs) {
+        if (deltaMs <= 0) return;
+        float dt = Math.min(deltaMs, 48L); // clamp long frames (e.g. after a jank) to avoid jumps
+        if (!isTouchSeeking) {
+            float target = playing && !isReducedMotion() ? BASE_DEG_PER_MS : 0f;
+            spinVelocity = DiscSpinPhysics.approach(spinVelocity, target, dt,
+                    Math.abs(spinVelocity) > Math.abs(target) ? FLING_DECAY_TAU_MS : SPIN_UP_TAU_MS);
+            discRotation = DiscSpinPhysics.wrap(discRotation + spinVelocity * dt);
+            if (!playing && Math.abs(spinVelocity) < STOP_EPSILON_DEG_PER_MS) {
+                spinVelocity = 0f;
+                spinAnimator.end();
+            }
+        }
+        invalidate();
+    }
+
+    private void ensureSpinning() {
+        if (spinAnimator == null) setupRotationAnimator();
+        if (!spinAnimator.isStarted() && isAttachedToWindow()) spinAnimator.start();
+    }
+
+    private boolean isReducedMotion() {
+        return com.psthetech.swara.ui.glass.LiquidGlassRenderer.isReducedMotion(getContext());
+    }
+
+    /** Start/resume continuous rotation from the current angle without resetting. */
     public void startRotation() {
-        if (rotationAnimator == null) {
-            setupRotationAnimator();
-        }
-        if (rotationAnimator.isRunning()) {
-            return;
-        }
-        long playTime = (long) ((discRotation / 360f) * ROTATION_DURATION_MS);
-        if (playTime < 0) playTime = 0;
-        if (playTime >= ROTATION_DURATION_MS) playTime = 0;
-        rotationAnimator.setCurrentPlayTime(playTime);
-        rotationAnimator.start();
+        playing = true;
+        // Respect "Remove animations": the disc stays still, playback is unaffected.
+        if (isReducedMotion()) return;
+        ensureSpinning();
     }
 
-    /** Pause rotation immediately and freeze at the exact current angle. */
+    /** Pause: the disc spins down from its current angle (turntable feel), never snapping. */
     public void pauseRotation() {
-        if (rotationAnimator != null && rotationAnimator.isRunning()) {
-            discRotation = (float) rotationAnimator.getAnimatedValue();
-            rotationAnimator.cancel();
-            invalidate();
+        playing = false;
+        if (isReducedMotion() && spinAnimator != null) {
+            spinVelocity = 0f;
+            spinAnimator.end();
         }
+        invalidate();
     }
 
     /** Resume rotation seamlessly from the frozen angle. */
@@ -223,11 +250,10 @@ public class CircularArtworkView extends View {
         startRotation();
     }
 
-    /** Reset rotation for a newly loaded song. Stops animation and resets to 0°. */
+    /** Reset rotation for a newly loaded song. Stops the disc and resets to 0°. */
     public void resetRotation() {
-        if (rotationAnimator != null) {
-            rotationAnimator.cancel();
-        }
+        if (spinAnimator != null) spinAnimator.end();
+        spinVelocity = 0f;
         discRotation = 0f;
         invalidate();
     }
@@ -422,62 +448,76 @@ public class CircularArtworkView extends View {
         float tx = event.getX();
         float ty = event.getY();
         float dist = (float) Math.sqrt((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy));
-
-        // Outer ring zone (for seek knob drag)
-        boolean inOuterRing = dist >= (artworkRadius - 28f) && dist <= (ringRadius + 28f);
-        // Inner artwork zone (for tap-to-edit)
-        boolean inArtwork = dist < artworkRadius - 28f;
+        float slop = 28f;
+        // Anywhere on the disc or its ring can be "scratched"; a still tap on the disc edits artwork.
+        boolean onDisc = dist <= ringRadius + slop;
+        boolean inArtwork = dist < artworkRadius - slop;
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                if (inOuterRing || inArtwork) {
-                    touchStartAngle = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
-                    lastTouchAngle = touchStartAngle;
-                    isTouchSeeking = true;
-                    if (getParent() != null) {
-                        getParent().requestDisallowInterceptTouchEvent(true);
-                    }
-                    return true;
-                }
-                return false;
+                if (!onDisc) return false;
+                touchStartAngle = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
+                lastTouchAngle = touchStartAngle;
+                lastMoveTime = event.getEventTime();
+                pendingSeekDeg = 0f;
+                totalDragDeg = 0f;
+                isTouchSeeking = true;
+                // Catch the platter: it stops under the finger.
+                spinVelocity = 0f;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                return true;
 
             case MotionEvent.ACTION_MOVE:
-                if (isTouchSeeking) {
-                    float cur = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
-                    float delta = CircularSeekHelper.angularDelta(lastTouchAngle, cur);
-                    if (Math.abs(delta) > SEEK_DEAD_ZONE_DEG) {
-                        long now = System.currentTimeMillis();
-                        if (now - lastSeekTime > SEEK_THROTTLE_MS) {
-                            float secs = delta / DEG_PER_SEEK_SECOND;
-                            if (seekListener != null) seekListener.onSeekDelta(secs);
-                            lastSeekTime = now;
-                        }
-                        lastTouchAngle = cur;
-                    }
-                    return true;
+                if (!isTouchSeeking) break;
+                // Near the centre the angle is unstable; ignore those samples.
+                if (dist < artworkRadius * 0.12f) return true;
+                float cur = CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy);
+                float delta = CircularSeekHelper.angularDelta(lastTouchAngle, cur);
+                lastTouchAngle = cur;
+                totalDragDeg += Math.abs(delta);
+
+                // Disc follows the finger in whichever direction it moves.
+                discRotation = DiscSpinPhysics.wrap(discRotation + delta);
+                long now = event.getEventTime();
+                spinVelocity = DiscSpinPhysics.trackVelocity(spinVelocity, delta, now - lastMoveTime);
+                lastMoveTime = now;
+                invalidate();
+
+                if (totalDragDeg > SEEK_DEAD_ZONE_DEG) {
+                    pendingSeekDeg += delta;
+                    if (now - lastSeekTime > SEEK_THROTTLE_MS) flushSeek(now);
                 }
-                break;
+                return true;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                if (isTouchSeeking) {
-                    isTouchSeeking = false;
-                    if (getParent() != null) {
-                        getParent().requestDisallowInterceptTouchEvent(false);
-                    }
-                    if (seekListener != null) seekListener.onSeekEnd();
+                if (!isTouchSeeking) break;
+                isTouchSeeking = false;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+                boolean wasDrag = totalDragDeg > SEEK_DEAD_ZONE_DEG;
+                if (wasDrag) flushSeek(event.getEventTime());
+                if (seekListener != null) seekListener.onSeekEnd();
 
-                    // If it was a small stationary tap on the artwork, forward to performClick
-                    float totalDelta = Math.abs(CircularSeekHelper.angularDelta(touchStartAngle,
-                            CircularSeekHelper.calculateAngleDeg(tx, ty, cx, cy)));
-                    if (totalDelta < SEEK_DEAD_ZONE_DEG && inArtwork && event.getActionMasked() == MotionEvent.ACTION_UP) {
-                        performClick();
-                    }
-                    return true;
+                // A finger that stopped before lifting carries no momentum.
+                if (event.getEventTime() - lastMoveTime > 80L || isReducedMotion()) spinVelocity = 0f;
+                spinVelocity = Math.max(-MAX_FLING_DEG_PER_MS, Math.min(MAX_FLING_DEG_PER_MS, spinVelocity));
+                if (spinVelocity != 0f || playing) ensureSpinning();
+
+                if (!wasDrag && inArtwork && event.getActionMasked() == MotionEvent.ACTION_UP) {
+                    performClick();
                 }
-                break;
+                return true;
         }
         return super.onTouchEvent(event);
+    }
+
+    /** Sends accumulated drag degrees as a seek so no movement is lost to throttling. */
+    private void flushSeek(long now) {
+        if (pendingSeekDeg != 0f && seekListener != null) {
+            seekListener.onSeekDelta(pendingSeekDeg / DEG_PER_SEEK_SECOND);
+        }
+        pendingSeekDeg = 0f;
+        lastSeekTime = now;
     }
 
     @Override
@@ -490,21 +530,17 @@ public class CircularArtworkView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (rotationAnimator != null) {
-            if (rotationAnimator.isRunning()) {
-                discRotation = (float) rotationAnimator.getAnimatedValue();
-            }
-            rotationAnimator.cancel();
-            rotationAnimator.removeAllUpdateListeners();
-            rotationAnimator = null;
+        if (spinAnimator != null) {
+            spinAnimator.end();
+            spinAnimator.setTimeListener(null);
+            spinAnimator = null;
         }
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (rotationAnimator == null) {
-            setupRotationAnimator();
-        }
+        setupRotationAnimator();
+        if (playing && !isReducedMotion()) ensureSpinning();
     }
 }
