@@ -30,11 +30,3 @@ ml/korokae/.venv/
 *.stem.mp4
 *.pt
 __pycache__/
-
-# Xcode / iOS
-ios/Swara.xcodeproj/
-ios/Swara/Info.plist
-ios/**/DerivedData/
-ios/**/xcuserdata/
-ios/**/.build/
-ios/**/.swiftpm/

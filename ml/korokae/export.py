@@ -13,9 +13,7 @@ import torch
 from model import HIDDEN, HOP, LAYERS, N_FFT, KorokaeNet, istft, stft
 
 ROOT = pathlib.Path(__file__).resolve().parent
-# Android module lives in <repo>/android/app; the iOS app (ios/) bundles the same asset
-# by reference and reuses the parity fixture in its SwaraCore tests.
-APP = ROOT.parent.parent / "android" / "app"
+APP = ROOT.parent.parent / "app"
 ASSET = APP / "src" / "main" / "assets" / "models" / "korokae_v1.bin"
 PARITY = APP / "src" / "test" / "resources" / "korokae_parity.bin"
 
