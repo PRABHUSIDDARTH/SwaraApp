@@ -64,6 +64,13 @@ public class PlaybackViewModel extends AndroidViewModel {
         return korokaeState;
     }
 
+    private final MutableLiveData<Boolean> vibeActive = new MutableLiveData<>(false);
+
+    /** True while the service's Vibe Mode is on (mirrored from the "vibe_active" session extra). */
+    public LiveData<Boolean> getVibeActive() {
+        return vibeActive;
+    }
+
     // ===== Internal =====
     private ListenableFuture<MediaController> controllerFuture;
     @Nullable private MediaController controller;
@@ -102,6 +109,7 @@ public class PlaybackViewModel extends AndroidViewModel {
                     @Override
                     public void onExtrasChanged(@NonNull MediaController c, @NonNull android.os.Bundle extras) {
                         applyKorokaeExtras(extras);
+                        applyVibeExtras(extras);
                     }
                 })
                 .buildAsync();
@@ -118,6 +126,7 @@ public class PlaybackViewModel extends AndroidViewModel {
                 // Sync initial state in case service was already playing
                 syncStateFromController();
                 applyKorokaeExtras(controller.getSessionExtras());
+                applyVibeExtras(controller.getSessionExtras());
                 Log.d(TAG, "MediaController connected to SwaraPlaybackService");
             } catch (java.util.concurrent.ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Failed to connect MediaController", e);
@@ -382,6 +391,35 @@ public class PlaybackViewModel extends AndroidViewModel {
                 new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_SET_KOROKAE,
                         android.os.Bundle.EMPTY),
                 args);
+    }
+
+    // ===== Vibe Mode (runs in the playback service; mirrored via session extras) =====
+
+    /** Turns Vibe Mode on (starting from the current song) or off. */
+    public void setVibeMode(boolean enabled) {
+        sendVibeCommand(enabled, -1L);
+    }
+
+    /** Plays only {@code song} and starts Vibe Mode from its mood. */
+    public void startVibeFrom(@NonNull Song song) {
+        sendVibeCommand(true, song.getId());
+    }
+
+    private void sendVibeCommand(boolean enabled, long startSongId) {
+        if (controller == null) return;
+        vibeActive.setValue(enabled); // optimistic; the session extras confirm
+        android.os.Bundle args = new android.os.Bundle();
+        args.putBoolean(SwaraPlaybackService.EXTRA_VIBE_ENABLED, enabled);
+        args.putLong(SwaraPlaybackService.EXTRA_VIBE_START_SONG_ID, startSongId);
+        controller.sendCustomCommand(
+                new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_SET_VIBE,
+                        android.os.Bundle.EMPTY),
+                args);
+    }
+
+    private void applyVibeExtras(@Nullable android.os.Bundle extras) {
+        if (extras == null) return;
+        vibeActive.postValue(extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_VIBE_ACTIVE, false));
     }
 
     /** Maps the service's session extras onto the UI-facing KorokaeState. */

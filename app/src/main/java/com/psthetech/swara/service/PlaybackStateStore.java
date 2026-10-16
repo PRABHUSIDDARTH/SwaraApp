@@ -19,6 +19,9 @@ final class PlaybackStateStore {
     private static final String KEY_POSITION = "position_ms";
     private static final String KEY_SHUFFLE = "shuffle";
     private static final String KEY_REPEAT = "repeat_mode";
+    private static final String KEY_VIBE = "vibe_state";
+    private static final String KEY_VIBE_PICKS = "vibe_pick_ids";
+    private static final String KEY_VIBE_SKIPPED = "vibe_skipped_ids";
 
     static final class State {
         final long[] songIds;
@@ -26,13 +29,27 @@ final class PlaybackStateStore {
         final long positionMs;
         final boolean shuffle;
         final int repeatMode;
+        /** {@code VibeSession.serialize()} while Vibe Mode is on, else null. */
+        @Nullable final String vibeState;
+        /** Song ids appended by Vibe Mode this session. */
+        @NonNull final long[] vibePickIds;
+        /** Song ids early-skipped this Vibe session (excluded from further picks). */
+        @NonNull final long[] vibeSkippedIds;
 
         State(@NonNull long[] songIds, int index, long positionMs, boolean shuffle, int repeatMode) {
+            this(songIds, index, positionMs, shuffle, repeatMode, null, new long[0], new long[0]);
+        }
+
+        State(@NonNull long[] songIds, int index, long positionMs, boolean shuffle, int repeatMode,
+              @Nullable String vibeState, @NonNull long[] vibePickIds, @NonNull long[] vibeSkippedIds) {
             this.songIds = songIds;
             this.index = index;
             this.positionMs = positionMs;
             this.shuffle = shuffle;
             this.repeatMode = repeatMode;
+            this.vibeState = vibeState;
+            this.vibePickIds = vibePickIds;
+            this.vibeSkippedIds = vibeSkippedIds;
         }
     }
 
@@ -49,6 +66,9 @@ final class PlaybackStateStore {
                 .putLong(KEY_POSITION, Math.max(0, state.positionMs))
                 .putBoolean(KEY_SHUFFLE, state.shuffle)
                 .putInt(KEY_REPEAT, state.repeatMode)
+                .putString(KEY_VIBE, encodeVibe(state.vibeState))
+                .putString(KEY_VIBE_PICKS, encodeIds(state.vibePickIds))
+                .putString(KEY_VIBE_SKIPPED, encodeIds(state.vibeSkippedIds))
                 .apply();
     }
 
@@ -60,7 +80,22 @@ final class PlaybackStateStore {
                 prefs.getInt(KEY_INDEX, 0),
                 prefs.getLong(KEY_POSITION, 0),
                 prefs.getBoolean(KEY_SHUFFLE, false),
-                prefs.getInt(KEY_REPEAT, Player.REPEAT_MODE_OFF));
+                prefs.getInt(KEY_REPEAT, Player.REPEAT_MODE_OFF),
+                decodeVibe(prefs.getString(KEY_VIBE, null)),
+                decodeIds(prefs.getString(KEY_VIBE_PICKS, null)),
+                decodeIds(prefs.getString(KEY_VIBE_SKIPPED, null)));
+    }
+
+    /** Package-private for tests. Null (Vibe off) is stored as the empty string. */
+    @NonNull
+    static String encodeVibe(@Nullable String vibeState) {
+        return vibeState == null ? "" : vibeState;
+    }
+
+    /** Package-private for tests. Null or empty means Vibe Mode was off. */
+    @Nullable
+    static String decodeVibe(@Nullable String encoded) {
+        return encoded == null || encoded.isEmpty() ? null : encoded;
     }
 
     /** Package-private for tests. */

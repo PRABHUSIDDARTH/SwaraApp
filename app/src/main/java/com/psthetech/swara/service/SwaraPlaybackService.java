@@ -78,6 +78,13 @@ public class SwaraPlaybackService extends MediaSessionService {
     public static final String COMMAND_TOGGLE_FAVORITE = "com.psthetech.swara.TOGGLE_FAVORITE";
     /** Session extras key: ExoPlayer's audio session ID, for the system equalizer. */
     public static final String SESSION_EXTRA_AUDIO_SESSION_ID = "audio_session_id";
+    /** Custom session command: turn Vibe Mode on/off, optionally starting from a song. */
+    public static final String COMMAND_SET_VIBE = "com.psthetech.swara.SET_VIBE";
+    public static final String EXTRA_VIBE_ENABLED = "enabled";
+    /** Optional long: play only this song and start Vibe Mode from it (-1 / absent = current). */
+    public static final String EXTRA_VIBE_START_SONG_ID = "start_song_id";
+    /** Session extras key: true while Vibe Mode is on. */
+    public static final String SESSION_EXTRA_VIBE_ACTIVE = "vibe_active";
 
     /** Stop auto-skipping after this many consecutive unplayable items. */
     private static final int MAX_CONSECUTIVE_ERRORS = 5;
@@ -99,6 +106,7 @@ public class SwaraPlaybackService extends MediaSessionService {
     private MediaSession mediaSession;
     private KorokaeModelProvider korokaeModelProvider;
     private KorokaeAudioProcessor korokaeProcessor;
+    private VibeController vibeController;
     private final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     // Drives the widget seekbar while playing (only when a widget is placed)
@@ -161,6 +169,11 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setHandleAudioBecomingNoisy(true)
                 .build();
 
+        vibeController = new VibeController(this, player, mainHandler, () -> {
+            publishKorokaeState();
+            saveState();
+        });
+
         // Notify SleepTimerManager when the song changes, and push widget updates
         player.addListener(new Player.Listener() {
 
@@ -169,9 +182,11 @@ public class SwaraPlaybackService extends MediaSessionService {
                 // Push widget update with new track info
                 pushWidgetUpdate(mediaItem, player.isPlaying());
                 saveState();
-                if (mediaItem != null) {
+                // Only real playback counts: a queue restore at launch (paused) is not a play.
+                if (mediaItem != null && player.getPlayWhenReady()) {
                     recordListenEvent(mediaItem, ListenEvent.TYPE_PLAY, 0L);
                 }
+                vibeController.onMediaItemTransition();
             }
 
             @Override
@@ -226,6 +241,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                     int type = EventClassifier.classifyLeave(oldPosition.positionMs, duration,
                             autoTransition, sameItemRestarted);
                     recordListenEvent(oldPosition.mediaItem, type, oldPosition.positionMs);
+                    if (left != null) vibeController.onItemLeft(left.getId(), type);
                 }
                 // Seeks (in-app, notification or widget) re-base the widget seekbar + timers
                 if (reason == Player.DISCONTINUITY_REASON_SEEK
@@ -379,7 +395,9 @@ public class SwaraPlaybackService extends MediaSessionService {
         }
         playbackStateStore.save(new PlaybackStateStore.State(ids,
                 player.getCurrentMediaItemIndex(), player.getCurrentPosition(),
-                player.getShuffleModeEnabled(), player.getRepeatMode()));
+                player.getShuffleModeEnabled(), player.getRepeatMode(),
+                vibeController.serializedSession(), vibeController.vibePickIds(),
+                vibeController.skippedIds()));
     }
 
     private void restoreState() {
@@ -414,6 +432,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                 player.setRepeatMode(saved.repeatMode);
                 player.setMediaItems(items, start, startPosition);
                 player.prepare();
+                vibeController.restore(saved.vibeState, saved.vibePickIds, saved.vibeSkippedIds);
             });
         });
     }
@@ -434,6 +453,7 @@ public class SwaraPlaybackService extends MediaSessionService {
             recordPlay(player.getCurrentMediaItem(), player.getCurrentPosition());
             saveState();
         }
+        if (vibeController != null) vibeController.release();
         SleepTimerManager.getInstance().setPlaybackHooks(null);
         closeEqualizerSession();
         if (korokaeModelProvider != null) {
@@ -503,6 +523,7 @@ public class SwaraPlaybackService extends MediaSessionService {
         extras.putBoolean("korokae_enabled", korokaeProcessor.isEnabled());
         extras.putString(SESSION_EXTRA_KOROKAE_ERROR, korokaeModelProvider.getError());
         if (player != null) extras.putInt(SESSION_EXTRA_AUDIO_SESSION_ID, player.getAudioSessionId());
+        extras.putBoolean(SESSION_EXTRA_VIBE_ACTIVE, vibeController != null && vibeController.isActive());
         return extras;
     }
 
@@ -528,6 +549,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                     .add(new SessionCommand(COMMAND_SET_KOROKAE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_KOROKAE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_SET_VIBE, Bundle.EMPTY))
                     .build();
             return new MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                     .setAvailableSessionCommands(commands)
@@ -556,6 +578,16 @@ public class SwaraPlaybackService extends MediaSessionService {
                 if (enable) korokaeModelProvider.loadAsync();
                 publishKorokaeState();
                 pushWidgetUpdateNow();
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_SET_VIBE.equals(customCommand.customAction)) {
+                boolean enable = args.getBoolean(EXTRA_VIBE_ENABLED, false);
+                long startId = args.getLong(EXTRA_VIBE_START_SONG_ID, -1L);
+                if (enable && startId > 0) {
+                    vibeController.startFrom(startId);
+                } else {
+                    vibeController.setEnabled(enable);
+                }
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }
             if (COMMAND_TOGGLE_FAVORITE.equals(customCommand.customAction)) {
