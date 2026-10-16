@@ -24,23 +24,14 @@ import com.psthetech.swara.util.SleepTimerManager;
  * Also allows cancelling an active timer.
  *
  * Usage:
- *   SleepTimerDialog.newInstance(listener).show(parentFragmentManager, TAG);
+ *   SleepTimerDialog.newInstance().show(parentFragmentManager, TAG);
  */
 public class SleepTimerDialog extends BottomSheetDialogFragment {
 
     public static final String TAG = "SleepTimerDialog";
 
-    /** Callback triggered by the dialog parent (NowPlayingFragment) to pause playback. */
-    public interface OnSleepTimerActionListener {
-        void onPausePlayback();
-    }
-
-    private OnSleepTimerActionListener actionListener;
-
-    public static SleepTimerDialog newInstance(OnSleepTimerActionListener listener) {
-        SleepTimerDialog dialog = new SleepTimerDialog();
-        dialog.actionListener = listener;
-        return dialog;
+    public static SleepTimerDialog newInstance() {
+        return new SleepTimerDialog();
     }
 
     @Nullable
@@ -69,9 +60,9 @@ public class SleepTimerDialog extends BottomSheetDialogFragment {
             }
         }
 
-        SleepTimerManager.OnTimerFinishedListener finishedListener = () -> {
-            if (actionListener != null) actionListener.onPausePlayback();
-        };
+        // The playback service pauses via SleepTimerManager.PlaybackHooks; holding a UI
+        // callback here would leak this dialog and fail once the UI is gone.
+        SleepTimerManager.OnTimerFinishedListener finishedListener = null;
 
         setOptionClick(view, R.id.option15, () -> { timer.startTimer(15, finishedListener); dismiss(); });
         setOptionClick(view, R.id.option30, () -> { timer.startTimer(30, finishedListener); dismiss(); });

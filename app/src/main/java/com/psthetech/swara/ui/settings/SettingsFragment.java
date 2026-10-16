@@ -40,6 +40,9 @@ public class SettingsFragment extends Fragment {
 
     private ColorThemePreviewAdapter colorThemeAdapter;
     private boolean isUpdatingRadioState = false;
+    private TextView tvLibraryHeader;
+    private com.google.android.material.card.MaterialCardView cardLibraryContainer;
+    private com.google.android.material.materialswitch.MaterialSwitch switchHideShortClips;
 
     @Nullable
     @Override
@@ -64,6 +67,17 @@ public class SettingsFragment extends Fragment {
         rvColorThemes = view.findViewById(R.id.rvColorThemes);
 
         btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+
+        tvLibraryHeader = view.findViewById(R.id.tvLibraryHeader);
+        cardLibraryContainer = view.findViewById(R.id.cardLibraryContainer);
+        switchHideShortClips = view.findViewById(R.id.switchHideShortClips);
+        switchHideShortClips.setChecked(
+                com.psthetech.swara.data.preference.LibraryPreferences.hideShortClips(requireContext()));
+        switchHideShortClips.setOnCheckedChangeListener((b, checked) -> {
+            com.psthetech.swara.data.preference.LibraryPreferences.setHideShortClips(requireContext(), checked);
+            new androidx.lifecycle.ViewModelProvider(requireActivity())
+                    .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class).refreshAll();
+        });
 
         rvColorThemes.setLayoutManager(new LinearLayoutManager(requireContext()));
 
@@ -159,5 +173,8 @@ public class SettingsFragment extends Fragment {
         rbThemeLight.setButtonTintList(radioTint);
 
         MorphismThemeManager.getInstance().applyToCard(cardThemeContainer, tokens);
+        if (tvLibraryHeader != null) tvLibraryHeader.setTextColor(tokens.getAccentColor());
+        if (cardLibraryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardLibraryContainer, tokens);
+        if (switchHideShortClips != null) switchHideShortClips.setTextColor(tokens.getTextPrimaryColor());
     }
 }

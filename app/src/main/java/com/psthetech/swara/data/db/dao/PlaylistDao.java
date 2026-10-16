@@ -87,9 +87,6 @@ public interface PlaylistDao {
     @Query("SELECT playlistId, COUNT(*) AS count FROM playlist_songs GROUP BY playlistId")
     LiveData<List<PlaylistSongCount>> getSongCountsLive();
 
-    @Query("SELECT MAX(position) FROM playlist_songs WHERE playlistId = :playlistId")
-    int getMaxPosition(long playlistId);
-
     @Query("SELECT EXISTS(SELECT 1 FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId)")
     boolean isSongInPlaylist(long playlistId, long songId);
 

@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     @Nullable private Song pendingDeletionSong;
     private ActivityResultLauncher<IntentSenderRequest> deleteRequestLauncher;
     private SongDeletionManager songDeletionManager;
+    private boolean hadAudioPermission;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +134,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Request audio permission if needed
-        if (!PermissionHelper.hasAudioPermission(this)) {
+        hadAudioPermission = PermissionHelper.hasAudioPermission(this);
+        if (!hadAudioPermission) {
             PermissionHelper.requestAudioPermission(this);
         }
 
@@ -310,10 +312,47 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PermissionHelper.REQUEST_CODE_AUDIO) {
-            // Permission result handled by the active fragment via its own observer
-            // Fragments observe permission state via the activity recreate flow or direct check
+        if (requestCode != PermissionHelper.REQUEST_CODE_AUDIO) return;
+        boolean granted = grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        if (granted) {
+            hadAudioPermission = true;
+            // The first library query ran before the grant and came back empty.
+            new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
+        } else {
+            showPermissionDeniedDialog();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Permission may have been granted (or revoked) from system Settings while away.
+        boolean has = PermissionHelper.hasAudioPermission(this);
+        if (has && !hadAudioPermission) {
+            new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
+        }
+        hadAudioPermission = has;
+    }
+
+    private void showPermissionDeniedDialog() {
+        boolean canAskAgain = PermissionHelper.shouldShowRationale(this);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.permission_title)
+                .setMessage(canAskAgain ? R.string.permission_rationale : R.string.permission_denied_subtitle)
+                .setNegativeButton(R.string.cancel, null);
+        if (canAskAgain) {
+            builder.setPositiveButton(R.string.grant_permission,
+                    (d, w) -> PermissionHelper.requestAudioPermission(this));
+        } else {
+            builder.setPositiveButton(R.string.open_settings, (d, w) -> {
+                android.content.Intent intent = new android.content.Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", getPackageName(), null));
+                startActivity(intent);
+            });
+        }
+        builder.show();
     }
 
     @Override

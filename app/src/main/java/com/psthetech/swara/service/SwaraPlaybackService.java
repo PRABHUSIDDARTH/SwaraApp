@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
-import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
@@ -72,6 +71,24 @@ public class SwaraPlaybackService extends MediaSessionService {
     public static final String COMMAND_TOGGLE_KOROKAE = "com.psthetech.swara.TOGGLE_KOROKAE";
     /** Custom session command (used by the widget): favorite / unfavorite the current song. */
     public static final String COMMAND_TOGGLE_FAVORITE = "com.psthetech.swara.TOGGLE_FAVORITE";
+    /** Session extras key: ExoPlayer's audio session ID, for the system equalizer. */
+    public static final String SESSION_EXTRA_AUDIO_SESSION_ID = "audio_session_id";
+
+    /** Stop auto-skipping after this many consecutive unplayable items. */
+    private static final int MAX_CONSECUTIVE_ERRORS = 5;
+    private int consecutiveErrors = 0;
+
+    private com.psthetech.swara.data.repository.PlayHistoryRepository historyRepository;
+    private PlaybackStateStore playbackStateStore;
+    private static final long STATE_SAVE_INTERVAL_MS = 10_000L;
+    private final Runnable periodicStateSave = new Runnable() {
+        @Override
+        public void run() {
+            if (player == null || !player.isPlaying()) return;
+            saveState();
+            mainHandler.postDelayed(this, STATE_SAVE_INTERVAL_MS);
+        }
+    };
 
     private ExoPlayer player;
     private MediaSession mediaSession;
@@ -144,12 +161,9 @@ public class SwaraPlaybackService extends MediaSessionService {
 
             @Override
             public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
-                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                    // Natural track finish → trigger end-of-song sleep if armed
-                    SleepTimerManager.getInstance().onSongTransition();
-                }
                 // Push widget update with new track info
                 pushWidgetUpdate(mediaItem, player.isPlaying());
+                saveState();
             }
 
             @Override
@@ -158,13 +172,39 @@ public class SwaraPlaybackService extends MediaSessionService {
                 MediaItem current = player.getCurrentMediaItem();
                 pushWidgetUpdate(current, isPlaying);
                 mainHandler.removeCallbacks(widgetTicker);
-                if (isPlaying) mainHandler.postDelayed(widgetTicker, WIDGET_TICK_MS);
+                mainHandler.removeCallbacks(periodicStateSave);
+                if (isPlaying) {
+                    mainHandler.postDelayed(widgetTicker, WIDGET_TICK_MS);
+                    mainHandler.postDelayed(periodicStateSave, STATE_SAVE_INTERVAL_MS);
+                } else {
+                    // Paused or stopped: count the listen so far and remember the position.
+                    recordPlay(current, player.getCurrentPosition());
+                    saveState();
+                }
+            }
+
+            @Override
+            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+                if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
+                    // Paused at the end of the item because "sleep after this song" is armed.
+                    SleepTimerManager.getInstance().onCurrentItemEnded();
+                }
             }
 
             @Override
             public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition,
                                                 @NonNull Player.PositionInfo newPosition,
                                                 int reason) {
+                // Leaving an item (auto-advance, repeat-one loop, skip) counts as a listen of
+                // the old item up to where it was left.
+                boolean leftItem = reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION
+                        || oldPosition.mediaItemIndex != newPosition.mediaItemIndex;
+                if (leftItem && oldPosition.mediaItem != null) {
+                    long listened = reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION
+                            ? Long.MAX_VALUE // finished naturally
+                            : oldPosition.positionMs;
+                    recordPlay(oldPosition.mediaItem, listened);
+                }
                 // Seeks (in-app, notification or widget) re-base the widget seekbar + timers
                 if (reason == Player.DISCONTINUITY_REASON_SEEK
                         || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT) {
@@ -175,7 +215,47 @@ public class SwaraPlaybackService extends MediaSessionService {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
                 // Duration becomes known at READY; refresh so the remaining time is right
-                if (playbackState == Player.STATE_READY) pushWidgetUpdateNow();
+                if (playbackState == Player.STATE_READY) {
+                    consecutiveErrors = 0;
+                    pushWidgetUpdateNow();
+                } else if (playbackState == Player.STATE_ENDED) {
+                    // Queue finished: an armed end-of-song timer is satisfied too.
+                    SleepTimerManager.getInstance().onCurrentItemEnded();
+                }
+            }
+
+            @Override
+            public void onPlayerError(@NonNull androidx.media3.common.PlaybackException error) {
+                Log.e(TAG, "Playback error, skipping item", error);
+                // After an error the player is IDLE; it must be re-prepared to continue.
+                consecutiveErrors++;
+                if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS && player.hasNextMediaItem()) {
+                    player.seekToNextMediaItem();
+                    player.prepare();
+                    player.play();
+                }
+            }
+
+            @Override
+            public void onAudioSessionIdChanged(int audioSessionId) {
+                openEqualizerSession(audioSessionId);
+                publishKorokaeState();
+            }
+        });
+
+        historyRepository = new com.psthetech.swara.data.repository.PlayHistoryRepository(
+                com.psthetech.swara.data.db.AppDatabase.getInstance(this));
+        playbackStateStore = new PlaybackStateStore(this);
+
+        SleepTimerManager.getInstance().setPlaybackHooks(new SleepTimerManager.PlaybackHooks() {
+            @Override
+            public void pauseNow() {
+                if (player != null) player.pause();
+            }
+
+            @Override
+            public void setPauseAtEndOfCurrentItem(boolean pause) {
+                if (player != null) player.setPauseAtEndOfMediaItems(pause);
             }
         });
 
@@ -196,7 +276,100 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setCallback(new CustomCallback())
                 .build();
 
+        openEqualizerSession(player.getAudioSessionId());
+        restoreState();
+
         Log.d(TAG, "SwaraPlaybackService created");
+    }
+
+    // ===== Play history =====
+
+    private void recordPlay(@Nullable MediaItem item, long positionMs) {
+        Song song = MediaItemFactory.toSong(item);
+        if (song != null && historyRepository != null) {
+            historyRepository.maybeRecordPlay(song, positionMs);
+        }
+    }
+
+    // ===== Equalizer =====
+
+    private int openedEqSessionId = C.AUDIO_SESSION_ID_UNSET;
+
+    /** Lets system / third-party equalizers attach effects to our audio session. */
+    private void openEqualizerSession(int sessionId) {
+        if (sessionId == openedEqSessionId) return;
+        closeEqualizerSession();
+        if (sessionId == C.AUDIO_SESSION_ID_UNSET) return;
+        Intent open = new Intent(android.media.audiofx.AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION);
+        open.putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, sessionId);
+        open.putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, getPackageName());
+        open.putExtra(android.media.audiofx.AudioEffect.EXTRA_CONTENT_TYPE,
+                android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC);
+        sendBroadcast(open);
+        openedEqSessionId = sessionId;
+    }
+
+    private void closeEqualizerSession() {
+        if (openedEqSessionId == C.AUDIO_SESSION_ID_UNSET) return;
+        Intent close = new Intent(android.media.audiofx.AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
+        close.putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, openedEqSessionId);
+        close.putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, getPackageName());
+        sendBroadcast(close);
+        openedEqSessionId = C.AUDIO_SESSION_ID_UNSET;
+    }
+
+    // ===== Queue persistence (resume after the process is killed) =====
+
+    private void saveState() {
+        if (player == null || playbackStateStore == null) return;
+        int count = player.getMediaItemCount();
+        long[] ids = new long[count];
+        for (int i = 0; i < count; i++) {
+            try {
+                ids[i] = Long.parseLong(player.getMediaItemAt(i).mediaId);
+            } catch (NumberFormatException e) {
+                ids[i] = -1;
+            }
+        }
+        playbackStateStore.save(new PlaybackStateStore.State(ids,
+                player.getCurrentMediaItemIndex(), player.getCurrentPosition(),
+                player.getShuffleModeEnabled(), player.getRepeatMode()));
+    }
+
+    private void restoreState() {
+        PlaybackStateStore.State saved = playbackStateStore.load();
+        if (saved == null || saved.songIds.length == 0) return;
+        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
+            MusicRepository repo = new MusicRepository(this);
+            java.util.List<MediaItem> items = new java.util.ArrayList<>();
+            int startIndex = 0;
+            boolean currentMissing = false;
+            for (int i = 0; i < saved.songIds.length; i++) {
+                Song song;
+                try {
+                    song = repo.getSongById(saved.songIds[i]);
+                } catch (SecurityException e) {
+                    return; // no media permission yet
+                }
+                if (i == saved.index) {
+                    startIndex = items.size();
+                    currentMissing = song == null;
+                }
+                if (song == null) continue; // deleted since last run
+                items.add(MediaItemFactory.toMediaItem(this, song));
+            }
+            if (items.isEmpty()) return;
+            final int start = Math.min(startIndex, items.size() - 1);
+            final long startPosition = currentMissing ? 0 : saved.positionMs;
+            mainHandler.post(() -> {
+                // Don't clobber a queue the user started while we were loading.
+                if (player == null || player.getMediaItemCount() > 0) return;
+                player.setShuffleModeEnabled(saved.shuffle);
+                player.setRepeatMode(saved.repeatMode);
+                player.setMediaItems(items, start, startPosition);
+                player.prepare();
+            });
+        });
     }
 
     @Nullable
@@ -210,6 +383,13 @@ public class SwaraPlaybackService extends MediaSessionService {
         Log.d(TAG, "SwaraPlaybackService destroying");
         if (favoritesLive != null) favoritesLive.removeObserver(favoritesObserver);
         mainHandler.removeCallbacks(widgetTicker);
+        mainHandler.removeCallbacks(periodicStateSave);
+        if (player != null) {
+            recordPlay(player.getCurrentMediaItem(), player.getCurrentPosition());
+            saveState();
+        }
+        SleepTimerManager.getInstance().setPlaybackHooks(null);
+        closeEqualizerSession();
         if (korokaeModelProvider != null) {
             korokaeModelProvider.setListener(null);
             korokaeModelProvider.shutdown();
@@ -240,16 +420,8 @@ public class SwaraPlaybackService extends MediaSessionService {
                 long id = Long.parseLong(mediaItem.mediaId);
                 song = MusicRepository.getCanonicalSong(id);
                 if (song == null) {
-                    // Build a minimal Song from metadata so the widget still updates
-                    MediaMetadata meta = mediaItem.mediaMetadata;
-                    song = new Song(
-                            id,
-                            meta.title  != null ? meta.title.toString()  : "Unknown",
-                            meta.artist != null ? meta.artist.toString() : "Unknown",
-                            meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
-                            /* albumId */ 0, /* duration */ 0,
-                            /* trackNumber */ 0, /* year */ 0, /* dateAdded */ 0
-                    );
+                    // Decode from the item's metadata so the widget still updates
+                    song = MediaItemFactory.toSong(mediaItem);
                 }
             } catch (NumberFormatException ignored) { /* mediaId not a song ID */ }
         }
@@ -284,6 +456,7 @@ public class SwaraPlaybackService extends MediaSessionService {
         extras.putBoolean(SESSION_EXTRA_KOROKAE_ACTIVE, ready && korokaeProcessor.isEnabled());
         extras.putBoolean("korokae_enabled", korokaeProcessor.isEnabled());
         extras.putString(SESSION_EXTRA_KOROKAE_ERROR, korokaeModelProvider.getError());
+        if (player != null) extras.putInt(SESSION_EXTRA_AUDIO_SESSION_ID, player.getAudioSessionId());
         return extras;
     }
 

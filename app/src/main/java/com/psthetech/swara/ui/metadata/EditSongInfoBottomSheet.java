@@ -229,6 +229,13 @@ public class EditSongInfoBottomSheet extends BottomSheetDialogFragment {
             tvFormatBadge.setText("AUDIO");
         }
 
+        // Tell the user up front when tags can't be embedded in the file itself.
+        if (getContext() != null
+                && !com.psthetech.swara.util.Id3MetadataWriter.isSupportedFormat(m.getMimeType(), m.getFilePath())) {
+            android.widget.Toast.makeText(getContext(), R.string.metadata_non_mp3_notice,
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
+
         etTitle.setText(MetadataNormalization.getEditableValue(m.getTitle()));
         etArtist.setText(MetadataNormalization.getEditableValue(m.getArtist()));
         etAlbum.setText(MetadataNormalization.getEditableValue(m.getAlbum()));

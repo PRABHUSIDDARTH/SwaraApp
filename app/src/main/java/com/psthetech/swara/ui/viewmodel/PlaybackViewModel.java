@@ -12,7 +12,6 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.media3.common.MediaItem;
-import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
@@ -20,10 +19,6 @@ import androidx.media3.session.SessionToken;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.psthetech.swara.R;
-import com.psthetech.swara.data.db.AppDatabase;
-import com.psthetech.swara.data.repository.ArtworkRepository;
-import com.psthetech.swara.data.repository.FavoritesRepository;
-import com.psthetech.swara.data.repository.PlayHistoryRepository;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.service.SwaraPlaybackService;
 import com.psthetech.swara.util.TimeFormatter;
@@ -76,9 +71,6 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final Handler positionHandler = new Handler(Looper.getMainLooper());
     private final List<Song> queueSnapshot = new ArrayList<>(); // mirrors ExoPlayer queue
 
-    // Repositories for recording history and favorites
-    private final PlayHistoryRepository historyRepository;
-    private final FavoritesRepository favoritesRepository;
 
     private final Map<Long, Song> songCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -95,9 +87,6 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     public PlaybackViewModel(@NonNull Application application) {
         super(application);
-        AppDatabase db = AppDatabase.getInstance(application);
-        historyRepository = new PlayHistoryRepository(db);
-        favoritesRepository = new FavoritesRepository(db);
         connectToService();
     }
 
@@ -198,11 +187,8 @@ public class PlaybackViewModel extends AndroidViewModel {
                 if (controller != null) {
                     currentPositionMs.postValue(controller.getCurrentPosition());
                 }
-                // Record meaningful play when playback stops (user paused or song ended)
-                Song song = currentSong.getValue();
-                if (song != null && controller != null) {
-                    historyRepository.maybeRecordPlay(song, controller.getCurrentPosition());
-                }
+                // Play history is recorded by SwaraPlaybackService, which also sees
+                // automatic track transitions and keeps running without the UI.
             }
         }
 
@@ -241,11 +227,7 @@ public class PlaybackViewModel extends AndroidViewModel {
         public void onPlayerError(androidx.media3.common.PlaybackException error) {
             Log.e(TAG, "Playback error: " + error.getMessage());
             errorMessage.postValue("Playback error: " + error.getMessage());
-            // Try to advance to next track
-            if (controller != null && controller.hasNextMediaItem()) {
-                controller.seekToNextMediaItem();
-                controller.play();
-            }
+            // Recovery (skip + re-prepare) is handled in SwaraPlaybackService.
         }
     };
 
@@ -406,6 +388,7 @@ public class PlaybackViewModel extends AndroidViewModel {
     private void applyKorokaeExtras(@Nullable android.os.Bundle extras) {
         Song song = currentSong.getValue();
         if (extras == null) return;
+        audioSessionId = extras.getInt(SwaraPlaybackService.SESSION_EXTRA_AUDIO_SESSION_ID, audioSessionId);
         boolean enabled = extras.getBoolean("korokae_enabled", false);
         boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ACTIVE, false);
         String error = extras.getString(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ERROR);
@@ -512,49 +495,19 @@ public class PlaybackViewModel extends AndroidViewModel {
      * Returns AudioEffect.ERROR_BAD_VALUE (= -6) if the controller is not yet connected.
      */
     public int getAudioSessionId() {
-        // MediaController doesn't expose audio session ID directly,
-        // but the service's ExoPlayer does via AudioSessionIdTracker.
-        // We use 0 here as a safe fallback — the system EQ will still open,
-        // but may not attach to the correct session on all devices.
-        if (controller != null) {
-            // Try casting to get the underlying session — Media3 doesn't expose this yet.
-            // Use 0 as the best available value from the controller side.
-            return 0;
-        }
-        return 0;
+        // Published by SwaraPlaybackService in the session extras.
+        return audioSessionId;
     }
+
+    private int audioSessionId = 0;
 
     // ===== Helpers =====
 
     private MediaItem songToMediaItem(Song song) {
-        if (song != null) {
-            if (song.getDuration() <= 0) {
-                Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
-                if (canonical != null && canonical.getDuration() > 0) {
-                    song = canonical;
-                }
-            }
-            songCache.put(song.getId(), song);
-        }
-        android.os.Bundle extras = new android.os.Bundle();
-        if (song != null) {
-            extras.putLong("albumId", song.getAlbumId());
-            extras.putLong("duration", song.getDuration());
-            extras.putInt("trackNumber", song.getTrackNumber());
-            extras.putInt("year", song.getYear());
-            extras.putLong("dateAdded", song.getDateAdded());
-        }
-        return new MediaItem.Builder()
-                .setMediaId(song != null ? String.valueOf(song.getId()) : "0")
-                .setUri(song != null ? ArtworkRepository.getSongUri(song.getId()) : null)
-                .setMediaMetadata(new MediaMetadata.Builder()
-                        .setTitle(song != null ? song.getTitle() : "Unknown")
-                        .setArtist(song != null ? song.getArtist() : "Unknown")
-                        .setAlbumTitle(song != null ? song.getAlbum() : "Unknown")
-                        .setArtworkUri(song != null ? new ArtworkRepository(getApplication()).getArtworkUri(song) : null)
-                        .setExtras(extras)
-                        .build())
-                .build();
+        MediaItem item = com.psthetech.swara.service.MediaItemFactory.toMediaItem(getApplication(), song);
+        Song encoded = com.psthetech.swara.service.MediaItemFactory.toSong(item);
+        if (encoded != null) songCache.put(encoded.getId(), encoded);
+        return item;
     }
 
     private List<MediaItem> songsToMediaItems(List<Song> songs) {
@@ -680,32 +633,10 @@ public class PlaybackViewModel extends AndroidViewModel {
         if (item == null) return null;
         long id = 0;
         try { id = Long.parseLong(item.mediaId); } catch (NumberFormatException ignored) {}
-        
         Song cached = songCache.get(id);
         if (cached != null && cached.getDuration() > 0) return cached;
-
-        Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
-        if (canonical != null && canonical.getDuration() > 0) {
-            songCache.put(id, canonical);
-            return canonical;
-        }
-
-        MediaMetadata meta = item.mediaMetadata;
-        android.os.Bundle extras = meta != null && meta.extras != null ? meta.extras : android.os.Bundle.EMPTY;
-        long albumId = extras.getLong("albumId", canonical != null ? canonical.getAlbumId() : 0L);
-        long duration = extras.getLong("duration", canonical != null ? canonical.getDuration() : 0L);
-        int trackNumber = extras.getInt("trackNumber", canonical != null ? canonical.getTrackNumber() : 0);
-        int year = extras.getInt("year", canonical != null ? canonical.getYear() : 0);
-        long dateAdded = extras.getLong("dateAdded", canonical != null ? canonical.getDateAdded() : 0L);
-
-        Song resolved = new Song(
-                id,
-                meta != null && meta.title != null ? meta.title.toString() : (canonical != null ? canonical.getTitle() : "Unknown"),
-                meta != null && meta.artist != null ? meta.artist.toString() : (canonical != null ? canonical.getArtist() : "Unknown"),
-                meta != null && meta.albumTitle != null ? meta.albumTitle.toString() : (canonical != null ? canonical.getAlbum() : "Unknown"),
-                albumId, duration, trackNumber, year, dateAdded
-        );
-        songCache.put(id, resolved);
+        Song resolved = com.psthetech.swara.service.MediaItemFactory.toSong(item);
+        if (resolved != null) songCache.put(id, resolved);
         return resolved;
     }
 

@@ -24,12 +24,12 @@ Swara plays the music already on your device. It needs no account and no network
 
 ## Features
 
-- **Local library.** Songs, albums, artists, and folders, indexed from MediaStore.
+- **Local library.** Songs, albums, and artists, indexed from MediaStore and refreshed automatically when files are added or removed. Clips under 30 seconds are hidden by default (configurable in Settings).
 - **Korokae karaoke mode.** A small streaming neural network strips vocals in real time inside the audio pipeline. It renders no files and adds about 23 ms of latency.
 - **Karaoke matching.** Swara detects when a library already contains a karaoke or instrumental version of a track.
 - **Playlists.** Create, edit, and reorder playlists. Artwork comes from a custom photo or an automatic 2x2 collage of the playlist's songs.
-- **Queue and playback.** Drag to reorder, swipe to remove, play next, shuffle, repeat, and a sleep timer with presets or an end-of-song option.
-- **Favorites and history.** Includes recently played and most played lists.
+- **Queue and playback.** Drag to reorder, swipe to remove, play next, shuffle, repeat, and a sleep timer with presets or an end-of-song option. The queue and position are restored after the app is closed.
+- **Favorites and history.** Favorites plus a recently played list.
 - **Search.** Results update as you type and cover songs, albums, artists, and playlists.
 - **Background playback.** Lock-screen, notification, and headset controls (Media3 `MediaSessionService`).
 - **Home-screen widgets.** Horizontal and vertical player widgets with artwork, seek, and +/-15 s skip.

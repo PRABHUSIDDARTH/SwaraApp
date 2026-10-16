@@ -134,6 +134,41 @@
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
 
+            <!-- Section 3: Library -->
+            <TextView
+                android:id="@+id/tvLibraryHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_library_header"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingTop="@dimen/dp_16"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLibraryContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:layout_marginBottom="@dimen/dp_24"
+                app:cardBackgroundColor="@color/swara_surface_2"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:strokeColor="@color/swara_glass_stroke"
+                app:strokeWidth="@dimen/border_regular">
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchHideShortClips"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/dp_16"
+                    android:text="@string/settings_hide_short_clips"
+                    android:textColor="@color/swara_text_primary"
+                    android:textSize="@dimen/text_body_md" />
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

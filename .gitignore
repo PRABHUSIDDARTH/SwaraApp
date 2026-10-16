@@ -30,3 +30,8 @@ ml/korokae/.venv/
 *.stem.mp4
 *.pt
 __pycache__/
+
+# Release signing secrets
+keystore.properties
+*.jks
+*.keystore

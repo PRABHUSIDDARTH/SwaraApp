@@ -38,7 +38,6 @@ import java.util.Map;
 public class MusicRepository {
 
     private static final String TAG = "MusicRepository";
-    private static final long MIN_DURATION_MS = 30_000; // skip clips < 30 seconds
 
     private final Context context;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -85,6 +84,11 @@ public class MusicRepository {
         this.context = context.getApplicationContext();
     }
 
+    /** Short clips are hidden unless the user turned that off in Settings. */
+    private long minDurationMs() {
+        return com.psthetech.swara.data.preference.LibraryPreferences.minDurationMs(context);
+    }
+
     // ===== Songs =====
 
     /** Loads all songs from MediaStore asynchronously. Callback on main thread. */
@@ -110,7 +114,7 @@ public class MusicRepository {
             try {
                 long thirtyDaysAgoSec = (System.currentTimeMillis() / 1000) - (30L * 24 * 60 * 60);
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND "
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND "
                         + MediaStore.Audio.Media.DATE_ADDED + " >= " + thirtyDaysAgoSec;
                 // MediaProvider rejects "LIMIT" inside sortOrder on Android 11+; cap in Java.
                 List<Song> songs = capResults(querySongs(selection, null,
@@ -200,11 +204,12 @@ public class MusicRepository {
             try {
                 String lower = query.toLowerCase(Locale.getDefault()).trim();
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND ("
-                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
-                String[] args = new String[]{"%" + lower + "%", "%" + lower + "%", "%" + lower + "%"};
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND ("
+                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ? ESCAPE '\\')";
+                String like = "%" + escapeLike(lower) + "%";
+                String[] args = new String[]{like, like, like};
                 List<Song> results = capResults(querySongs(selection, args,
                         MediaStore.Audio.Media.TITLE + " ASC"), 100);
                 mainHandler.post(() -> callback.onResult(results));
@@ -246,11 +251,12 @@ public class MusicRepository {
                 String q = lowerQuery.trim();
                 // Broad query: songs where title, artist, or album matches
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND ("
-                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
-                String[] args = new String[]{"%" + q + "%", "%" + q + "%", "%" + q + "%"};
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND ("
+                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ? ESCAPE '\\')";
+                String like = "%" + escapeLike(q) + "%";
+                String[] args = new String[]{like, like, like};
                 List<Song> allMatching = querySongs(selection, args,
                         MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC");
 
@@ -275,6 +281,12 @@ public class MusicRepository {
                     Song rep = e.getValue();
                     albumResults.add(new Album(rep.getAlbumId(), rep.getAlbum(), rep.getArtist(),
                             1, rep.getYear(), Collections.singletonList(rep)));
+                }
+
+                // Artist results show each artist's full song list, which needs the library-wide
+                // index. Build it now if the Artists tab hasn't been opened yet this session.
+                if (canonicalArtistIndex.isEmpty()) {
+                    buildArtists(querySongs(null, null, null));
                 }
 
                 // Artists: distinct canonical artists whose name matches query, containing all their songs
@@ -306,6 +318,11 @@ public class MusicRepository {
         });
     }
 
+    /** Escapes LIKE wildcards so "100%" or "a_b" match literally (paired with ESCAPE '\\'). */
+    public static String escapeLike(String s) {
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
     // ===== Internal query =====
 
     private List<Song> querySongs(String selection, String[] selectionArgs, String sortOrder) {
@@ -324,10 +341,13 @@ public class MusicRepository {
                 MediaStore.Audio.Media.DATE_ADDED,
         };
 
+        // A full-library query lets us drop cached songs that no longer exist.
+        final boolean fullLibrary = selection == null;
+
         // Default selection: music files longer than threshold
         if (selection == null) {
             selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                    + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS;
+                    + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs();
         }
 
         if (sortOrder == null) {
@@ -372,6 +392,12 @@ public class MusicRepository {
                     Log.w(TAG, "Skipping malformed MediaStore row", rowEx);
                 }
             }
+        }
+
+        if (fullLibrary) {
+            java.util.Set<Long> present = new java.util.HashSet<>();
+            for (Song s : songs) present.add(s.getId());
+            canonicalSongMap.keySet().retainAll(present);
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");

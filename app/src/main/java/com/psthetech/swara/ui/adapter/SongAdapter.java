@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -282,43 +281,8 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
     // ===== Context menu =====
 
     private void showContextMenu(View anchor, Song song, Context ctx) {
-        PopupMenu popup = new PopupMenu(ctx, anchor);
-        popup.getMenu().add(0, 1, 0, ctx.getString(R.string.play_next));
-        popup.getMenu().add(0, 2, 1, ctx.getString(R.string.add_to_queue));
-        popup.getMenu().add(0, 3, 2, ctx.getString(R.string.add_to_playlist));
-        boolean isFav = favoriteSongIds.contains(song.getId());
-        popup.getMenu().add(0, 4, 3, ctx.getString(isFav
-                ? R.string.remove_from_favorites : R.string.add_to_favorites));
-        if (showRemoveFromPlaylist) {
-            popup.getMenu().add(0, 5, 4, ctx.getString(R.string.remove_from_playlist));
-        }
-        popup.getMenu().add(0, 6, 5, ctx.getString(R.string.edit_artwork));
-        popup.getMenu().add(0, 9, 6, ctx.getString(R.string.edit_song_info));
-        popup.getMenu().add(0, 7, 7, ctx.getString(R.string.delete_from_device));
-        popup.getMenu().add(0, 8, 8, ctx.getString(R.string.share));
-        popup.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case 1: listener.onPlayNext(song); return true;
-                case 2: listener.onAddToQueue(song); return true;
-                case 3: listener.onAddToPlaylist(song); return true;
-                case 4: listener.onFavoriteToggle(song, isFav); return true;
-                case 5: listener.onRemoveFromPlaylist(song); return true;
-                case 6: listener.onEditArtwork(song); return true;
-                case 9: listener.onEditSongInfo(song); return true;
-                case 7: listener.onDeleteSong(song); return true;
-                case 8:
-                    android.content.Intent shareIntent = new android.content.Intent(
-                            android.content.Intent.ACTION_SEND);
-                    shareIntent.setType("text/plain");
-                    shareIntent.putExtra(android.content.Intent.EXTRA_TEXT,
-                            song.getTitle() + " — " + song.getArtist());
-                    ctx.startActivity(android.content.Intent.createChooser(
-                            shareIntent, ctx.getString(R.string.share)));
-                    return true;
-            }
-            return false;
-        });
-        popup.show();
+        SongMenuHelper.show(ctx, anchor, song, favoriteSongIds.contains(song.getId()),
+                showRemoveFromPlaylist, listener);
     }
 
     // ===== ViewHolder =====
