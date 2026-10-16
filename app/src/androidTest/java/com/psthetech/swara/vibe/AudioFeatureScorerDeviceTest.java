@@ -57,7 +57,7 @@ public class AudioFeatureScorerDeviceTest {
         Context ctx = InstrumentationRegistry.getInstrumentation().getTargetContext();
         File wav = writeWav(ctx);
         AudioFeatureScorer scorer = new AudioFeatureScorer(ctx);
-        assertEquals(1, scorer.version());
+        assertEquals(2, scorer.version());
         MoodResult r = scorer.score(Uri.fromFile(wav));
         assertTrue("score should be ok", r.ok);
         assertEquals(120.0, r.tempoBpm, 5.0);

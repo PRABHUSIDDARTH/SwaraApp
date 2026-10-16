@@ -11,7 +11,7 @@ import com.psthetech.swara.vibe.dsp.FeatureExtractor;
 
 /** Scores a song by decoding its middle 30 s and extracting audio features. */
 public class AudioFeatureScorer implements MoodScorer {
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     private static final int SECONDS = 30;
     private static final int RATE = 22050;
 

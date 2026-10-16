@@ -17,12 +17,15 @@ import java.nio.ByteOrder;
 public final class PcmDecoder {
     private static final long TIMEOUT_US = 10_000;
     private static final long WALL_LIMIT_MS = 10_000;
+    /** On hitting the wall limit, keep what was decoded if it covers at least this long. */
+    private static final int MIN_PARTIAL_SECONDS = 10;
 
     private PcmDecoder() {}
 
     /**
      * Decodes {@code seconds} of audio starting at max(0, duration/2 - 15 s), downmixed to mono and
-     * resampled to {@code targetRate}. Returns null on any failure or after 10 s of wall time.
+     * resampled to {@code targetRate}. Returns null on any failure. After 10 s of wall time it returns
+     * the audio decoded so far if that covers at least 10 s, otherwise null.
      */
     @Nullable
     public static float[] decodeMiddle(Context ctx, Uri uri, int seconds, int targetRate) {
@@ -65,38 +68,49 @@ public final class PcmDecoder {
             boolean inputDone = false;
             boolean outputDone = false;
 
+            // Pipelined loop: feed every free input buffer and drain every ready output buffer
+            // per pass, so a slow (throttled) codec isn't paced by one round trip per frame.
             while (!outputDone && n < mono.length) {
-                if (SystemClock.elapsedRealtime() > deadline) return null;
-                if (!inputDone) {
-                    int in = codec.dequeueInputBuffer(TIMEOUT_US);
-                    if (in >= 0) {
-                        ByteBuffer ib = codec.getInputBuffer(in);
-                        int size = extractor.readSampleData(ib, 0);
-                        if (size < 0) {
-                            codec.queueInputBuffer(in, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                            inputDone = true;
-                        } else {
-                            codec.queueInputBuffer(in, 0, size, extractor.getSampleTime(), 0);
-                            extractor.advance();
-                        }
-                    }
+                if (SystemClock.elapsedRealtime() > deadline) {
+                    return keepPartial(n, rate) ? resample(mono, n, rate, targetRate) : null;
                 }
-                int out = codec.dequeueOutputBuffer(info, TIMEOUT_US);
-                if (out == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    MediaFormat of = codec.getOutputFormat();
-                    if (of.containsKey(MediaFormat.KEY_SAMPLE_RATE)) rate = of.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                    if (of.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) channels = of.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                    encoding = of.containsKey(MediaFormat.KEY_PCM_ENCODING)
-                            ? of.getInteger(MediaFormat.KEY_PCM_ENCODING) : AudioFormat.ENCODING_PCM_16BIT;
-                } else if (out >= 0) {
-                    ByteBuffer ob = codec.getOutputBuffer(out);
-                    if (ob != null && info.size > 0) {
-                        ob.position(info.offset);
-                        ob.limit(info.offset + info.size);
-                        n = appendMono(ob.order(ByteOrder.nativeOrder()), encoding, channels, mono, n);
+                boolean fed = false;
+                while (!inputDone) {
+                    int in = codec.dequeueInputBuffer(0);
+                    if (in < 0) break;
+                    ByteBuffer ib = codec.getInputBuffer(in);
+                    int size = extractor.readSampleData(ib, 0);
+                    if (size < 0) {
+                        codec.queueInputBuffer(in, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                        inputDone = true;
+                    } else {
+                        codec.queueInputBuffer(in, 0, size, extractor.getSampleTime(), 0);
+                        extractor.advance();
                     }
-                    codec.releaseOutputBuffer(out, false);
-                    if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) outputDone = true;
+                    fed = true;
+                }
+                // Block briefly only when this pass queued nothing, to avoid spinning.
+                long wait = fed ? 0 : TIMEOUT_US;
+                while (!outputDone && n < mono.length) {
+                    int out = codec.dequeueOutputBuffer(info, wait);
+                    wait = 0;
+                    if (out == MediaCodec.INFO_TRY_AGAIN_LATER) break;
+                    if (out == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        MediaFormat of = codec.getOutputFormat();
+                        if (of.containsKey(MediaFormat.KEY_SAMPLE_RATE)) rate = of.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                        if (of.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) channels = of.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                        encoding = of.containsKey(MediaFormat.KEY_PCM_ENCODING)
+                                ? of.getInteger(MediaFormat.KEY_PCM_ENCODING) : AudioFormat.ENCODING_PCM_16BIT;
+                    } else if (out >= 0) {
+                        ByteBuffer ob = codec.getOutputBuffer(out);
+                        if (ob != null && info.size > 0) {
+                            ob.position(info.offset);
+                            ob.limit(info.offset + info.size);
+                            n = appendMono(ob.order(ByteOrder.nativeOrder()), encoding, channels, mono, n);
+                        }
+                        codec.releaseOutputBuffer(out, false);
+                        if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) outputDone = true;
+                    }
                 }
             }
             if (n == 0) return null;
@@ -112,22 +126,54 @@ public final class PcmDecoder {
         }
     }
 
-    /** Downmixes interleaved frames in {@code buf} into mono[n..]; returns the new count. */
+    /** True when {@code monoFrames} decoded at {@code rate} are enough to keep after a timeout. */
+    static boolean keepPartial(int monoFrames, int rate) {
+        return rate > 0 && monoFrames >= (long) MIN_PARTIAL_SECONDS * rate;
+    }
+
+    /**
+     * Downmixes interleaved frames in {@code buf} into mono[n..]; returns the new count. Reads in
+     * bulk into a scratch array, since per-sample ByteBuffer gets are slow on a throttled core.
+     */
     static int appendMono(ByteBuffer buf, int encoding, int channels, float[] mono, int n) {
         int ch = Math.max(1, channels);
         int bytes = encoding == AudioFormat.ENCODING_PCM_FLOAT ? 4
                 : encoding == AudioFormat.ENCODING_PCM_8BIT ? 1 : 2;
-        int frames = buf.remaining() / (bytes * ch);
-        for (int f = 0; f < frames && n < mono.length; f++) {
-            float sum = 0;
-            for (int c = 0; c < ch; c++) {
-                switch (bytes) {
-                    case 4: sum += buf.getFloat(); break;
-                    case 1: sum += ((buf.get() & 0xFF) - 128) / 128f; break;
-                    default: sum += buf.getShort() / 32768f; break;
+        int frames = Math.min(buf.remaining() / (bytes * ch), mono.length - n);
+        if (frames <= 0) return n;
+        int samples = frames * ch;
+        float inv = 1f / ch;
+        switch (bytes) {
+            case 4: {
+                float[] s = new float[samples];
+                buf.asFloatBuffer().get(s);
+                for (int f = 0, i = 0; f < frames; f++) {
+                    float sum = 0;
+                    for (int c = 0; c < ch; c++) sum += s[i++];
+                    mono[n++] = sum * inv;
                 }
+                break;
             }
-            mono[n++] = sum / ch;
+            case 1: {
+                byte[] s = new byte[samples];
+                buf.get(s);
+                for (int f = 0, i = 0; f < frames; f++) {
+                    float sum = 0;
+                    for (int c = 0; c < ch; c++) sum += ((s[i++] & 0xFF) - 128) / 128f;
+                    mono[n++] = sum * inv;
+                }
+                break;
+            }
+            default: {
+                short[] s = new short[samples];
+                buf.asShortBuffer().get(s);
+                for (int f = 0, i = 0; f < frames; f++) {
+                    float sum = 0;
+                    for (int c = 0; c < ch; c++) sum += s[i++];
+                    mono[n++] = sum * inv / 32768f;
+                }
+                break;
+            }
         }
         return n;
     }
