@@ -52,7 +52,10 @@ public class MixRefreshWorker extends Worker {
         try {
             RecommendationService.Pool pool =
                     new RecommendationService(ctx).loadPool(null, false);
-            if (pool.taste == null || pool.candidates().isEmpty()) return Result.success();
+            if (pool.taste == null || pool.candidates().isEmpty()) {
+                AppDatabase.getInstance(ctx).mixDao().deleteAll();
+                return Result.success();
+            }
             Calendar cal = Calendar.getInstance();
             int hour = cal.get(Calendar.HOUR_OF_DAY);
             long now = System.currentTimeMillis();
@@ -76,6 +79,7 @@ public class MixRefreshWorker extends Worker {
             });
             return Result.success();
         } catch (RuntimeException e) {
+            android.util.Log.w("MixRefreshWorker", "Mix refresh failed", e);
             return Result.success();
         }
     }

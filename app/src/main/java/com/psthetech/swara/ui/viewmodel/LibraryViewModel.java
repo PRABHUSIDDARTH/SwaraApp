@@ -161,6 +161,7 @@ public class LibraryViewModel extends AndroidViewModel {
     private final Runnable mediaChangeReload = () -> {
         refreshAll();
         com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueue(getApplication());
+        com.psthetech.swara.vibe.android.MixRefreshWorker.refreshNow(getApplication());
     };
     private final android.database.ContentObserver mediaObserver =
             new android.database.ContentObserver(mediaChangeHandler) {

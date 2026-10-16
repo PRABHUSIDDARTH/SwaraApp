@@ -19,6 +19,9 @@ public interface MixDao {
     @Query("SELECT * FROM mixes ORDER BY mixKey ASC")
     LiveData<List<Mix>> allLive();
 
+    @Query("SELECT COUNT(*) FROM mixes")
+    int count();
+
     @Query("DELETE FROM mixes")
     void deleteAll();
 }

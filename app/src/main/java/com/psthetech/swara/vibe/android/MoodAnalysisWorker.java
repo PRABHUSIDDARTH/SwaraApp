@@ -53,6 +53,7 @@ public class MoodAnalysisWorker extends Worker {
             for (Song s : songs) ids.add(s.getId());
             MoodRepository repo = new MoodRepository(ctx);
             List<Long> todo = repo.idsNeedingAnalysis(ids);
+            boolean analyzedAny = !todo.isEmpty();
             for (int i = 0; i < todo.size(); i += BATCH) {
                 if (isStopped()) return Result.success();
                 repo.analyzeBatch(todo.subList(i, Math.min(i + BATCH, todo.size())),
@@ -60,6 +61,7 @@ public class MoodAnalysisWorker extends Worker {
                 if (isStopped()) return Result.success();
                 repo.renormalize();
             }
+            if (analyzedAny) MixRefreshWorker.refreshNow(ctx);
             return Result.success();
         } catch (SecurityException e) {
             return Result.success();

@@ -44,6 +44,13 @@ public class SwaraApplication extends Application {
         // Daily "For you" mix refresh
         com.psthetech.swara.vibe.android.MixRefreshWorker.enqueuePeriodic(this);
 
+        // First run / empty table: build mixes now instead of waiting for the daily run
+        dbExecutor.execute(() -> {
+            if (AppDatabase.getInstance(this).mixDao().count() == 0) {
+                com.psthetech.swara.vibe.android.MixRefreshWorker.refreshNow(this);
+            }
+        });
+
         // Eagerly initialize theme preferences and night mode state
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
     }

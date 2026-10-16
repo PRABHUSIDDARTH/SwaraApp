@@ -268,8 +268,30 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             Song s = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
             if (s != null) songs.add(s);
         }
-        if (songs.isEmpty()) return;
-        playbackViewModel.playSongs(songs, 0);
+        if (!songs.isEmpty()) {
+            playbackViewModel.playSongs(songs, 0);
+            return;
+        }
+        // Canonical cache is cold: resolve off the main thread, then play on it.
+        final android.content.Context appCtx = requireContext().getApplicationContext();
+        final List<Long> ids = com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds);
+        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
+            com.psthetech.swara.data.repository.MusicRepository repo =
+                    new com.psthetech.swara.data.repository.MusicRepository(appCtx);
+            List<Song> resolved = new ArrayList<>();
+            try {
+                for (long id : ids) {
+                    Song s = repo.getSongById(id);
+                    if (s != null) resolved.add(s);
+                }
+            } catch (RuntimeException e) {
+                android.util.Log.w("HomeFragment", "Mix resolve failed", e);
+            }
+            if (resolved.isEmpty()) return;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (isAdded()) playbackViewModel.playSongs(resolved, 0);
+            });
+        });
     }
 
     private void onPlaylistClick(Playlist playlist) {
