@@ -84,4 +84,34 @@ public class MoodModelTest {
         assertFalse(r.ok);
         assertEquals(3, r.scorerVersion);
     }
+
+    @Test
+    public void normalize_mixedTies() {
+        assertArrayEquals(new double[]{0.25, 0.25, 1.0},
+                PercentileNormalizer.normalize(new double[]{1, 1, 2}), 1e-9);
+    }
+
+    @Test
+    public void normalize_multipleNaNs() {
+        assertArrayEquals(new double[]{0.25, 0.25, 1.0},
+                PercentileNormalizer.normalize(new double[]{Double.NaN, Double.NaN, 5}), 1e-9);
+    }
+
+    @Test
+    public void normalize_allNaN_isHalf() {
+        assertArrayEquals(new double[]{0.5, 0.5, 0.5},
+                PercentileNormalizer.normalize(new double[]{Double.NaN, Double.NaN, Double.NaN}), 1e-9);
+    }
+
+    @Test
+    public void normalize_largeInput_isFast() {
+        java.util.Random r = new java.util.Random(42);
+        double[] in = new double[20000];
+        for (int i = 0; i < in.length; i++) in[i] = r.nextDouble();
+        long t = System.nanoTime();
+        double[] out = PercentileNormalizer.normalize(in);
+        long ms = (System.nanoTime() - t) / 1_000_000;
+        assertEquals(in.length, out.length);
+        assertTrue("took " + ms + " ms", ms < 500);
+    }
 }
