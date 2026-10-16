@@ -202,6 +202,20 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     Navigation.findNavController(v).navigate(R.id.playlistsFragment));
         }
 
+        if (com.psthetech.swara.BuildConfig.DEBUG) {
+            View appNameView = view.findViewById(R.id.tvAppName);
+            if (appNameView != null) {
+                appNameView.setOnLongClickListener(v -> {
+                    try {
+                        startActivity(new android.content.Intent().setClassName(
+                                requireContext().getPackageName(),
+                                "com.psthetech.swara.ui.debug.MoodDebugActivity"));
+                    } catch (android.content.ActivityNotFoundException ignored) { }
+                    return true;
+                });
+            }
+        }
+
         View btnSettings = view.findViewById(R.id.btnSettings);
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v ->
