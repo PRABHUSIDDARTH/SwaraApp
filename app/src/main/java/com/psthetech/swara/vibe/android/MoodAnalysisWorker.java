@@ -55,7 +55,9 @@ public class MoodAnalysisWorker extends Worker {
             List<Long> todo = repo.idsNeedingAnalysis(ids);
             for (int i = 0; i < todo.size(); i += BATCH) {
                 if (isStopped()) return Result.success();
-                repo.analyzeBatch(todo.subList(i, Math.min(i + BATCH, todo.size())));
+                repo.analyzeBatch(todo.subList(i, Math.min(i + BATCH, todo.size())),
+                        this::isStopped);
+                if (isStopped()) return Result.success();
                 repo.renormalize();
             }
             return Result.success();

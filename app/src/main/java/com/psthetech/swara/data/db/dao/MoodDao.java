@@ -4,6 +4,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 
 import com.psthetech.swara.data.db.entity.SongMood;
 
@@ -26,4 +27,12 @@ public interface MoodDao {
 
     @Query("UPDATE song_mood SET valence = :valence, energy = :energy WHERE songId = :songId")
     void updateNormalized(long songId, double valence, double energy);
+
+    /** Writes all normalized values in one transaction. */
+    @Transaction
+    default void updateNormalizedBatch(long[] songIds, double[] valence, double[] energy) {
+        for (int i = 0; i < songIds.length; i++) {
+            updateNormalized(songIds[i], valence[i], energy[i]);
+        }
+    }
 }

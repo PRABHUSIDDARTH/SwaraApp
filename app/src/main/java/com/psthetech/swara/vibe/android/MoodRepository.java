@@ -51,17 +51,21 @@ public class MoodRepository {
         return out;
     }
 
-    /** Analyzes and stores each song; does not renormalize. Stops early if the thread is interrupted. */
-    public void analyzeBatch(List<Long> songIds) {
+    /** Analyzes and stores each song; does not renormalize. Stops before the next song once {@code stop} is true. */
+    public void analyzeBatch(List<Long> songIds, java.util.function.BooleanSupplier stop) {
         for (long id : songIds) {
-            if (Thread.currentThread().isInterrupted()) return;
+            if (stop.getAsBoolean() || Thread.currentThread().isInterrupted()) return;
             analyzeAndStore(id);
         }
     }
 
+    /** Overridable so JVM tests need no Android Uri. */
+    protected Uri uriFor(long songId) {
+        return ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId);
+    }
+
     private SongMood analyzeAndStore(long songId) {
-        Uri uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId);
-        MoodResult r = scorer.score(uri);
+        MoodResult r = scorer.score(uriFor(songId));
         long now = System.currentTimeMillis();
         SongMood m;
         if (r.ok && RawMoodModel.unpack(r.raw) != null) {
@@ -116,6 +120,8 @@ public class MoodRepository {
         }
         double[] pv = PercentileNormalizer.normalize(rv);
         double[] pe = PercentileNormalizer.normalize(re);
-        for (int i = 0; i < n; i++) dao.updateNormalized(ok.get(i).songId, pv[i], pe[i]);
+        long[] ids = new long[n];
+        for (int i = 0; i < n; i++) ids[i] = ok.get(i).songId;
+        dao.updateNormalizedBatch(ids, pv, pe);
     }
 }
