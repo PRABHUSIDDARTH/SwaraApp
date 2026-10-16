@@ -156,6 +156,11 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
     }
 
     @Override
+    public void onStartVibe(Song song) {
+        playbackViewModel.startVibeFrom(song);
+    }
+
+    @Override
     public void onAddToQueue(Song song) {
         playbackViewModel.addToQueue(song);
     }

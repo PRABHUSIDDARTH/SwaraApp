@@ -86,6 +86,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
 
         recentlyPlayedAdapter = new SongAdapter(new SongAdapter.Listener() {
             @Override
+            public void onStartVibe(Song song) {
+                HomeFragment.this.onStartVibe(song);
+            }
+
+            @Override
             public void onSongClick(Song song, int position) {
                 playSongFromList(song, recentlyPlayedAdapter.getCurrentList());
             }
@@ -128,6 +133,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         rvRecentlyPlayed.setAdapter(recentlyPlayedAdapter);
 
         recentlyAddedAdapter = new SongAdapter(new SongAdapter.Listener() {
+            @Override
+            public void onStartVibe(Song song) {
+                HomeFragment.this.onStartVibe(song);
+            }
+
             @Override
             public void onSongClick(Song song, int position) {
                 playSongFromList(song, recentlyAddedAdapter.getCurrentList());
@@ -353,6 +363,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     @Override
     public void onPlayNext(Song song) {
         playbackViewModel.playNext(song);
+    }
+
+    @Override
+    public void onStartVibe(Song song) {
+        playbackViewModel.startVibeFrom(song);
     }
 
     @Override

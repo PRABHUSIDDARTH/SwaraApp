@@ -46,6 +46,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         default void onEditArtwork(Song song) {}
         default void onEditSongInfo(Song song) {}
         default void onDeleteSong(Song song) {}
+        default void onStartVibe(Song song) {}
     }
 
     public static final int VIEW_TYPE_COMPACT  = 0;

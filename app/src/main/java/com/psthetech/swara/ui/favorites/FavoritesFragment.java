@@ -185,6 +185,11 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
     }
 
     @Override
+    public void onStartVibe(Song song) {
+        playbackViewModel.startVibeFrom(song);
+    }
+
+    @Override
     public void onAddToQueue(Song song) {
         playbackViewModel.addToQueue(song);
     }

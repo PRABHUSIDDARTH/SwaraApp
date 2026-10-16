@@ -77,6 +77,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnQueue;
     private ImageView btnCollapse;
     private ImageView btnSleepTimer;
+    private ImageView btnVibe;
     private ImageView btnShare;
     private ImageView btnShareCard;
     private ImageView btnEqualizer;
@@ -167,6 +168,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnQueue      = view.findViewById(R.id.btnQueue);
         btnCollapse   = view.findViewById(R.id.btnCollapse);
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
+        btnVibe = view.findViewById(R.id.btnVibe);
         btnShare      = view.findViewById(R.id.btnShare);
         btnShareCard  = view.findViewById(R.id.btnShareCard);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
@@ -216,6 +218,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnFavorite);
         com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnQueue);
         if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
+        if (btnVibe != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVibe);
         if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
         if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
         if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
@@ -275,6 +278,20 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             QueueFragment queueFragment = new QueueFragment();
             queueFragment.show(getParentFragmentManager(), "QueueFragment");
         });
+
+        if (btnVibe != null) {
+            btnVibe.setOnClickListener(v -> playbackViewModel.setVibeMode(
+                    !Boolean.TRUE.equals(playbackViewModel.getVibeActive().getValue())));
+            playbackViewModel.getVibeActive().observe(getViewLifecycleOwner(), active -> {
+                com.psthetech.swara.ui.theme.DesignTokens tokens =
+                        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+                if (tokens != null) {
+                    btnVibe.setColorFilter(Boolean.TRUE.equals(active)
+                            ? tokens.getAccentColor()
+                            : android.graphics.Color.argb(166, 255, 255, 255));
+                }
+            });
+        }
 
         if (btnSleepTimer != null) {
             btnSleepTimer.setOnClickListener(v -> {
@@ -587,6 +604,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnCollapse != null) btnCollapse.setColorFilter(secondary);
         if (btnAudioOutput != null) btnAudioOutput.setColorFilter(secondary);
         if (btnEqualizer != null) btnEqualizer.setColorFilter(secondary);
+        if (btnVibe != null) {
+            boolean vibeOn = Boolean.TRUE.equals(playbackViewModel.getVibeActive().getValue());
+            btnVibe.setColorFilter(vibeOn ? tokens.getAccentColor() : secondary);
+        }
         if (btnSleepTimer != null) {
             boolean timerActive = Boolean.TRUE.equals(SleepTimerManager.getInstance().getActive().getValue());
             btnSleepTimer.setColorFilter(timerActive ? tokens.getAccentColor() : secondary);
