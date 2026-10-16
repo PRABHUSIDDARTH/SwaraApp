@@ -38,6 +38,9 @@ public class SwaraApplication extends Application {
         // Undo any tag rewrite that was interrupted by the process dying mid-write
         ioExecutor.execute(() -> com.psthetech.swara.util.Id3MetadataWriter.recoverInterruptedWrites(this));
 
+        // Background mood analysis (runs when charging and idle)
+        com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueue(this);
+
         // Eagerly initialize theme preferences and night mode state
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
     }

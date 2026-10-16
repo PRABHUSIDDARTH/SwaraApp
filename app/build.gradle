@@ -95,6 +95,7 @@ dependencies {
 
     // Room — local database
     implementation libs.room.runtime
+    implementation libs.work.runtime
     annotationProcessor libs.room.compiler
 
     // Testing

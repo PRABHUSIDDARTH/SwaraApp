@@ -319,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
             hadAudioPermission = true;
             // The first library query ran before the grant and came back empty.
             new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
+            com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
         } else {
             showPermissionDeniedDialog();
         }
@@ -331,6 +332,7 @@ public class MainActivity extends AppCompatActivity {
         boolean has = PermissionHelper.hasAudioPermission(this);
         if (has && !hadAudioPermission) {
             new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
+            com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
         }
         hadAudioPermission = has;
     }

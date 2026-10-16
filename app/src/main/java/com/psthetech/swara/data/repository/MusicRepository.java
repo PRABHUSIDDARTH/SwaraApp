@@ -104,6 +104,11 @@ public class MusicRepository {
         });
     }
 
+    /** Blocking full-library query; call from a worker thread only. */
+    public List<Song> loadAllSongsBlocking() {
+        return querySongs(null, null, null);
+    }
+
     private static List<Song> capResults(List<Song> songs, int max) {
         return songs.size() > max ? new ArrayList<>(songs.subList(0, max)) : songs;
     }
