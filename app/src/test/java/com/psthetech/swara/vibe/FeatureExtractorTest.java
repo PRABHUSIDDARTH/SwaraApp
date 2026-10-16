@@ -35,7 +35,6 @@ public class FeatureExtractorTest {
         }
         AudioFeatures f = FeatureExtractor.extract(x, SR);
         assertNotNull(f);
-        System.out.println("MEASURED tempo=" + f.tempoBpm + " onsetRate=" + f.onsetRate);
         assertEquals(120.0, f.tempoBpm, 3.0);
     }
 
@@ -43,16 +42,42 @@ public class FeatureExtractorTest {
     public void cMajorTriad_isMajor() {
         AudioFeatures f = FeatureExtractor.extract(sines(10, 261.63, 329.63, 392.00), SR);
         assertNotNull(f);
-        System.out.println("MEASURED Cmaj majorness=" + f.majorness);
-        assertTrue(f.majorness > 0);
+        assertTrue(f.majorness >= 0.05);
+    }
+
+    @Test
+    public void dMajorTriad_isMajor() {
+        AudioFeatures f = FeatureExtractor.extract(sines(10, 293.66, 369.99, 440.00), SR);
+        assertNotNull(f);
+        assertTrue(f.majorness >= 0.05);
+    }
+
+    private static float[] harmonicChord(double seconds, double... freqs) {
+        float[] x = new float[(int) (seconds * SR)];
+        for (int i = 0; i < x.length; i++) {
+            double s = 0;
+            for (double f : freqs) {
+                for (int h = 1; h <= 4; h++) s += Math.sin(2 * Math.PI * f * h * i / SR) / h;
+            }
+            x[i] = (float) (0.1 * s);
+        }
+        return x;
+    }
+
+    @Test
+    public void harmonicRichChords_majorBeatsMinor() {
+        AudioFeatures maj = FeatureExtractor.extract(harmonicChord(10, 261.63, 329.63, 392.00), SR);
+        AudioFeatures min = FeatureExtractor.extract(harmonicChord(10, 220.0, 261.63, 329.63), SR);
+        assertNotNull(maj);
+        assertNotNull(min);
+        assertTrue(maj.majorness > min.majorness + 0.2);
     }
 
     @Test
     public void aMinorTriad_isMinor() {
         AudioFeatures f = FeatureExtractor.extract(sines(10, 220.0, 261.63, 329.63), SR);
         assertNotNull(f);
-        System.out.println("MEASURED Amin majorness=" + f.majorness);
-        assertTrue(f.majorness < 0);
+        assertTrue(f.majorness <= -0.15);
     }
 
     @Test
@@ -61,7 +86,6 @@ public class FeatureExtractorTest {
         AudioFeatures lo = FeatureExtractor.extract(sines(6, 200), SR);
         assertNotNull(hi);
         assertNotNull(lo);
-        System.out.println("MEASURED centroid hi=" + hi.centroidHz + " lo=" + lo.centroidHz);
         assertTrue(hi.centroidHz > lo.centroidHz);
     }
 

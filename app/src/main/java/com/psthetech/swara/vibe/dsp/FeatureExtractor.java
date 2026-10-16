@@ -37,15 +37,19 @@ public final class FeatureExtractor {
         int bins = FRAME / 2 + 1;
         double binHz = (double) sampleRate / FRAME;
 
-        // Chroma bin mapping (precomputed): pitch class per bin, -1 outside ~65 Hz - 2 kHz.
+        // Chroma bin mapping (precomputed): pitch class per bin, -1 outside ~130 Hz - 2 kHz.
         int[] pitchClass = new int[bins];
+        double[] binWeight = new double[bins];
+        double semitone = Math.pow(2.0, 1.0 / 12.0) - 1.0;
         for (int k = 0; k < bins; k++) {
             double f = k * binHz;
-            if (f < 65.0 || f > 2000.0) {
+            if (f < 130.0 || f > 2000.0) {
                 pitchClass[k] = -1;
             } else {
                 long midi = Math.round(12.0 * Math.log(f / 440.0) / Math.log(2) + 69.0);
                 pitchClass[k] = (int) (((midi % 12) + 12) % 12);
+                // Equalise per-semitone density: bin width over semitone width at f.
+                binWeight[k] = binHz / (f * semitone);
             }
         }
 
@@ -55,6 +59,7 @@ public final class FeatureExtractor {
         double[] prev = new double[bins];
         double[] onset = new double[frames];
         double[] chroma = new double[12];
+        double[] frameChroma = new double[12];
         double centroidSum = 0;
         int centroidFrames = 0;
 
@@ -66,6 +71,7 @@ public final class FeatureExtractor {
                 im[i] = 0.0;
             }
             Fft.transform(re, im);
+            java.util.Arrays.fill(frameChroma, 0.0);
             double flux = 0;
             double magSum = 0;
             double weighted = 0;
@@ -76,7 +82,12 @@ public final class FeatureExtractor {
                 if (d > 0 && fr > 0) flux += d;
                 magSum += m;
                 weighted += m * k * binHz;
-                if (pitchClass[k] >= 0) chroma[pitchClass[k]] += m;
+                if (pitchClass[k] >= 0) frameChroma[pitchClass[k]] += m * binWeight[k];
+            }
+            double chromaSum = 0;
+            for (int c = 0; c < 12; c++) chromaSum += frameChroma[c];
+            if (chromaSum > 1e-9) {
+                for (int c = 0; c < 12; c++) chroma[c] += frameChroma[c] / chromaSum;
             }
             onset[fr] = flux;
             if (magSum > 1e-9) {
