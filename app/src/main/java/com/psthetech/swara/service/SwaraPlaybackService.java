@@ -27,7 +27,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.psthetech.swara.korokae.KorokaeAudioProcessor;
 import com.psthetech.swara.korokae.KorokaeModelProvider;
 
+import com.psthetech.swara.SwaraApplication;
+import com.psthetech.swara.data.db.AppDatabase;
+import com.psthetech.swara.data.db.dao.ListenEventDao;
+import com.psthetech.swara.data.db.entity.ListenEvent;
 import com.psthetech.swara.data.repository.MusicRepository;
+import com.psthetech.swara.vibe.EventClassifier;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.MainActivity;
 import com.psthetech.swara.util.SleepTimerManager;
@@ -164,6 +169,9 @@ public class SwaraPlaybackService extends MediaSessionService {
                 // Push widget update with new track info
                 pushWidgetUpdate(mediaItem, player.isPlaying());
                 saveState();
+                if (mediaItem != null) {
+                    recordListenEvent(mediaItem, ListenEvent.TYPE_PLAY, 0L);
+                }
             }
 
             @Override
@@ -204,6 +212,20 @@ public class SwaraPlaybackService extends MediaSessionService {
                             ? Long.MAX_VALUE // finished naturally
                             : oldPosition.positionMs;
                     recordPlay(oldPosition.mediaItem, listened);
+                }
+                // Listen events (taste signals): separate from play history above.
+                boolean sameIndex = oldPosition.mediaItemIndex == newPosition.mediaItemIndex;
+                boolean autoTransition = reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION;
+                boolean sameItemRestarted = sameIndex && (autoTransition
+                        || (reason == Player.DISCONTINUITY_REASON_SEEK
+                        && newPosition.positionMs <= 1000 && oldPosition.positionMs > 5000));
+                if ((autoTransition || !sameIndex || sameItemRestarted)
+                        && oldPosition.mediaItem != null) {
+                    Song left = MediaItemFactory.toSong(oldPosition.mediaItem);
+                    long duration = left != null ? left.getDuration() : 0L;
+                    int type = EventClassifier.classifyLeave(oldPosition.positionMs, duration,
+                            autoTransition, sameItemRestarted);
+                    recordListenEvent(oldPosition.mediaItem, type, oldPosition.positionMs);
                 }
                 // Seeks (in-app, notification or widget) re-base the widget seekbar + timers
                 if (reason == Player.DISCONTINUITY_REASON_SEEK
@@ -289,6 +311,30 @@ public class SwaraPlaybackService extends MediaSessionService {
         if (song != null && historyRepository != null) {
             historyRepository.maybeRecordPlay(song, positionMs);
         }
+    }
+
+    private void recordListenEvent(@Nullable MediaItem item, int type, long positionMs) {
+        final Song song = MediaItemFactory.toSong(item);
+        if (song == null) return;
+        final long now = System.currentTimeMillis();
+        final int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        final long songId = song.getId();
+        final android.content.Context ctx = getApplicationContext();
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            try {
+                ListenEventDao dao = AppDatabase.getInstance(ctx).listenEventDao();
+                ListenEvent e = new ListenEvent();
+                e.songId = songId;
+                e.type = type;
+                e.positionMs = positionMs;
+                e.timestamp = now;
+                e.hourOfDay = hour;
+                dao.insert(e);
+                dao.trimTo(5000);
+            } catch (Exception ex) {
+                Log.w(TAG, "Failed to record listen event", ex);
+            }
+        });
     }
 
     // ===== Equalizer =====
