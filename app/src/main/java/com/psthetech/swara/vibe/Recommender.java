@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -33,6 +34,7 @@ public final class Recommender {
     public List<Candidate> pick(@Nullable List<Candidate> pool, @Nullable Candidate current,
                                 double[] targetMood, @Nullable List<String> recentArtistKeys,
                                 @Nullable Set<Long> excluded, long nowMs, int count) {
+        Objects.requireNonNull(targetMood, "targetMood");
         List<Candidate> result = new ArrayList<>();
         if (pool == null || pool.isEmpty() || count <= 0) return result;
 
@@ -114,9 +116,9 @@ public final class Recommender {
     }
 
     private static boolean halfOrDouble(double a, double b) {
-        double r = a / b;
-        return Math.abs(r - 0.5) <= 0.5 * TEMPO_TOLERANCE
-                || Math.abs(r - 2.0) <= 2.0 * TEMPO_TOLERANCE;
+        double hi = Math.max(a, b);
+        double lo = Math.min(a, b);
+        return Math.abs(hi / lo - 2.0) <= 2.0 * TEMPO_TOLERANCE;
     }
 
     public static double freshness(long lastPlayedMs, long nowMs) {

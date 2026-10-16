@@ -146,4 +146,58 @@ public class RecommenderTest {
         double mid = Recommender.freshness(NOW - (2 * H + (7 * 24 * H - 2 * H) / 2), NOW);
         assertEquals(0.5, mid, 1e-6);
     }
+
+    @Test
+    public void transition_isSymmetric() {
+        double[][] pairs = {{100, 185}, {70, 140}, {120, 128}};
+        for (double[] p : pairs) {
+            Candidate a = c(1, "a", new double[]{0.5, 0.5}, p[0], 0);
+            Candidate b = c(2, "b", new double[]{0.5, 0.5}, p[1], 0);
+            assertEquals(Recommender.transition(a, b), Recommender.transition(b, a), 1e-12);
+        }
+        Candidate a = c(1, "a", new double[]{0.5, 0.5}, 100, 0);
+        Candidate b = c(2, "b", new double[]{0.5, 0.5}, 185, 0);
+        assertEquals(1.0, Recommender.transition(b, a), 1e-9);
+    }
+
+    @Test
+    public void played45MinAgo_ineligibleAtL0_butChosenAtL1() {
+        Candidate mid = c(1, "a", new double[]{0.7, 0.6}, 0, NOW - 45 * 60_000L);
+        Candidate old = c(2, "b", new double[]{0.0, 0.0}, 0, 0);
+        List<Candidate> out = pick(new Recommender(new Random(1)), list(mid, old), null,
+                Collections.<String>emptyList(), new HashSet<Long>(), 1);
+        assertEquals(2L, out.get(0).songId);
+        out = pick(new Recommender(new Random(1)), list(mid), null,
+                Collections.<String>emptyList(), new HashSet<Long>(), 1);
+        assertEquals(1, out.size());
+        assertEquals(1L, out.get(0).songId);
+    }
+
+    @Test
+    public void onlyCurrentSong_returnsEmpty() {
+        Candidate cur = c(1, "a", new double[]{0.7, 0.6}, 0, 0);
+        assertTrue(pick(new Recommender(new Random(1)), list(cur), cur,
+                Collections.<String>emptyList(), new HashSet<Long>(), 3).isEmpty());
+    }
+
+    @Test
+    public void countLargerThanPool_returnsEachOnce() {
+        List<Candidate> pool = new ArrayList<>();
+        for (int i = 0; i < 4; i++) pool.add(c(i, "a", new double[]{0.5, 0.5}, 0, 0));
+        List<Candidate> out = pick(new Recommender(new Random(3)), pool, null,
+                Collections.<String>emptyList(), new HashSet<Long>(), 10);
+        assertEquals(4, out.size());
+        Set<Long> ids = new HashSet<>();
+        for (Candidate x : out) ids.add(x.songId);
+        assertEquals(4, ids.size());
+    }
+
+    @Test
+    public void recentArtistKeys_notMutated() {
+        List<String> recent = new ArrayList<>(Arrays.asList("x", "y"));
+        pick(new Recommender(new Random(1)),
+                list(c(1, "a", null, 0, 0), c(2, "b", null, 0, 0)), null, recent,
+                new HashSet<Long>(), 2);
+        assertEquals(Arrays.asList("x", "y"), recent);
+    }
 }
