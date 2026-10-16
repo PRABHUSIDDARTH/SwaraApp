@@ -16,6 +16,7 @@ import com.psthetech.swara.util.ArtistIdentityHelper;
 import com.psthetech.swara.vibe.Candidate;
 import com.psthetech.swara.vibe.Recommender;
 import com.psthetech.swara.vibe.TasteProfile;
+import com.psthetech.swara.vibe.VibeQueuePolicy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,19 +34,21 @@ import java.util.Set;
 public final class RecommendationService {
 
     private static final String TAG = "RecommendationService";
-    /** At most this many on-demand analyses per pool build. */
-    private static final int MAX_ON_DEMAND_ANALYSES = 5;
     private static final double[] NEUTRAL = {0.5, 0.5};
 
     private final Context context;
     private final MoodRepository moodRepository;
     private final Recommender recommender = new Recommender(new Random());
+    private final java.util.concurrent.atomic.AtomicBoolean backgroundBusy =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
 
     /** One refill's view of the library. */
     public static final class Pool {
         final Map<Long, Song> songs = new HashMap<>();
         final Map<Long, Candidate> byId = new HashMap<>();
         final List<Candidate> candidates = new ArrayList<>();
+        /** Eligible unanalyzed songs to analyze after this refill lands (may be empty). */
+        public final List<Long> backgroundAnalysisIds = new ArrayList<>();
     }
 
     public RecommendationService(@NonNull Context context) {
@@ -71,12 +74,16 @@ public final class RecommendationService {
     }
 
     /**
-     * Builds the pool. Songs come from the library cache (or a MediaStore query when the cache is
-     * cold, e.g. the service restarted without the UI). Up to 5 songs with no current-version
-     * mood, ranked by taste and not in {@code excluded}, are analyzed on demand.
+     * Builds the pool from stored moods (unanalyzed songs score a neutral mood fit). Songs come
+     * from the library cache, or a MediaStore query when the cache is cold (service restarted
+     * without the UI). Only when fewer than 15 analyzed eligible songs exist are up to 5
+     * eligible unanalyzed songs (top taste, not excluded, not played within 2 h) analyzed
+     * synchronously; otherwise those ids are returned in {@link Pool#backgroundAnalysisIds}
+     * for {@link #analyzeInBackground}.
      */
     @NonNull
     public Pool loadPool(@Nullable Set<Long> excluded) {
+        long now = System.currentTimeMillis();
         List<Song> library = MusicRepository.getCachedLibrarySongs();
         if (library.isEmpty()) {
             try {
@@ -107,26 +114,33 @@ public final class RecommendationService {
         TasteProfile taste = new TasteProfile(events, favorites, artistBySong, albumBySong);
 
         Map<Long, SongMood> moods = moodsById(db);
-        // On-demand analysis of the top-taste songs that lack a current-version mood.
         int version = moodRepository.scorerVersion();
-        List<Long> missing = new ArrayList<>();
+        int analyzedEligible = 0;
+        List<Long> unanalyzedEligible = new ArrayList<>();
         for (Song s : library) {
-            if (excluded != null && excluded.contains(s.getId())) continue;
-            SongMood m = moods.get(s.getId());
-            if (m == null || m.scorerVersion < version) missing.add(s.getId());
+            long id = s.getId();
+            Long lp = lastPlayed.get(id);
+            if (!VibeQueuePolicy.eligible(id, lp == null ? 0L : lp, excluded, now)) continue;
+            SongMood m = moods.get(id);
+            if (m == null || m.scorerVersion < version) unanalyzedEligible.add(id);
+            else if (m.status == SongMood.STATUS_OK) analyzedEligible++;
         }
-        if (!missing.isEmpty()) {
-            Collections.sort(missing, (a, b) -> Double.compare(taste.combined(b), taste.combined(a)));
-            int n = Math.min(MAX_ON_DEMAND_ANALYSES, missing.size());
-            for (int i = 0; i < n; i++) {
+        Collections.sort(unanalyzedEligible,
+                (a, b) -> Double.compare(taste.combined(b), taste.combined(a)));
+        List<Long> top = new ArrayList<>(unanalyzedEligible.subList(0,
+                Math.min(VibeQueuePolicy.MAX_ANALYSES_PER_REFILL, unanalyzedEligible.size())));
+        if (!top.isEmpty() && VibeQueuePolicy.analyzeOnDemand(analyzedEligible)) {
+            for (long id : top) {
                 try {
-                    moodRepository.getOrAnalyze(missing.get(i));
+                    moodRepository.getOrAnalyze(id);
                 } catch (RuntimeException e) {
                     Log.w(TAG, "On-demand analysis failed", e);
                 }
             }
             // Analysis renormalizes every OK row, so reload all moods once.
             moods = moodsById(db);
+        } else {
+            pool.backgroundAnalysisIds.addAll(top);
         }
 
         for (Song s : library) {
@@ -143,6 +157,30 @@ public final class RecommendationService {
             pool.byId.put(id, c);
         }
         return pool;
+    }
+
+    /**
+     * Analyzes {@code ids} and renormalizes once. Skipped if another background batch is
+     * running. Blocking; I/O thread only.
+     */
+    public void analyzeInBackground(@NonNull List<Long> ids,
+                                    @NonNull java.util.function.BooleanSupplier stop) {
+        if (ids.isEmpty() || !backgroundBusy.compareAndSet(false, true)) return;
+        try {
+            moodRepository.analyzeBatch(ids, stop);
+            moodRepository.renormalize();
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Background analysis failed", e);
+        } finally {
+            backgroundBusy.set(false);
+        }
+    }
+
+    /** Stored mood of a pool song, or neutral when unanalyzed. */
+    @NonNull
+    public static double[] storedMood(@NonNull Pool pool, long songId) {
+        Candidate c = pool.byId.get(songId);
+        return c != null && c.mood != null ? c.mood.clone() : NEUTRAL.clone();
     }
 
     private static Map<Long, SongMood> moodsById(AppDatabase db) {

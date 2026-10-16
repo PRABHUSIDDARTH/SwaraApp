@@ -419,7 +419,11 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     private void applyVibeExtras(@Nullable android.os.Bundle extras) {
         if (extras == null) return;
-        vibeActive.postValue(extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_VIBE_ACTIVE, false));
+        boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_VIBE_ACTIVE, false);
+        // Controller callbacks arrive on the main looper; setValue keeps ordering with the
+        // optimistic update in sendVibeCommand.
+        if (Looper.myLooper() == Looper.getMainLooper()) vibeActive.setValue(active);
+        else vibeActive.postValue(active);
     }
 
     /** Maps the service's session extras onto the UI-facing KorokaeState. */

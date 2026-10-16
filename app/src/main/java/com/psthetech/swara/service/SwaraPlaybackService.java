@@ -107,6 +107,8 @@ public class SwaraPlaybackService extends MediaSessionService {
     private KorokaeModelProvider korokaeModelProvider;
     private KorokaeAudioProcessor korokaeProcessor;
     private VibeController vibeController;
+    /** The current item has not yet logged its TYPE_PLAY listen event. */
+    private boolean playEventPending = false;
     private final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     // Drives the widget seekbar while playing (only when a widget is placed)
@@ -182,11 +184,14 @@ public class SwaraPlaybackService extends MediaSessionService {
                 // Push widget update with new track info
                 pushWidgetUpdate(mediaItem, player.isPlaying());
                 saveState();
-                // Only real playback counts: a queue restore at launch (paused) is not a play.
-                if (mediaItem != null && player.getPlayWhenReady()) {
+                // TYPE_PLAY is logged once per item, when it actually plays: a paused queue
+                // restore logs nothing, resuming from pause logs once.
+                playEventPending = mediaItem != null;
+                if (playEventPending && player.isPlaying()) {
+                    playEventPending = false;
                     recordListenEvent(mediaItem, ListenEvent.TYPE_PLAY, 0L);
                 }
-                vibeController.onMediaItemTransition();
+                vibeController.onMediaItemTransition(mediaItem, reason);
             }
 
             @Override
@@ -197,6 +202,10 @@ public class SwaraPlaybackService extends MediaSessionService {
                 mainHandler.removeCallbacks(widgetTicker);
                 mainHandler.removeCallbacks(periodicStateSave);
                 if (isPlaying) {
+                    if (playEventPending && current != null) {
+                        playEventPending = false;
+                        recordListenEvent(current, ListenEvent.TYPE_PLAY, 0L);
+                    }
                     mainHandler.postDelayed(widgetTicker, WIDGET_TICK_MS);
                     mainHandler.postDelayed(periodicStateSave, STATE_SAVE_INTERVAL_MS);
                 } else {
@@ -430,6 +439,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                 if (player == null || player.getMediaItemCount() > 0) return;
                 player.setShuffleModeEnabled(saved.shuffle);
                 player.setRepeatMode(saved.repeatMode);
+                vibeController.expectPlaylistChange(items.get(start).mediaId);
                 player.setMediaItems(items, start, startPosition);
                 player.prepare();
                 vibeController.restore(saved.vibeState, saved.vibePickIds, saved.vibeSkippedIds);
