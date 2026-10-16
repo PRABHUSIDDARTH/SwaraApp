@@ -99,6 +99,17 @@
     <string name="reorder">Reorder</string>
 
     <!-- Home -->
+    <string name="for_you">For you</string>
+    <string name="mix_morning">Morning</string>
+    <string name="mix_afternoon">Afternoon</string>
+    <string name="mix_evening">Evening</string>
+    <string name="mix_late_night">Late night</string>
+    <string name="mix_feel_good">Feel-good</string>
+    <string name="mix_rediscover">Rediscover</string>
+    <plurals name="mix_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
     <string name="recently_played">Recently played</string>
     <string name="recently_added">Recently added</string>
     <string name="good_morning">Good morning</string>

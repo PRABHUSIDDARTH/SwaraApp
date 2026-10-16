@@ -73,6 +73,38 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <!-- For you -->
+                <LinearLayout
+                    android:id="@+id/sectionForYou"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/tvHeaderForYou"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="@dimen/dp_24"
+                        android:paddingTop="@dimen/dp_8"
+                        android:paddingBottom="@dimen/dp_12"
+                        android:text="@string/for_you"
+                        android:textSize="@dimen/text_headline_md"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.015"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:fontFamily="sans-serif" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvForYou"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/dp_16"
+                        android:clipToPadding="false" />
+
+                </LinearLayout>
+
                 <!-- Recently Played -->
                 <LinearLayout
                     android:id="@+id/sectionRecentlyPlayed"

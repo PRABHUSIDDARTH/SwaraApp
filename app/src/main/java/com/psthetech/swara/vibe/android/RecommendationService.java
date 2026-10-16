@@ -49,6 +49,12 @@ public final class RecommendationService {
         final List<Candidate> candidates = new ArrayList<>();
         /** Eligible unanalyzed songs to analyze after this refill lands (may be empty). */
         public final List<Long> backgroundAnalysisIds = new ArrayList<>();
+        /** Taste profile the candidates were scored with. */
+        public TasteProfile taste;
+        /** Candidates, in library order. */
+        public List<Candidate> candidates() {
+            return candidates;
+        }
     }
 
     public RecommendationService(@NonNull Context context) {
@@ -83,6 +89,12 @@ public final class RecommendationService {
      */
     @NonNull
     public Pool loadPool(@Nullable Set<Long> excluded) {
+        return loadPool(excluded, true);
+    }
+
+    /** As {@link #loadPool(Set)}; {@code allowOnDemand=false} never analyzes synchronously. */
+    @NonNull
+    public Pool loadPool(@Nullable Set<Long> excluded, boolean allowOnDemand) {
         long now = System.currentTimeMillis();
         List<Song> library = MusicRepository.getCachedLibrarySongs();
         if (library.isEmpty()) {
@@ -112,6 +124,7 @@ public final class RecommendationService {
             if (prev == null || e.timestamp > prev) lastPlayed.put(e.songId, e.timestamp);
         }
         TasteProfile taste = new TasteProfile(events, favorites, artistBySong, albumBySong);
+        pool.taste = taste;
 
         Map<Long, SongMood> moods = moodsById(db);
         int version = moodRepository.scorerVersion();
@@ -129,7 +142,7 @@ public final class RecommendationService {
                 (a, b) -> Double.compare(taste.combined(b), taste.combined(a)));
         List<Long> top = new ArrayList<>(unanalyzedEligible.subList(0,
                 Math.min(VibeQueuePolicy.MAX_ANALYSES_PER_REFILL, unanalyzedEligible.size())));
-        if (!top.isEmpty() && VibeQueuePolicy.analyzeOnDemand(analyzedEligible)) {
+        if (allowOnDemand && !top.isEmpty() && VibeQueuePolicy.analyzeOnDemand(analyzedEligible)) {
             for (long id : top) {
                 try {
                     moodRepository.getOrAnalyze(id);
