@@ -35,6 +35,9 @@ public class SwaraApplication extends Application {
         // Eagerly initialize the Room DB so the first DB access is not blocked
         AppDatabase.getInstance(this);
 
+        // Undo any tag rewrite that was interrupted by the process dying mid-write
+        ioExecutor.execute(() -> com.psthetech.swara.util.Id3MetadataWriter.recoverInterruptedWrites(this));
+
         // Eagerly initialize theme preferences and night mode state
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
     }

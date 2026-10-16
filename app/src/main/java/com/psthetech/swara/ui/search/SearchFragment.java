@@ -32,6 +32,8 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
     private SearchViewModel searchViewModel;
     private PlaylistViewModel playlistViewModel;
+    private com.psthetech.swara.ui.viewmodel.PlaybackViewModel playbackViewModel;
+    private com.psthetech.swara.ui.viewmodel.FavoritesViewModel favoritesViewModel;
 
     private TextInputEditText etSearch;
     private RecyclerView recyclerView;
@@ -58,8 +60,10 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
         searchViewModel   = new ViewModelProvider(this).get(SearchViewModel.class);
         playlistViewModel = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
-        com.psthetech.swara.ui.viewmodel.PlaybackViewModel playbackViewModel =
-                new ViewModelProvider(requireActivity()).get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class);
+        playbackViewModel = new ViewModelProvider(requireActivity())
+                .get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class);
+        favoritesViewModel = new ViewModelProvider(requireActivity())
+                .get(com.psthetech.swara.ui.viewmodel.FavoritesViewModel.class);
 
         com.google.android.material.textfield.TextInputLayout tilSearch = view.findViewById(R.id.tilSearch);
         etSearch     = view.findViewById(R.id.etSearch);
@@ -77,6 +81,9 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         libraryViewModel = new ViewModelProvider(requireActivity())
                 .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class);
         libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> librarySongs = songs);
+
+        favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids ->
+                searchAdapter.setFavorites(ids != null ? new java.util.HashSet<>(ids) : null));
 
         // --- Observe current playing song for glow highlight ---
         playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
@@ -183,9 +190,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
             library = libraryViewModel.getAllSongs().getValue();
         }
         SearchQueueBuilder.Queue queue = SearchQueueBuilder.build(library, song);
-        new ViewModelProvider(requireActivity())
-                .get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class)
-                .playSongs(queue.songs, queue.startIndex);
+        playbackViewModel.playSongs(queue.songs, queue.startIndex);
     }
 
     @Override
@@ -216,7 +221,43 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
     }
 
     @Override
-    public void onSongAddToPlaylist(Song song) {
+    public void onPlayNext(Song song) {
+        playbackViewModel.playNext(song);
+    }
+
+    @Override
+    public void onAddToQueue(Song song) {
+        playbackViewModel.addToQueue(song);
+    }
+
+    @Override
+    public void onAddToPlaylist(Song song) {
         AddToPlaylistDialog.show(requireActivity(), requireView(), song, playlistViewModel);
+    }
+
+    @Override
+    public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
+        favoritesViewModel.toggleFavorite(song);
+    }
+
+    @Override
+    public void onEditArtwork(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
+        }
+    }
+
+    @Override
+    public void onEditSongInfo(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
+        }
+    }
+
+    @Override
+    public void onDeleteSong(Song song) {
+        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
+        }
     }
 }

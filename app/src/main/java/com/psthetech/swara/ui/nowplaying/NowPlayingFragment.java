@@ -278,8 +278,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnSleepTimer != null) {
             btnSleepTimer.setOnClickListener(v -> {
-                SleepTimerDialog dialog = SleepTimerDialog.newInstance(
-                        () -> playbackViewModel.pause());
+                SleepTimerDialog dialog = SleepTimerDialog.newInstance();
                 dialog.show(getParentFragmentManager(), SleepTimerDialog.TAG);
             });
 

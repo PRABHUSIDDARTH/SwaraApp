@@ -95,6 +95,10 @@ public class LibraryViewModel extends AndroidViewModel {
             return songs;
         });
 
+        // Pick up songs added, removed, or re-tagged outside the app.
+        application.getContentResolver().registerContentObserver(
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, mediaObserver);
+
         // Build a sorted view: re-sort whenever allSongs or activeSortOrder changes
         sortedSongs = Transformations.switchMap(activeSortOrder, order ->
                 Transformations.map(allSongs, songs -> applySortOrder(songs, order)));
@@ -149,55 +153,98 @@ public class LibraryViewModel extends AndroidViewModel {
         return o != null ? o : SortOrder.TITLE_ASC;
     }
 
+    // ===== MediaStore change observer =====
+
+    private static final long MEDIA_CHANGE_DEBOUNCE_MS = 1500L;
+    private final android.os.Handler mediaChangeHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable mediaChangeReload = this::refreshAll;
+    private final android.database.ContentObserver mediaObserver =
+            new android.database.ContentObserver(mediaChangeHandler) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    // MediaStore fires bursts of changes during a scan; coalesce them.
+                    mediaChangeHandler.removeCallbacks(mediaChangeReload);
+                    mediaChangeHandler.postDelayed(mediaChangeReload, MEDIA_CHANGE_DEBOUNCE_MS);
+                }
+            };
+
+    @Override
+    protected void onCleared() {
+        mediaChangeHandler.removeCallbacks(mediaChangeReload);
+        getApplication().getContentResolver().unregisterContentObserver(mediaObserver);
+        super.onCleared();
+    }
+
     // ===== Loaders =====
 
+    private boolean reloadSongsPending, reloadAlbumsPending, reloadArtistsPending;
+
     public void loadSongs() {
-        if (isLoadingSongs.getValue() == Boolean.TRUE) return;
+        if (isLoadingSongs.getValue() == Boolean.TRUE) {
+            // A load started before (e.g.) the permission grant may return stale results.
+            reloadSongsPending = true;
+            return;
+        }
         isLoadingSongs.setValue(true);
         musicRepository.loadAllSongs(new MusicRepository.Callback<List<Song>>() {
             @Override
             public void onResult(List<Song> result) {
                 allSongs.setValue(result);
                 isLoadingSongs.setValue(false);
+                if (reloadSongsPending) { reloadSongsPending = false; loadSongs(); }
             }
             @Override
             public void onError(String message) {
                 loadError.setValue(message);
                 isLoadingSongs.setValue(false);
+                if (reloadSongsPending) { reloadSongsPending = false; loadSongs(); }
             }
         });
     }
 
     public void loadAlbums() {
-        if (isLoadingAlbums.getValue() == Boolean.TRUE) return;
+        if (isLoadingAlbums.getValue() == Boolean.TRUE) {
+            // A load started before (e.g.) the permission grant may return stale results.
+            reloadAlbumsPending = true;
+            return;
+        }
         isLoadingAlbums.setValue(true);
         musicRepository.loadAlbums(new MusicRepository.Callback<List<Album>>() {
             @Override
             public void onResult(List<Album> result) {
                 allAlbums.setValue(result);
                 isLoadingAlbums.setValue(false);
+                if (reloadAlbumsPending) { reloadAlbumsPending = false; loadAlbums(); }
             }
             @Override
             public void onError(String message) {
                 loadError.setValue(message);
                 isLoadingAlbums.setValue(false);
+                if (reloadAlbumsPending) { reloadAlbumsPending = false; loadAlbums(); }
             }
         });
     }
 
     public void loadArtists() {
-        if (isLoadingArtists.getValue() == Boolean.TRUE) return;
+        if (isLoadingArtists.getValue() == Boolean.TRUE) {
+            // A load started before (e.g.) the permission grant may return stale results.
+            reloadArtistsPending = true;
+            return;
+        }
         isLoadingArtists.setValue(true);
         musicRepository.loadArtists(new MusicRepository.Callback<List<Artist>>() {
             @Override
             public void onResult(List<Artist> result) {
                 allArtists.setValue(result);
                 isLoadingArtists.setValue(false);
+                if (reloadArtistsPending) { reloadArtistsPending = false; loadArtists(); }
             }
             @Override
             public void onError(String message) {
                 loadError.setValue(message);
                 isLoadingArtists.setValue(false);
+                if (reloadArtistsPending) { reloadArtistsPending = false; loadArtists(); }
             }
         });
     }

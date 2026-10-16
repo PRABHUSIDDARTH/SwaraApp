@@ -32,7 +32,7 @@ import com.psthetech.swara.data.db.entity.PlaylistSong;
 @Database(
     entities = {FavoriteSong.class, Playlist.class, PlaylistSong.class, PlayHistory.class},
     version = 3,
-    exportSchema = false
+    exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
 

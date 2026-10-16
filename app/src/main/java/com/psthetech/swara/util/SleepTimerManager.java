@@ -14,8 +14,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * SleepTimerManager — Singleton sleep timer for Swara.
  *
  * Modes:
- *  - Fixed duration (15/30/45/60 minutes): after timeout, fires onTimerFinished
- *  - End-of-song: the playback controller polls isSleepAfterSong() and calls finishSleep()
+ *  - Fixed duration (15/30/45/60 minutes): after timeout, pauses playback
+ *  - End-of-song: the player pauses at the end of the current item (before the next starts)
+ *
+ * Pausing is performed by {@link PlaybackHooks}, registered by the playback service, so the
+ * timer still works when the UI that started it has been destroyed. The optional
+ * {@link OnTimerFinishedListener} is only a notification.
  *
  * Observers are notified via LiveData:
  *  - remainingMs: countdown in milliseconds (0 when idle)
@@ -25,6 +29,12 @@ public class SleepTimerManager {
 
     public interface OnTimerFinishedListener {
         void onSleepTimerFinished();
+    }
+
+    /** Implemented by the playback service; all calls happen on the main thread. */
+    public interface PlaybackHooks {
+        void pauseNow();
+        void setPauseAtEndOfCurrentItem(boolean pause);
     }
 
     // ===== Singleton =====
@@ -48,6 +58,7 @@ public class SleepTimerManager {
 
     @Nullable private CountDownTimer countDownTimer;
     @Nullable private OnTimerFinishedListener listener;
+    @Nullable private PlaybackHooks playbackHooks;
 
     private boolean sleepAfterSong = false;
     private Handler mainHandler;
@@ -61,6 +72,12 @@ public class SleepTimerManager {
     }
 
     // ===== Public API =====
+
+    /** Registered by the playback service in onCreate; cleared (null) in onDestroy. */
+    public void setPlaybackHooks(@Nullable PlaybackHooks hooks) {
+        this.playbackHooks = hooks;
+        if (hooks != null && sleepAfterSong) hooks.setPauseAtEndOfCurrentItem(true);
+    }
 
     /** Start a fixed-duration countdown (minutes). */
     public void startTimer(int minutes, @Nullable OnTimerFinishedListener listener) {
@@ -85,9 +102,10 @@ public class SleepTimerManager {
                     active.postValue(false);
                 }
                 countDownTimer = null;
-                if (SleepTimerManager.this.listener != null) {
-                    SleepTimerManager.this.listener.onSleepTimerFinished();
-                }
+                if (playbackHooks != null) playbackHooks.pauseNow();
+                OnTimerFinishedListener l = SleepTimerManager.this.listener;
+                SleepTimerManager.this.listener = null;
+                if (l != null) l.onSleepTimerFinished();
             }
         }.start();
 
@@ -103,6 +121,7 @@ public class SleepTimerManager {
         this.listener = listener;
         this.sleepAfterSong = true;
         activeState.set(true);
+        if (playbackHooks != null) playbackHooks.setPauseAtEndOfCurrentItem(true);
         if (mainHandler != null) {
             // Show a symbolic "-1" as remaining to indicate end-of-song mode
             remainingMs.postValue(-1L);
@@ -111,19 +130,14 @@ public class SleepTimerManager {
     }
 
     /**
-     * Called by the playback layer when a song transition occurs.
-     * If sleepAfterSong mode is active, fires the listener and clears the timer.
+     * Called by the playback service when the player paused at the end of the current item
+     * (or the queue ended). If end-of-song mode is armed, clears the timer and notifies.
      */
-    public void onSongTransition() {
+    public void onCurrentItemEnded() {
         if (!sleepAfterSong) return;
+        OnTimerFinishedListener l = listener;
         cancelTimer();
-        if (listener != null) {
-            if (mainHandler != null) {
-                mainHandler.post(() -> listener.onSleepTimerFinished());
-            } else {
-                listener.onSleepTimerFinished();
-            }
-        }
+        if (l != null) l.onSleepTimerFinished();
     }
 
     /** Cancel any active timer. */
@@ -132,6 +146,7 @@ public class SleepTimerManager {
             countDownTimer.cancel();
             countDownTimer = null;
         }
+        if (sleepAfterSong && playbackHooks != null) playbackHooks.setPauseAtEndOfCurrentItem(false);
         sleepAfterSong = false;
         activeState.set(false);
         listener = null;

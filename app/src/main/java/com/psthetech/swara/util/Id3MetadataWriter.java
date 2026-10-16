@@ -39,6 +39,17 @@ public final class Id3MetadataWriter {
 
     private Id3MetadataWriter() {}
 
+    /** Tags larger than this (e.g. huge embedded artwork) are not rewritten, to avoid OOM. */
+    private static final int MAX_TAG_BODY_BYTES = 32 * 1024 * 1024;
+
+    /**
+     * Originals are journaled in internal storage (not the cache, which the system may clear)
+     * until the rewrite completes. A leftover journal entry means the process died mid-write.
+     */
+    private static final String JOURNAL_DIR = "metadata_journal";
+    private static final String BACKUP_SUFFIX = ".orig";
+    private static final String URI_SUFFIX = ".uri";
+
     // Set of frame IDs managed/replaced by the metadata editor
     private static final Set<String> MANAGED_FRAMES = new HashSet<>(Arrays.asList(
             "TIT2", // Title
@@ -101,6 +112,10 @@ public final class Id3MetadataWriter {
                         Log.w(TAG, "Unsupported ID3 layout, skipping embedded write: " + uri);
                         return false;
                     }
+                    if (layout.bodySize > MAX_TAG_BODY_BYTES) {
+                        Log.w(TAG, "ID3 tag too large to rewrite safely (" + layout.bodySize + " bytes): " + uri);
+                        return false;
+                    }
                     byte[] tagData = new byte[layout.bodySize];
                     if (readFully(in, tagData, 0, layout.bodySize) != layout.bodySize) {
                         Log.e(TAG, "Truncated ID3 tag, skipping embedded write: " + uri);
@@ -144,7 +159,9 @@ public final class Id3MetadataWriter {
             }
 
             // Step 4: Back up the original so a failed write-back can be rolled back.
-            File backup = new File(context.getCacheDir(), stagingFile.getName() + ".orig");
+            File journal = journalDir(context);
+            File backup = new File(journal, stagingFile.getName() + BACKUP_SUFFIX);
+            File uriRecord = new File(journal, stagingFile.getName() + URI_SUFFIX);
             try (InputStream in = resolver.openInputStream(uri);
                  FileOutputStream out = new FileOutputStream(backup)) {
                 if (in == null || copy(in, out) != sourceLength) {
@@ -152,6 +169,11 @@ public final class Id3MetadataWriter {
                     Log.e(TAG, "Could not back up original before rewrite: " + uri);
                     return false;
                 }
+                out.getFD().sync();
+            }
+            // The URI record is written last: a backup without it is incomplete and ignored.
+            try (FileOutputStream out = new FileOutputStream(uriRecord)) {
+                out.write(uri.toString().getBytes(StandardCharsets.UTF_8));
                 out.getFD().sync();
             }
 
@@ -166,11 +188,14 @@ public final class Id3MetadataWriter {
                     writeFileTo(resolver, uri, backup);
                 } catch (Exception restoreError) {
                     Log.e(TAG, "CRITICAL: restore failed; original kept at " + backup, restoreError);
-                    backup = null; // keep the backup on disk for manual recovery
+                    backup = null; // keep the journal entry; recoverInterruptedWrites() retries
                 }
                 return false;
             } finally {
-                if (backup != null) backup.delete();
+                if (backup != null) {
+                    uriRecord.delete();
+                    backup.delete();
+                }
             }
 
         } catch (Exception e) {
@@ -179,6 +204,52 @@ public final class Id3MetadataWriter {
         } finally {
             if (stagingFile != null && stagingFile.exists()) {
                 stagingFile.delete();
+            }
+        }
+    }
+
+    private static File journalDir(Context context) {
+        File dir = new File(context.getFilesDir(), JOURNAL_DIR);
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    /**
+     * Restores originals whose rewrite never completed (process killed mid-write).
+     * Call once at startup, off the main thread.
+     */
+    public static void recoverInterruptedWrites(@NonNull Context context) {
+        File[] entries = journalDir(context).listFiles();
+        if (entries == null) return;
+        ContentResolver resolver = context.getContentResolver();
+        for (File backup : entries) {
+            String name = backup.getName();
+            if (!name.endsWith(BACKUP_SUFFIX)) continue;
+            String base = name.substring(0, name.length() - BACKUP_SUFFIX.length());
+            File uriRecord = new File(backup.getParentFile(), base + URI_SUFFIX);
+            if (!uriRecord.exists()) {
+                backup.delete(); // backup never completed, so the original was never touched
+                continue;
+            }
+            try {
+                byte[] raw = new byte[(int) uriRecord.length()];
+                try (FileInputStream in = new FileInputStream(uriRecord)) {
+                    readFully(in, raw, 0, raw.length);
+                }
+                Uri uri = Uri.parse(new String(raw, StandardCharsets.UTF_8));
+                writeFileTo(resolver, uri, backup);
+                Log.w(TAG, "Restored original after interrupted tag write: " + uri);
+                uriRecord.delete();
+                backup.delete();
+            } catch (Exception e) {
+                Log.e(TAG, "Could not restore interrupted tag write " + base + "; will retry", e);
+            }
+        }
+        // Drop orphaned URI records.
+        for (File f : entries) {
+            if (f.getName().endsWith(URI_SUFFIX)) {
+                String base = f.getName().substring(0, f.getName().length() - URI_SUFFIX.length());
+                if (!new File(f.getParentFile(), base + BACKUP_SUFFIX).exists()) f.delete();
             }
         }
     }

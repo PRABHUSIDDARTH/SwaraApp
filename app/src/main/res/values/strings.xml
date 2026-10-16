@@ -323,4 +323,7 @@
     <string name="share_listening_on">Listening on Swara</string>
     <!-- Optional: Facebook App ID enables Instagram's direct "Add to story" intent. -->
     <string name="facebook_app_id" translatable="false"></string>
+    <string name="metadata_non_mp3_notice">Only MP3 files store edited tags in the file itself. For this format, changes are saved to the library only.</string>
+    <string name="settings_library_header">Library</string>
+    <string name="settings_hide_short_clips">Hide clips shorter than 30 seconds</string>
 </resources>

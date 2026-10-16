@@ -45,17 +45,24 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
     public static final int TYPE_ARTIST  = 3;
     public static final int TYPE_PLAYLIST = 4;
 
-    public interface Listener {
+    /** Song rows reuse {@link SongAdapter.Listener} so the overflow menu matches the Songs tab. */
+    public interface Listener extends SongAdapter.Listener {
         void onSongClick(Song song);
         void onAlbumClick(Album album);
         void onArtistClick(Artist artist);
         void onPlaylistClick(Playlist playlist);
-        void onSongAddToPlaylist(Song song);
+
+        @Override
+        default void onSongClick(Song song, int position) { onSongClick(song); }
+
+        @Override
+        default void onRemoveFromPlaylist(Song song) { /* not shown in search */ }
     }
 
     private final Listener listener;
     private final List<Object> items = new ArrayList<>(); // String (header) or domain obj
     private long currentPlayingSongId = -1;
+    private java.util.Set<Long> favoriteSongIds = new java.util.HashSet<>();
     private PlaylistArtworkStore playlistArtworkStore;
 
     public SearchResultsAdapter(@NonNull Listener listener) {
@@ -71,6 +78,11 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             this.currentPlayingSongId = songId;
             notifyDataSetChanged();
         }
+    }
+
+    public void setFavorites(java.util.Set<Long> favoriteIds) {
+        this.favoriteSongIds = favoriteIds != null ? favoriteIds : new java.util.HashSet<>();
+        notifyDataSetChanged();
     }
 
     /** Replace the entire dataset with a new SearchResults object. */
@@ -144,7 +156,7 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
         } else if (holder instanceof SongHolder && item instanceof Song) {
             Song song = (Song) item;
             boolean isPlaying = (currentPlayingSongId != -1 && song.getId() == currentPlayingSongId);
-            ((SongHolder) holder).bind(song, isPlaying, listener, ctx);
+            ((SongHolder) holder).bind(song, isPlaying, favoriteSongIds.contains(song.getId()), listener, ctx);
         } else if (holder instanceof AlbumHolder && item instanceof Album) {
             ((AlbumHolder) holder).bind((Album) item, listener, ctx);
         } else if (holder instanceof ArtistHolder && item instanceof Artist) {
@@ -222,7 +234,7 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             ivMore     = v.findViewById(R.id.ivMore);
         }
 
-        void bind(Song song, boolean isPlaying, Listener listener, Context ctx) {
+        void bind(Song song, boolean isPlaying, boolean isFavorite, Listener listener, Context ctx) {
             tvTitle.setText(song.getTitle());
             tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
             tvTitle.setTypeface(null, isPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
@@ -242,7 +254,8 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (ivFavorite != null) ivFavorite.setVisibility(View.GONE);
             itemView.setOnClickListener(v -> listener.onSongClick(song));
             if (ivMore != null) {
-                ivMore.setOnClickListener(v -> listener.onSongAddToPlaylist(song));
+                ivMore.setOnClickListener(v -> SongMenuHelper.show(ctx, ivMore, song, isFavorite,
+                        /* showRemoveFromPlaylist */ false, listener));
             }
         }
 
