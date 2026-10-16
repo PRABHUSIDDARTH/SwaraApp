@@ -34,6 +34,10 @@ android {
         }
     }
 
+    sourceSets {
+        androidTest.assets.srcDirs += files("$projectDir/schemas")
+    }
+
     signingConfigs {
         release {
             if (keystorePropertiesFile.exists()) {
@@ -97,4 +101,5 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    androidTestImplementation "androidx.room:room-testing:2.6.1"
 }
