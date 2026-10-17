@@ -58,6 +58,9 @@ public interface WrappedDao {
     @Query("SELECT COALESCE(SUM(playedMs), 0) FROM listen_daily WHERE day BETWEEN :fromDay AND :toDay")
     long totalPlayedMs(int fromDay, int toDay);
 
+    @Query("SELECT * FROM listen_daily")
+    List<ListenDaily> allDaily();
+
     @Query("SELECT MIN(day) FROM listen_daily")
     @Nullable Integer firstDay();
 
@@ -83,6 +86,9 @@ public interface WrappedDao {
 
     @Query("SELECT * FROM listen_hourly WHERE day BETWEEN :fromDay AND :toDay")
     List<ListenHourly> hourly(int fromDay, int toDay);
+
+    @Query("SELECT * FROM listen_hourly")
+    List<ListenHourly> allHourly();
 
     // ===== song_snapshot =====
 
@@ -113,6 +119,9 @@ public interface WrappedDao {
 
     @Query("SELECT * FROM recap WHERE recapKey = :key")
     @Nullable Recap recap(String key);
+
+    @Query("SELECT * FROM recap")
+    List<Recap> recaps();
 
     @Query("SELECT recapKey FROM recap")
     List<String> recapKeys();

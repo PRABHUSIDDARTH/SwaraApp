@@ -350,6 +350,18 @@
     <string name="mood_clear">Clear</string>
     <string name="mood_saved">Saved</string>
     <string name="settings_autoplay">Keep playing similar songs when the queue ends</string>
+    <string name="settings_history_header">Listening history</string>
+    <string name="settings_history_body">Your Wrapped stats live only on this phone. Save them to a file to keep them when you switch phones or reinstall.</string>
+    <string name="settings_history_export">Save to file</string>
+    <string name="settings_history_import">Restore from file</string>
+    <string name="history_export_done">Listening history saved</string>
+    <string name="history_export_failed">Couldn\'t save the file. Try a different folder.</string>
+    <string name="history_import_failed">That file isn\'t a Swara listening history.</string>
+    <string name="history_import_nothing">Nothing new to restore. This history is already here.</string>
+    <plurals name="history_import_done">
+        <item quantity="one">Restored %1$d day of listening. Songs found: %2$d. Not on this phone: %3$d (they still count in your stats).</item>
+        <item quantity="other">Restored %1$d days of listening. Songs found: %2$d. Not on this phone: %3$d (they still count in your stats).</item>
+    </plurals>
 
     <!-- Swara Wrapped -->
     <string name="wrapped_footer">Swara Wrapped</string>

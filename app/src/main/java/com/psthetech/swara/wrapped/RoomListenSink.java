@@ -79,7 +79,7 @@ public final class RoomListenSink implements ListenTracker.Sink {
         });
     }
 
-    static SongSnapshot toSnapshot(@NonNull Song song, int day) {
+    public static SongSnapshot toSnapshot(@NonNull Song song, int day) {
         SongSnapshot s = new SongSnapshot();
         s.songId = song.getId();
         s.title = song.getTitle();

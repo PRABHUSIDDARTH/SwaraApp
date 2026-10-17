@@ -185,6 +185,70 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Section 4: Listening history -->
+            <TextView
+                android:id="@+id/tvHistoryHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_history_header"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardHistoryContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:layout_marginBottom="@dimen/dp_24"
+                app:cardBackgroundColor="@color/swara_surface_2"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:strokeColor="@color/swara_glass_stroke"
+                app:strokeWidth="@dimen/border_regular">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dp_16">
+
+                    <TextView
+                        android:id="@+id/tvHistoryBody"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_history_body"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="@dimen/text_body_md" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnHistoryExport"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/dp_12"
+                        android:text="@string/settings_history_export" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnHistoryImport"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_history_import" />
+
+                    <ProgressBar
+                        android:id="@+id/historyProgress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/dp_8"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
