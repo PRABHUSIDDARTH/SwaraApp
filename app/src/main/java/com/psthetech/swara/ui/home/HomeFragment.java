@@ -68,6 +68,13 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        notificationPermission = registerForActivityResult(
+                new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), granted -> { });
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
@@ -448,8 +455,20 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         return new java.text.DateFormatSymbols(java.util.Locale.getDefault()).getMonths()[month - 1];
     }
 
-    /** Hook for the one-time notification-permission request (Task 10). */
+    private androidx.activity.result.ActivityResultLauncher<String> notificationPermission;
+
+    /** Asks once (Android 13+) for notification permission, only after a recap banner was seen. */
     private void onWrappedBannerShown() {
+        if (android.os.Build.VERSION.SDK_INT < 33 || notificationPermission == null) return;
+        android.content.SharedPreferences prefs = requireContext()
+                .getSharedPreferences("swara_wrapped", android.content.Context.MODE_PRIVATE);
+        if (prefs.getBoolean("wrapped_notif_asked", false)) return;
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        prefs.edit().putBoolean("wrapped_notif_asked", true).apply();
+        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);
     }
 
     @Override

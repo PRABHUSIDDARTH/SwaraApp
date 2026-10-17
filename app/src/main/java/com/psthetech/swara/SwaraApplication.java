@@ -40,6 +40,7 @@ public class SwaraApplication extends Application {
 
         // Swara Wrapped: convert pre-existing history into the aggregates once
         ioExecutor.execute(() -> com.psthetech.swara.wrapped.HistoryBackfill.runOnce(this));
+        com.psthetech.swara.wrapped.RecapWorker.enqueue(this);
 
         // Background mood analysis (runs when charging and idle)
         com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueue(this);

@@ -433,4 +433,5 @@
     <string name="wrapped_period_this_year">This year</string>
     <string name="wrapped_period_all_time">All time</string>
     <string name="wrapped_play">Play my Wrapped</string>
+    <string name="wrapped_channel_name">Wrapped recaps</string>
 </resources>
