@@ -415,4 +415,6 @@
     <string name="wrapped_summary_top_artist">Top artist</string>
     <string name="wrapped_summary_mood">Mood</string>
     <string name="wrapped_summary_type">Listener type</string>
+    <string name="wrapped_share_caption">My Swara Wrapped 🎧</string>
+    <string name="wrapped_share_failed">Couldn\'t create the image. Try again.</string>
 </resources>

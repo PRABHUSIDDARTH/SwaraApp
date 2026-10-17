@@ -517,6 +517,20 @@ public final class SlideRenderer {
         return v < 0 ? 0 : (v > 1 ? 1 : v);
     }
 
+    /** The song whose artwork a slide shows, or -1 for slides without artwork. */
+    public static long artSongFor(@NonNull SlideType t, @NonNull WrappedStats s) {
+        switch (t) {
+            case TOP_SONGS:
+            case SUMMARY:
+                return s.topSongIds.isEmpty() ? -1 : s.topSongIds.get(0);
+            case TOP_ALBUM:
+                for (SongInfo i : s.songs.values()) if (i.albumId == s.topAlbumId) return i.songId;
+                return -1;
+            default:
+                return -1;
+        }
+    }
+
     /** True when the slide set for these stats would be drawable (no recap below 30 minutes). */
     public static boolean hasSlides(@NonNull WrappedStats s) {
         return !SlidePlan.plan(s).isEmpty();
