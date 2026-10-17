@@ -16,6 +16,11 @@ import com.psthetech.swara.data.db.dao.MoodDao;
 import com.psthetech.swara.data.db.dao.MoodOverrideDao;
 import com.psthetech.swara.data.db.dao.PlayHistoryDao;
 import com.psthetech.swara.data.db.dao.PlaylistDao;
+import com.psthetech.swara.data.db.dao.WrappedDao;
+import com.psthetech.swara.data.db.entity.ListenDaily;
+import com.psthetech.swara.data.db.entity.ListenHourly;
+import com.psthetech.swara.data.db.entity.Recap;
+import com.psthetech.swara.data.db.entity.SongSnapshot;
 import com.psthetech.swara.data.db.entity.FavoriteSong;
 import com.psthetech.swara.data.db.entity.ListenEvent;
 import com.psthetech.swara.data.db.entity.Mix;
@@ -34,6 +39,7 @@ import com.psthetech.swara.data.db.entity.SongMood;
  *  3  — Added artworkPath column to playlists table (nullable, default NULL).
  *  4  — Added song_mood, listen_events and mixes tables (Vibe Mode recommender).
  *  5  — Added mood_override table (user mood corrections).
+ *  6  — Added listen_daily, listen_hourly, song_snapshot and recap tables (Swara Wrapped).
  *
  * NO allowMainThreadQueries — all access must be on a background thread via ExecutorService.
  *
@@ -41,8 +47,9 @@ import com.psthetech.swara.data.db.entity.SongMood;
  */
 @Database(
     entities = {FavoriteSong.class, Playlist.class, PlaylistSong.class, PlayHistory.class,
-            SongMood.class, ListenEvent.class, Mix.class, MoodOverride.class},
-    version = 5,
+            SongMood.class, ListenEvent.class, Mix.class, MoodOverride.class,
+            ListenDaily.class, ListenHourly.class, SongSnapshot.class, Recap.class},
+    version = 6,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -54,6 +61,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract ListenEventDao listenEventDao();
     public abstract MixDao mixDao();
     public abstract MoodOverrideDao moodOverrideDao();
+    public abstract WrappedDao wrappedDao();
 
     // ===== Migrations =====
 
@@ -100,6 +108,19 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** V5 -> V6: Swara Wrapped aggregates (never trimmed) and stored recaps. */
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // SQL copied from schemas/.../6.json
+            database.execSQL("CREATE TABLE IF NOT EXISTS `listen_daily` (`day` INTEGER NOT NULL, `songId` INTEGER NOT NULL, `playedMs` INTEGER NOT NULL, `plays` INTEGER NOT NULL, `finishes` INTEGER NOT NULL, `skips` INTEGER NOT NULL, `repeats` INTEGER NOT NULL, `vibeStarts` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`day`, `songId`))");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_listen_daily_songId` ON `listen_daily` (`songId`)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `listen_hourly` (`day` INTEGER NOT NULL, `hour` INTEGER NOT NULL, `playedMs` INTEGER NOT NULL, PRIMARY KEY(`day`, `hour`))");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `song_snapshot` (`songId` INTEGER NOT NULL, `title` TEXT, `artist` TEXT, `artistKey` TEXT, `album` TEXT, `albumId` INTEGER NOT NULL, `firstHeardDay` INTEGER NOT NULL, PRIMARY KEY(`songId`))");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `recap` (`recapKey` TEXT NOT NULL, `periodStart` INTEGER NOT NULL, `periodEnd` INTEGER NOT NULL, `statsJson` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `seen` INTEGER NOT NULL, `bannerDismissed` INTEGER NOT NULL, PRIMARY KEY(`recapKey`))");
+        }
+    };
+
     // ===== Singleton =====
 
     private static volatile AppDatabase INSTANCE;
@@ -113,7 +134,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "swara_v2.db"
                             )
-                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                             // Destructive fallback only for schema versions before v2
                             .fallbackToDestructiveMigrationFrom(1)
                             .fallbackToDestructiveMigrationOnDowngrade()
