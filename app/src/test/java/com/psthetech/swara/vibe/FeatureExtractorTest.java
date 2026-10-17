@@ -108,6 +108,52 @@ public class FeatureExtractorTest {
         assertNotNull(FeatureExtractor.extract(x, SR));
     }
 
+    private static float[] clickTrack(double seconds, double bpm) {
+        float[] x = new float[(int) (seconds * SR)];
+        int period = (int) Math.round(SR * 60.0 / bpm);
+        for (int p = 0; p < x.length; p += period) {
+            for (int k = 0; k < 200 && p + k < x.length; k++) {
+                x[p + k] = (float) (0.9 * Math.exp(-k / 30.0) * Math.sin(2 * Math.PI * 1000 * k / SR));
+            }
+        }
+        return x;
+    }
+
+    @Test
+    public void slowSparseClickTrack_isNotDoubled() {
+        AudioFeatures f = FeatureExtractor.extract(clickTrack(20, 70), SR);
+        assertNotNull(f);
+        assertEquals(70.0, f.tempoBpm, 3.0);
+    }
+
+    @Test
+    public void octave_slowTempoWithDensePulse_isDoubled() {
+        assertEquals(140.0, FeatureExtractor.correctOctave(70.0, 4.1), 1e-9);
+        assertEquals(168.0, FeatureExtractor.correctOctave(84.0, 3.7), 1e-9);
+    }
+
+    @Test
+    public void octave_genuinelySlowSong_isNotDoubled() {
+        assertEquals(70.0, FeatureExtractor.correctOctave(70.0, 1.8), 1e-9);
+        assertEquals(75.0, FeatureExtractor.correctOctave(75.0, 3.3), 1e-9);
+    }
+
+    @Test
+    public void octave_fastTempoWithSparsePulse_isHalved() {
+        assertEquals(85.0, FeatureExtractor.correctOctave(170.0, 1.5), 1e-9);
+    }
+
+    @Test
+    public void octave_fastTempoWithDensePulse_isKept() {
+        assertEquals(170.0, FeatureExtractor.correctOctave(170.0, 4.0), 1e-9);
+    }
+
+    @Test
+    public void octave_midTempo_isKept() {
+        assertEquals(120.0, FeatureExtractor.correctOctave(120.0, 6.0), 1e-9);
+        assertEquals(120.0, FeatureExtractor.correctOctave(120.0, 0.5), 1e-9);
+    }
+
     @Test
     public void fft_impulse_isFlat() {
         double[] re = new double[8];

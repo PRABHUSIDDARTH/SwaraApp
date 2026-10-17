@@ -39,6 +39,55 @@ public class MoodModelTest {
     }
 
     @Test
+    public void energy_ignoresTempo() {
+        AudioFeatures slow = new AudioFeatures(0.3, 3.5, 70, 2000, 0);
+        AudioFeatures fast = new AudioFeatures(0.3, 3.5, 170, 2000, 0);
+        assertEquals(RawMoodModel.rawEnergy(slow), RawMoodModel.rawEnergy(fast), 1e-12);
+    }
+
+    @Test
+    public void denserOnsets_isMoreEnergetic() {
+        AudioFeatures sparse = new AudioFeatures(0.3, 2.0, 120, 2000, 0);
+        AudioFeatures dense = new AudioFeatures(0.3, 4.5, 120, 2000, 0);
+        assertTrue(RawMoodModel.rawEnergy(dense) > RawMoodModel.rawEnergy(sparse));
+    }
+
+    // Typical feature values of the three labelled groups in the calibration set.
+    private static final AudioFeatures DANCE = new AudioFeatures(0.37, 3.5, 128, 2300, -0.04);
+    private static final AudioFeatures PLEASANT = new AudioFeatures(0.29, 2.4, 109, 2000, 0.02);
+    private static final AudioFeatures SAD = new AudioFeatures(0.26, 2.65, 90, 2000, -0.09);
+
+    @Test
+    public void danceSong_isHappierThanPleasant_isHappierThanSad() {
+        double d = RawMoodModel.rawValence(DANCE);
+        double p = RawMoodModel.rawValence(PLEASANT);
+        double s = RawMoodModel.rawValence(SAD);
+        assertTrue("dance " + d + " vs pleasant " + p, d > p);
+        assertTrue("pleasant " + p + " vs sad " + s, p > s);
+    }
+
+    @Test
+    public void loudDenseMinorishDance_beatsSoftMajorBallad() {
+        AudioFeatures dance = new AudioFeatures(0.45, 4.2, 130, 1900, -0.15);
+        AudioFeatures ballad = new AudioFeatures(0.25, 2.1, 115, 2000, 0.15);
+        assertTrue(RawMoodModel.rawValence(dance) > RawMoodModel.rawValence(ballad));
+    }
+
+    @Test
+    public void danceableCues_raiseValence() {
+        AudioFeatures quiet = new AudioFeatures(0.1, 2.0, 110, 2000, 0);
+        AudioFeatures danceable = new AudioFeatures(0.4, 4.5, 110, 2000, 0);
+        assertTrue(RawMoodModel.rawValence(danceable) > RawMoodModel.rawValence(quiet));
+    }
+
+    @Test
+    public void valence_ignoresBrightness() {
+        AudioFeatures dull = new AudioFeatures(0.3, 3, 110, 800, 0);
+        AudioFeatures bright = new AudioFeatures(0.3, 3, 110, 4500, 0);
+        assertEquals(RawMoodModel.rawValence(dull), RawMoodModel.rawValence(bright), 1e-12);
+    }
+
+    @Test
     public void normalize_ranks() {
         assertArrayEquals(new double[]{1.0, 0.0, 0.5},
                 PercentileNormalizer.normalize(new double[]{3, 1, 2}), 1e-9);

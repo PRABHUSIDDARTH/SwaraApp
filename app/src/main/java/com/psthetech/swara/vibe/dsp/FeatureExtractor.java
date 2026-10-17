@@ -99,7 +99,8 @@ public final class FeatureExtractor {
 
         double frameRate = (double) sampleRate / HOP;
         double centroid = centroidFrames > 0 ? centroidSum / centroidFrames : 0;
-        return new AudioFeatures(rms, onsetRate(onset, frameRate), tempo(onset, frameRate),
+        double rate = onsetRate(onset, frameRate);
+        return new AudioFeatures(rms, rate, correctOctave(tempo(onset, frameRate), rate),
                 centroid, majorness(chroma));
     }
 
@@ -166,6 +167,27 @@ public final class FeatureExtractor {
         }
         double bpm = 60.0 * frameRate / lagF;
         return Math.max(60.0, Math.min(180.0, bpm));
+    }
+
+    /** Below this tempo a dense onset rate means the beat was found at half speed. */
+    public static final double OCTAVE_SLOW_BPM = 90.0;
+    /** Above this tempo a sparse onset rate means the beat was found at double speed. */
+    public static final double OCTAVE_FAST_BPM = 160.0;
+    /** Onsets per second at or above which a slow tempo is doubled. */
+    public static final double OCTAVE_DENSE_ONSETS = 3.5;
+    /** Onsets per second below which a fast tempo is halved. */
+    public static final double OCTAVE_SPARSE_ONSETS = 2.0;
+
+    /**
+     * Fixes the common octave error of the autocorrelation tempo. A tempo under 90 BPM with at
+     * least 3.5 onsets/s is doubled (a dance beat read at half speed); a tempo over 160 BPM with
+     * fewer than 2 onsets/s is halved. A genuinely slow song has sparse onsets and is left alone.
+     */
+    public static double correctOctave(double bpm, double onsetRate) {
+        double t = bpm;
+        if (t < OCTAVE_SLOW_BPM && onsetRate >= OCTAVE_DENSE_ONSETS) t *= 2;
+        else if (t > OCTAVE_FAST_BPM && onsetRate < OCTAVE_SPARSE_ONSETS) t /= 2;
+        return Math.max(60.0, Math.min(180.0, t));
     }
 
     private static double majorness(double[] chroma) {
