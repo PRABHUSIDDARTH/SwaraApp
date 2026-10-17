@@ -68,7 +68,10 @@ final class VibeController {
     private final RefillGate gate = new RefillGate();
     /** A transition happened while this generation's refill was in flight. */
     private boolean recheckPending = false;
-    private boolean released = false;
+    /** Media id of the current item as of the last transition / session start. */
+    @Nullable private String lastCurrentId;
+    /** Read from the I/O thread by background analysis, so volatile. */
+    private volatile boolean released = false;
 
     VibeController(@NonNull Context context, @NonNull Player player, @NonNull Handler mainHandler,
                    @NonNull Runnable onStateChanged) {
@@ -150,6 +153,7 @@ final class VibeController {
     /** Resets session state, publishes vibe_active and analyzes m0 off the main thread. */
     private void beginSession(@NonNull String mediaId, boolean replace) {
         final int gen = ++generation;
+        lastCurrentId = mediaId;
         vibeOn = true;
         session = null;
         replaceUpcoming = replace;
@@ -173,16 +177,22 @@ final class VibeController {
 
     /** Called from onMediaItemTransition. */
     void onMediaItemTransition(@Nullable MediaItem item, int reason) {
+        String id = item == null ? null : item.mediaId;
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
-            String id = item == null ? null : item.mediaId;
-            boolean ours = expectedPlaylistChangeId != null
-                    && expectedPlaylistChangeId.equals(id);
+            boolean ends = VibeQueuePolicy.playlistChangeEndsVibe(expectedPlaylistChangeId,
+                    lastCurrentId, id, vibePickIds);
             expectedPlaylistChangeId = null;
-            if (!ours && vibeOn) {
+            if (ends && vibeOn) {
                 Log.d(TAG, "Queue replaced; Vibe Mode off");
                 disable();
             }
         }
+        lastCurrentId = id;
+        maybeRefill();
+    }
+
+    /** Called when playback reaches STATE_ENDED: retry a refill that found nothing earlier. */
+    void onPlaybackEnded() {
         maybeRefill();
     }
 
@@ -237,6 +247,8 @@ final class VibeController {
             return;
         }
         generation++;
+        MediaItem cur = player.getCurrentMediaItem();
+        if (cur != null) lastCurrentId = cur.mediaId;
         vibeOn = true;
         session = restored;
         replaceUpcoming = false;

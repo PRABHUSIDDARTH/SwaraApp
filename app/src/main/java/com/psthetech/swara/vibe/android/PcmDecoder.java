@@ -19,6 +19,8 @@ public final class PcmDecoder {
     private static final long WALL_LIMIT_MS = 10_000;
     /** On hitting the wall limit, keep what was decoded if it covers at least this long. */
     private static final int MIN_PARTIAL_SECONDS = 10;
+    /** Buffer sizing never assumes more than this rate, so hi-res files can't exhaust the heap. */
+    static final int MAX_SIZING_RATE = 96_000;
 
     private PcmDecoder() {}
 
@@ -61,8 +63,9 @@ public final class PcmDecoder {
             int channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
             int encoding = AudioFormat.ENCODING_PCM_16BIT;
 
-            long wantMono = (long) seconds * rate;
-            float[] mono = new float[(int) wantMono];
+            if (rate <= 0) return null;
+            // Above 96 kHz the window is simply shorter (still well over MIN_PARTIAL_SECONDS).
+            float[] mono = new float[bufferFrames(seconds, rate)];
             int n = 0;
             MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
             boolean inputDone = false;
@@ -115,7 +118,8 @@ public final class PcmDecoder {
             }
             if (n == 0) return null;
             return resample(mono, n, rate, targetRate);
-        } catch (Exception e) {
+        } catch (Exception | OutOfMemoryError e) {
+            // Analysis shares the playback process; a failed song must never crash it.
             return null;
         } finally {
             if (codec != null) {
@@ -124,6 +128,12 @@ public final class PcmDecoder {
             }
             try { extractor.release(); } catch (Exception ignored) { }
         }
+    }
+
+    /** Mono buffer length for {@code seconds} at {@code rate}, sized at no more than 96 kHz. */
+    static int bufferFrames(int seconds, int rate) {
+        long frames = (long) Math.max(0, seconds) * Math.min(Math.max(0, rate), MAX_SIZING_RATE);
+        return (int) Math.min(frames, Integer.MAX_VALUE);
     }
 
     /** True when {@code monoFrames} decoded at {@code rate} are enough to keep after a timeout. */

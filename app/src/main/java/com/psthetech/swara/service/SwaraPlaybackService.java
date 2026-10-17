@@ -268,6 +268,8 @@ public class SwaraPlaybackService extends MediaSessionService {
                 } else if (playbackState == Player.STATE_ENDED) {
                     // Queue finished: an armed end-of-song timer is satisfied too.
                     SleepTimerManager.getInstance().onCurrentItemEnded();
+                    // A Vibe/Autoplay refill that found nothing earlier gets one more try.
+                    if (vibeController != null) vibeController.onPlaybackEnded();
                 }
             }
 

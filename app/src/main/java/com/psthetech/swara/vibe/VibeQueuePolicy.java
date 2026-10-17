@@ -118,4 +118,26 @@ public final class VibeQueuePolicy {
                 && Objects.equals(requestCurrentId, currentId);
         return requestCount == count && count > 0 && Objects.equals(requestLastId, lastId);
     }
+
+    /**
+     * Whether a PLAYLIST_CHANGED transition means the user replaced the queue (so Vibe Mode
+     * turns off). Not when this controller expected it, not when the current item kept its
+     * media id (e.g. its tags were edited), and not when the new current item is one of the
+     * Vibe picks (e.g. the playing item was removed and the next pick took over).
+     */
+    public static boolean playlistChangeEndsVibe(@Nullable String expectedId,
+                                                 @Nullable String previousId,
+                                                 @Nullable String newId,
+                                                 @NonNull Set<Long> vibePickIds) {
+        if (expectedId != null && expectedId.equals(newId)) return false;
+        if (newId != null && newId.equals(previousId)) return false;
+        if (newId != null) {
+            try {
+                if (vibePickIds.contains(Long.parseLong(newId))) return false;
+            } catch (NumberFormatException ignored) {
+                // not a library song id
+            }
+        }
+        return true;
+    }
 }

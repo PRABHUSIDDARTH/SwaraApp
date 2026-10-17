@@ -130,4 +130,31 @@ public class VibeSessionTest {
         assertNull(VibeSession.deserialize("v1;a;b;c;d;e;f;g;h"));
         assertNull(VibeSession.deserialize("v1;0.1;0.2;99;0;0.1;0.2;0;0"));
     }
+
+    private static double curV(VibeSession s) {
+        return Double.parseDouble(s.serialize().split(";")[5]);
+    }
+
+    private static double curE(VibeSession s) {
+        return Double.parseDouble(s.serialize().split(";")[6]);
+    }
+
+    @Test
+    public void twoSkipRollback_neverRaisesValenceWhenCapLags() {
+        VibeSession s = new VibeSession(0.0, 0.9);
+        double v = 0;
+        for (int i = 0; i < 8; i++) v = s.nextTarget()[0]; // 2 holds + steps 1..6
+        assertEquals(6, s.step());
+        double vBefore = curV(s);
+        double eBefore = curE(s);
+        assertEquals(v, vBefore, EPS);
+        s.onEarlySkip();
+        s.onEarlySkip();
+        assertEquals(5, s.step());
+        assertTrue("valence must not rise on rollback", curV(s) <= vBefore + EPS);
+        // energy moves back toward e0 (0.9), never further toward the goal
+        assertTrue(curE(s) >= eBefore - EPS);
+        assertTrue(curE(s) <= 0.9 + EPS);
+        assertTrue(s.nextTarget()[0] <= vBefore + 0.04 + EPS);
+    }
 }

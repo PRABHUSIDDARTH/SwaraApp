@@ -112,4 +112,21 @@ public class VibeQueuePolicyTest {
         assertTrue(gate.finish(2));
         assertFalse(gate.busy(2));
     }
+
+    @Test
+    public void playlistChange_endsVibeOnlyOnRealReplacement() {
+        java.util.Set<Long> picks = new java.util.HashSet<>(java.util.Arrays.asList(7L, 8L));
+        // tag edit of the playing song: same media id
+        org.junit.Assert.assertFalse(VibeQueuePolicy.playlistChangeEndsVibe(null, "5", "5", picks));
+        // expected by the controller (start-from / restore)
+        org.junit.Assert.assertFalse(VibeQueuePolicy.playlistChangeEndsVibe("9", "5", "9", picks));
+        // playing item removed, next Vibe pick took over
+        org.junit.Assert.assertFalse(VibeQueuePolicy.playlistChangeEndsVibe(null, "5", "7", picks));
+        // user replaced the queue with something else
+        org.junit.Assert.assertTrue(VibeQueuePolicy.playlistChangeEndsVibe(null, "5", "42", picks));
+        org.junit.Assert.assertTrue(VibeQueuePolicy.playlistChangeEndsVibe("9", "5", "42", picks));
+        // queue cleared
+        org.junit.Assert.assertTrue(VibeQueuePolicy.playlistChangeEndsVibe(null, "5", null, picks));
+        org.junit.Assert.assertTrue(VibeQueuePolicy.playlistChangeEndsVibe(null, "5", "x", picks));
+    }
 }

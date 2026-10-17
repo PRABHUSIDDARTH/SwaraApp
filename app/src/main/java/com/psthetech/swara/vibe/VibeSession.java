@@ -82,8 +82,11 @@ public final class VibeSession {
         skips++;
         if (skips >= 2) {
             k = Math.max(0, k - 1);
-            curV = rampV(k);
-            curE = rampE(k);
+            // Roll back only: never raise valence or move energy away from the start mood
+            // (curV can lag behind the ramp because of the per-pick cap).
+            curV = Math.min(curV, rampV(k));
+            double re = rampE(k);
+            if (Math.abs(curE - e0) > Math.abs(re - e0)) curE = re;
             skips = 0;
         }
     }

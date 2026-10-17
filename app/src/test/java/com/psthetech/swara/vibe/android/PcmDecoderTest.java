@@ -79,4 +79,12 @@ public class PcmDecoderTest {
         assertEquals(1, n);
         assertEquals(32767 / 32768f, mono[0], 1e-7f);
     }
+
+    @Test
+    public void bufferSizingCapsHiResRates() {
+        assertEquals(30 * 44100, PcmDecoder.bufferFrames(30, 44100));
+        assertEquals(30 * 96000, PcmDecoder.bufferFrames(30, 96000));
+        assertEquals(30 * 96000, PcmDecoder.bufferFrames(30, 384000));
+        assertEquals(0, PcmDecoder.bufferFrames(30, -1));
+    }
 }

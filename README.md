@@ -36,7 +36,7 @@ Swara plays the music already on your device. It needs no account and no network
 - **Themes.** Eight color themes (Swara, Midnight, Lavender, Champagne, Rose, Ocean, Forest, Off-White), each with light, dark, and system modes. Swara calls this design style "Liquid Glass".
 - **Vibe Mode.** Starts from the mood of the song you're playing and lifts it gently, song by song. Mood is estimated on the device from the audio itself.
 - **Autoplay.** When the queue runs out, Swara keeps the music going with songs from your library that fit what you're hearing.
-- **"For you" mixes.** Home-screen mixes built from your own library and listening habits. They are computed offline and nothing leaves the device.
+- **"For you" mixes.** Mixes on Home built from your own library and listening habits. They are computed on the device, and nothing leaves it.
 - **Metadata editing.** Edit song tags and artwork from inside the app.
 
 ## Architecture
@@ -50,7 +50,7 @@ ViewModels (Playback, Library, Playlist, Favorites)
         |                         |
 MediaController            Repositories
         |                         |
-SwaraPlaybackService       Room AppDatabase (schema v3)
+SwaraPlaybackService       Room AppDatabase (schema v4)
 (ExoPlayer + Korokae       MediaStore ContentResolver
  AudioProcessor)           Artwork stores
 ```
@@ -73,7 +73,7 @@ SwaraPlaybackService       Room AppDatabase (schema v3)
 | Network | Linear 513 to 256 with ReLU, a two-layer causal GRU(256), then Linear 256 to 513 with a sigmoid mask |
 | Asset | `app/src/main/assets/models/korokae_v1.bin`, a "KRK1" header followed by float32 LE weights |
 
-[`MODEL_LICENSE.md`](app/src/main/assets/models/MODEL_LICENSE.md) covers the Korokae weights, which carry non-commercial MUSDB18 terms. The recommender behind Vibe Mode ships no trained weights; it learns on the device.
+[`MODEL_LICENSE.md`](app/src/main/assets/models/MODEL_LICENSE.md) covers the Korokae weights, which carry non-commercial MUSDB18 terms. The recommender behind Vibe Mode ships no trained weights; it adapts to your listening on the device.
 
 A parity fixture lets the Java tests check that the engine matches PyTorch. To retrain the model, follow [ml/korokae/README.md](ml/korokae/README.md).
 
