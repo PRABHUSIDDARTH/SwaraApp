@@ -3,11 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- rising sun: half disc on the horizon with rays -->
+    <!-- beamed eighth notes -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M6,18a6,6 0 0,1 12,0z" />
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="M2,19.5h20v1.6H2zM11.2,3h1.6v3.6h-1.6zM3.9,7.1l1.1,-1.1l2.5,2.5l-1.1,1.1zM19,6l1.1,1.1l-2.5,2.5l-1.1,-1.1z" />
+        android:pathData="M8,4.8L19.5,2.2v3L8,7.8zM8,6h1.6v11h-1.6zM17.9,3.6h1.6v11.4h-1.6zM3.6,17.2a2.8,2.4 0,1 0,5.6 0a2.8,2.4 0,1 0,-5.6 0zM13.5,15a2.8,2.4 0,1 0,5.6 0a2.8,2.4 0,1 0,-5.6 0z" />
 </vector>

@@ -20,6 +20,9 @@
     <string name="cd_widget_korokae">Toggle Korokae vocal removal</string>
     <string name="cd_widget_seek_zone">Jump to %1$d percent</string>
     <string name="widget_eyebrow_korokae">Korokae on</string>
+    <string name="widget_eyebrow_vibe">Vibe on</string>
+    <string name="cd_widget_vibe_on">Turn on Vibe Mode</string>
+    <string name="cd_widget_vibe_off">Turn off Vibe Mode</string>
     <string name="view_mode">View Mode</string>
     <string name="view_mode_compact">Switch to compact list</string>
     <string name="view_mode_expanded">Switch to expanded cards</string>
@@ -42,9 +45,9 @@
     <string name="next">Next</string>
     <string name="previous">Previous</string>
     <string name="korokae_mode">Korokae</string>
-    <string name="karaoke_mode">Karaoke Mode</string>
-    <string name="karaoke_loading">Loading Karaoke…</string>
-    <string name="karaoke_unavailable">Karaoke unavailable</string>
+    <string name="karaoke_mode">Korokae</string>
+    <string name="karaoke_loading">Loading…</string>
+    <string name="karaoke_unavailable">Unavailable</string>
     <string name="korokae_on">Korokae Mode ON</string>
     <string name="korokae_off">Korokae Mode OFF</string>
     <string name="no_karaoke_found">No karaoke version found for this song</string>
@@ -436,6 +439,7 @@
     <string name="wrapped_video_saved">Video saved to Movies/Swara</string>
     <string name="wrapped_video_failed">Couldn\'t make the video. You can still share the slides as images.</string>
     <string name="wrapped_not_enough">Keep listening — your stats will appear here.</string>
+    <string name="cd_your_stats">Your listening stats</string>
     <string name="wrapped_your_stats">Your stats</string>
     <string name="wrapped_banner_title">Your %1$s Wrapped is ready</string>
     <string name="wrapped_banner_sub">Tap to see how it sounded</string>

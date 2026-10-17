@@ -80,6 +80,8 @@ public class SwaraPlaybackService extends MediaSessionService {
     public static final String SESSION_EXTRA_AUDIO_SESSION_ID = "audio_session_id";
     /** Custom session command: turn Vibe Mode on/off, optionally starting from a song. */
     public static final String COMMAND_SET_VIBE = "com.psthetech.swara.SET_VIBE";
+    /** Vibe on (from the current song) or off; used by the widget. */
+    public static final String COMMAND_TOGGLE_VIBE = "com.psthetech.swara.TOGGLE_VIBE";
     public static final String EXTRA_VIBE_ENABLED = "enabled";
     /** Optional long: play only this song and start Vibe Mode from it (-1 / absent = current). */
     public static final String EXTRA_VIBE_START_SONG_ID = "start_song_id";
@@ -178,6 +180,7 @@ public class SwaraPlaybackService extends MediaSessionService {
         vibeController = new VibeController(this, player, mainHandler, () -> {
             publishKorokaeState();
             saveState();
+            pushWidgetUpdateNow();
         });
 
         // Notify SleepTimerManager when the song changes, and push widget updates
@@ -529,8 +532,9 @@ public class SwaraPlaybackService extends MediaSessionService {
         if (dur == C.TIME_UNSET || dur <= 0) dur = song != null ? song.getDuration() : 0;
         boolean favorite = song != null && favoriteIds.contains(song.getId());
         boolean korokae = korokaeProcessor != null && korokaeProcessor.isEnabled();
+        boolean vibe = vibeController != null && vibeController.isActive();
         SwaraWidgetUpdater.pushUpdate(this, song,
-                new SwaraWidgetUpdater.State(isPlaying, pos, dur, favorite, korokae));
+                new SwaraWidgetUpdater.State(isPlaying, pos, dur, favorite, korokae, vibe));
     }
 
     /** Push the widget with the player's current item / state. */
@@ -583,6 +587,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                     .add(new SessionCommand(COMMAND_TOGGLE_KOROKAE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_SET_VIBE, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_TOGGLE_VIBE, Bundle.EMPTY))
                     .build();
             return new MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                     .setAvailableSessionCommands(commands)
@@ -625,6 +630,20 @@ public class SwaraPlaybackService extends MediaSessionService {
                     long vibeSong = startId > 0 ? startId : songIdOf(player.getCurrentMediaItem());
                     listenTracker.onVibeStart(vibeSong);
                 }
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_TOGGLE_VIBE.equals(customCommand.customAction)) {
+                if (vibeController.isActive()) {
+                    vibeController.setEnabled(false);
+                } else {
+                    long current = songIdOf(player.getCurrentMediaItem());
+                    if (current <= 0) {
+                        return Futures.immediateFuture(new SessionResult(androidx.media3.session.SessionError.ERROR_BAD_VALUE));
+                    }
+                    vibeController.startFrom(current);
+                    listenTracker.onVibeStart(current);
+                }
+                pushWidgetUpdateNow();
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }
             if (COMMAND_TOGGLE_FAVORITE.equals(customCommand.customAction)) {
