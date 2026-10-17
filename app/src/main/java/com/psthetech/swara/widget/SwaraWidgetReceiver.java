@@ -60,7 +60,8 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                         || SwaraWidgetUpdater.ACTION_SEEK_BACKWARD.equals(action)
                         || SwaraWidgetUpdater.ACTION_SEEK_TO.equals(action)
                         || SwaraWidgetUpdater.ACTION_TOGGLE_FAVORITE.equals(action)
-                        || SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE.equals(action);
+                        || SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE.equals(action)
+                        || SwaraWidgetUpdater.ACTION_TOGGLE_VIBE.equals(action);
 
         if (!isPlaybackAction) return;
 
@@ -130,6 +131,11 @@ public class SwaraWidgetReceiver extends BroadcastReceiver {
                         case SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE:
                             controller.sendCustomCommand(new androidx.media3.session.SessionCommand(
                                     SwaraPlaybackService.COMMAND_TOGGLE_KOROKAE, android.os.Bundle.EMPTY),
+                                    android.os.Bundle.EMPTY);
+                            break;
+                        case SwaraWidgetUpdater.ACTION_TOGGLE_VIBE:
+                            controller.sendCustomCommand(new androidx.media3.session.SessionCommand(
+                                    SwaraPlaybackService.COMMAND_TOGGLE_VIBE, android.os.Bundle.EMPTY),
                                     android.os.Bundle.EMPTY);
                             break;
                         case SwaraWidgetUpdater.ACTION_SEEK_BACKWARD: {

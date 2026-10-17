@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- rising bars -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,14h3.2v6H4zM10.4,9h3.2v11h-3.2zM16.8,4H20v16h-3.2z" />
+</vector>

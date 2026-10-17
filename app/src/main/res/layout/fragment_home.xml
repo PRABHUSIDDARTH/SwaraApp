@@ -27,13 +27,14 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
+                <!-- Today's date, set in HomeFragment -->
                 <TextView
                     android:id="@+id/tvAppName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/app_name"
-                    android:textSize="15sp"
-                    android:textColor="@color/swara_gold"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.02"
+                    android:textColor="@color/swara_text_secondary"
                     android:fontFamily="sans-serif-medium" />
 
                 <TextView
@@ -48,20 +49,15 @@
 
             </LinearLayout>
 
-            <TextView
+            <ImageButton
                 android:id="@+id/btnYourStats"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginEnd="@dimen/dp_8"
-                android:gravity="center"
-                android:paddingHorizontal="14dp"
-                android:background="@drawable/bg_korokae_pill"
-                android:text="@string/wrapped_your_stats"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-medium"
-                android:textColor="@color/swara_text_primary"
-                android:clickable="true"
-                android:focusable="true" />
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_insights"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/swara_text_secondary"
+                android:contentDescription="@string/cd_your_stats"
+                android:tooltipText="@string/wrapped_your_stats" />
 
             <ImageButton
                 android:id="@+id/btnSettings"

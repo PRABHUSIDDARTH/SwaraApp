@@ -309,6 +309,17 @@
                 android:layout_weight="1" />
 
             <ImageButton
+                android:id="@+id/widget_btn_vibe"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@android:color/transparent"
+                android:padding="9dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_vibe"
+                android:tint="#FFFFFF"
+                android:contentDescription="@string/cd_widget_vibe_on" />
+
+            <ImageButton
                 android:id="@+id/widget_btn_korokae"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
