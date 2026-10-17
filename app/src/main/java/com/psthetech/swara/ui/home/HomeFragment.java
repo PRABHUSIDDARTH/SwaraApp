@@ -244,9 +244,12 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     if (root != null) root.setBackground(tokens.createAmbientDrawable());
                     if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextPrimaryColor());
                     TextView tvAppName = view.findViewById(R.id.tvAppName);
-                    if (tvAppName != null) tvAppName.setTextColor(tokens.getReadableAccentColor());
+                    if (tvAppName != null) tvAppName.setTextColor(tokens.getTextSecondaryColor());
                     if (btnSettings != null && btnSettings instanceof android.widget.ImageView) {
                         ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getIconSecondaryColor());
+                    }
+                    if (btnYourStats instanceof android.widget.ImageView) {
+                        ((android.widget.ImageView) btnYourStats).setColorFilter(tokens.getIconSecondaryColor());
                     }
                     if (tvSeeAllPlaylists != null && tvSeeAllPlaylists instanceof TextView) {
                         ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getReadableAccentColor());
@@ -338,6 +341,13 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         else if (hour >= 12 && hour < 17) tvGreeting.setText(R.string.greeting_afternoon);
         else if (hour >= 17 && hour < 22) tvGreeting.setText(R.string.greeting_evening);
         else                               tvGreeting.setText(R.string.greeting_night);
+        View view = getView();
+        TextView tvDate = view != null ? view.findViewById(R.id.tvAppName) : null;
+        if (tvDate != null) {
+            tvDate.setText(android.text.format.DateFormat.format(
+                    android.text.format.DateFormat.getBestDateTimePattern(java.util.Locale.getDefault(), "EEEEdMMMM"),
+                    new java.util.Date()));
+        }
     }
 
     private void observeData() {

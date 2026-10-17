@@ -52,6 +52,7 @@ public final class SwaraWidgetUpdater {
     public static final String ACTION_SEEK_TO      = "com.psthetech.swara.ACTION_SEEK_TO";
     public static final String ACTION_TOGGLE_FAVORITE = "com.psthetech.swara.ACTION_TOGGLE_FAVORITE";
     public static final String ACTION_TOGGLE_KOROKAE  = "com.psthetech.swara.ACTION_TOGGLE_KOROKAE";
+    public static final String ACTION_TOGGLE_VIBE     = "com.psthetech.swara.ACTION_TOGGLE_VIBE";
 
     // Extra keys carried on the update broadcast (used by SwaraPlaybackService)
     public static final String EXTRA_SONG_TITLE    = "extra_song_title";
@@ -80,13 +81,20 @@ public final class SwaraWidgetUpdater {
         public final long durationMs;
         public final boolean favorite;
         public final boolean korokae;
+        public final boolean vibe;
 
         public State(boolean isPlaying, long positionMs, long durationMs, boolean favorite, boolean korokae) {
+            this(isPlaying, positionMs, durationMs, favorite, korokae, false);
+        }
+
+        public State(boolean isPlaying, long positionMs, long durationMs, boolean favorite, boolean korokae,
+                     boolean vibe) {
             this.isPlaying = isPlaying;
             this.positionMs = Math.max(0L, positionMs);
             this.durationMs = Math.max(0L, durationMs);
             this.favorite = favorite;
             this.korokae = korokae;
+            this.vibe = vibe;
         }
 
         static State idle() { return new State(false, 0, 0, false, false); }
@@ -96,7 +104,7 @@ public final class SwaraWidgetUpdater {
         }
 
         State withPlaying(boolean playing) {
-            return new State(playing, positionMs, durationMs, favorite, korokae);
+            return new State(playing, positionMs, durationMs, favorite, korokae, vibe);
         }
     }
 
@@ -134,7 +142,7 @@ public final class SwaraWidgetUpdater {
         if (!s.isPlaying) return s;
         long advanced = s.positionMs + (android.os.SystemClock.elapsedRealtime() - lastStateAtElapsed);
         if (s.durationMs > 0) advanced = Math.min(advanced, s.durationMs);
-        return new State(true, advanced, s.durationMs, s.favorite, s.korokae);
+        return new State(true, advanced, s.durationMs, s.favorite, s.korokae, s.vibe);
     }
 
     /** True when at least one Swara widget is on the home screen. */
@@ -193,7 +201,7 @@ public final class SwaraWidgetUpdater {
         long dur = song != null ? song.getDuration() : 0L;
         long pos = (long) (WidgetWaveformRenderer.clampProgress(progressRatio) * dur);
         State prev = lastState;
-        pushUpdate(context, song, new State(isPlaying, pos, dur, prev.favorite, prev.korokae));
+        pushUpdate(context, song, new State(isPlaying, pos, dur, prev.favorite, prev.korokae, prev.vibe));
     }
 
     /** Push a full refresh to every placed Swara widget. */
@@ -372,6 +380,7 @@ public final class SwaraWidgetUpdater {
         if (full) {
             int eyebrow = !hasSong ? R.string.widget_eyebrow_idle
                     : state.korokae ? R.string.widget_eyebrow_korokae
+                    : state.vibe ? R.string.widget_eyebrow_vibe
                     : state.isPlaying ? R.string.widget_eyebrow_playing
                     : R.string.widget_eyebrow_paused;
             views.setTextViewText(R.id.widget_eyebrow, context.getString(eyebrow));
@@ -434,7 +443,7 @@ public final class SwaraWidgetUpdater {
             views.setOnClickPendingIntent(R.id.widget_btn_prev, makeBroadcastPI(context, ACTION_PREV, 2));
         }
 
-        // ── Favorite + Korokae toggles (full card) ────────────────────────────
+        // ── Favorite, Vibe and Korokae toggles (full card) ────────────────────
         if (full) {
             views.setImageViewResource(R.id.widget_btn_favorite,
                     state.favorite ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
@@ -444,9 +453,14 @@ public final class SwaraWidgetUpdater {
             views.setInt(R.id.widget_btn_korokae, "setColorFilter", state.korokae ? pal.eyebrow : pal.secondaryGlyph);
             views.setOnClickPendingIntent(R.id.widget_btn_favorite, makeBroadcastPI(context, ACTION_TOGGLE_FAVORITE, 5));
             views.setOnClickPendingIntent(R.id.widget_btn_korokae, makeBroadcastPI(context, ACTION_TOGGLE_KOROKAE, 6));
+            views.setInt(R.id.widget_btn_vibe, "setColorFilter", state.vibe ? pal.eyebrow : pal.secondaryGlyph);
+            views.setContentDescription(R.id.widget_btn_vibe, context.getString(
+                    state.vibe ? R.string.cd_widget_vibe_off : R.string.cd_widget_vibe_on));
+            views.setOnClickPendingIntent(R.id.widget_btn_vibe, makeBroadcastPI(context, ACTION_TOGGLE_VIBE, 7));
             float disabledAlpha = hasSong ? 255 : 90;
             views.setInt(R.id.widget_btn_favorite, "setImageAlpha", (int) disabledAlpha);
             views.setInt(R.id.widget_btn_korokae, "setImageAlpha", (int) disabledAlpha);
+            views.setInt(R.id.widget_btn_vibe, "setImageAlpha", (int) disabledAlpha);
         }
 
         // ── Tap body / artwork / info -> open Now Playing ─────────────────────
