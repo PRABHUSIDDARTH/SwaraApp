@@ -97,9 +97,9 @@ public final class MixBuilder {
         List<Candidate> kept = new ArrayList<>();
         for (Candidate c : pool) {
             double comb = t.combined(c.songId);
-            if (c.mood != null && c.mood[0] >= FEEL_GOOD_VALENCE && comb > FEEL_GOOD_TASTE) {
+            if (c.mood != null && c.mood[0] >= FEEL_GOOD_VALENCE && comb >= FEEL_GOOD_TASTE) {
                 kept.add(c);
-                keyed.add(new double[]{comb, 0});
+                keyed.add(new double[]{comb, c.mood[0]});
             }
         }
         return top(kept, keyed, size);

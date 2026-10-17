@@ -71,6 +71,14 @@ public class MixBuilderTest {
     }
 
     @Test
+    public void feelGood_noHistory_stillBuildsRankedByValence() {
+        TasteProfile t = profile(Collections.emptyList(), 1, 2, 3);
+        List<Candidate> pool = Arrays.asList(
+                cand(1, 0.7, 0), cand(2, 0.95, 0), cand(3, 0.3, 0));
+        assertEquals(Arrays.asList(2L, 1L), MixBuilder.feelGood(pool, t, 25));
+    }
+
+    @Test
     public void rediscover_requires30DaysAndHighAffinity() {
         long now = 100 * DAY;
         List<ListenEvent> events = new ArrayList<>();
@@ -109,7 +117,7 @@ public class MixBuilderTest {
         TasteProfile t = profile(Collections.emptyList());
         List<Candidate> pool = new ArrayList<>();
         for (long i = 1; i <= 40; i++) pool.add(cand(i, 0.9, 0));
-        // neutral taste is 0.5 -> not > 0.5, so give taste via events
+        // give taste via events
         List<ListenEvent> events = new ArrayList<>();
         long[] ids = new long[40];
         for (int i = 0; i < 40; i++) {

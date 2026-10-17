@@ -338,6 +338,8 @@
     <string name="settings_library_header">Library</string>
     <string name="settings_hide_short_clips">Hide clips shorter than 30 seconds</string>
     <string name="vibe_mode">Vibe</string>
+    <string name="vibe_on_toast">Vibe Mode on</string>
+    <string name="vibe_off_toast">Vibe Mode off</string>
     <string name="start_vibe_mode">Start Vibe Mode</string>
     <string name="cd_vibe_mode">Vibe Mode: lifts your mood gently</string>
     <string name="set_mood">This song feels…</string>
