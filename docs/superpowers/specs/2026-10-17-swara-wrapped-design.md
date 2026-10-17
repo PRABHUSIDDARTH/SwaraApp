@@ -149,6 +149,29 @@ Each slide uses its own gradient pair from a fixed palette, a huge black-weight 
   - A `RecapVideoExporter` run producing a playable MP4 of the expected duration (checked with `MediaExtractor`).
   - Screenshots of the story slides and of the shared PNG.
 
+## 9. History export and import (added 2026-10-17, user-approved)
+
+Android backup excludes the database, because song IDs differ per device. To let Wrapped history survive a reinstall or a new phone:
+
+- **Settings → "Listening history".**
+  - **Export** writes `swara-wrapped-<yyyy-mm-dd>.json` via `ACTION_CREATE_DOCUMENT`.
+  - **Import** reads such a file via `ACTION_OPEN_DOCUMENT`.
+  - Neither needs a storage permission.
+- **File** (version 1). Contains `listen_daily`, `listen_hourly`, `recap`, `song_snapshot` (title, artist, album) and `mood_override` (label). It has no audio and no file paths.
+- **Song matching on import.** Match by normalized title + artist:
+  - Normalization: lowercase, collapse whitespace, strip site tags such as " - MassTamilan.com", "(PagalWorld)" or "[iSongs.info]".
+  - The album breaks ties.
+  - Matched songs map to the local song ID.
+  - Unmatched songs keep their history under a stable synthetic negative ID, derived from the normalized title and artist, with their snapshot. Recaps still count them like deleted songs.
+- **Merge.**
+  - A (day, songId) row that already exists is skipped, so nothing is double-counted.
+  - Hourly rows are skipped when that (day, hour) already exists.
+  - Existing recaps are kept.
+  - Overrides are imported only for matched songs that have none.
+- **Tests.**
+  - JVM: normalization and matching (including the site tags), merge idempotence, export→import round trip.
+  - Device: export, clear the Wrapped tables, import, and check that the stats are equal.
+
 ## 8. Out of scope
 
 Audio in the video; cloud backup of stats; Jam; playlist sharing (roadmap 3); comparisons with other users.

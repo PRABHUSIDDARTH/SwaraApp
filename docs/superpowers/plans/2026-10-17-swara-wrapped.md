@@ -348,3 +348,23 @@ data/db/dao/WrappedDao.java
 - [ ] **Step 2:** `grep -rniE "depress|treat|therap|heal" app/src/main/res` finds no user-facing hits.
 - [ ] **Step 3:** Install the final build on the device.
 - [ ] **Step 4:** Commit `docs: Swara Wrapped in README`.
+
+### Task 12: History export and import (spec §9)
+**Files:**
+- Create:
+  - `wrapped/backup/SongMatcher.java` (pure): `static String normalize(String s)`, `static String key(String title, String artist)`, `static long syntheticId(String key)` (negative, stable hash).
+  - `wrapped/backup/HistoryFile.java` (pure JSON v1 encode and decode of the rows).
+  - `wrapped/backup/HistoryMerge.java` (pure): computes the rows to insert given the existing keys.
+  - `wrapped/backup/HistoryBackupRepository.java` (Android): export and import through ContentResolver on the IO executor.
+- Modify: `ui/settings/SettingsFragment.java` + `fragment_settings.xml` (a "Listening history" card with Export and Import buttons wired to the SAF launchers, a progress state, and a result Toast giving the matched and unmatched counts), strings.
+- Test: `SongMatcherTest`, `HistoryFileTest` (round trip), `HistoryMergeTest` (re-import adds nothing; existing recap kept; an override is only imported for a matched song without one).
+- [ ] **Step 1:** Write the failing tests:
+  - `normalize_stripsSiteTags`: "Kannukulla - MassTamilan.dev" → "kannukulla"; "Let Me Down Slowly(PagalWorldl)" → "let me down slowly"; "[iSongs.info] 02 - Ra Ra Reddy I Am Ready" → "ra ra reddy i am ready".
+  - `matchByTitleArtist_albumBreaksTie`.
+  - `syntheticId_negativeAndStable`.
+  - The round trip.
+  - `reimportAddsNothing`.
+- [ ] **Step 2:** Run. Expected: FAIL.
+- [ ] **Step 3:** Implement.
+- [ ] **Step 4:** Run. Expected: PASS. On the device: export, clear the Wrapped tables via a temporary test, import, and compare `totalPlayedMs` and the row counts.
+- [ ] **Step 5:** Commit `feat(wrapped): export and import listening history`.
