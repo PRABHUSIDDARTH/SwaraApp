@@ -94,4 +94,23 @@ public class HistoryMergeTest {
         assertEquals(700L, o.getJSONArray("songs").getJSONObject(0).getLong("id"));
         assertTrue(p.recaps.get(0).bannerDismissed);
     }
+
+    @Test
+    public void idsWithoutSongTagsNeverLandOnAnotherSong() {
+        HistoryData d = new HistoryData(
+                Arrays.asList(new DailyRow(20261017, 1234, 60_000, 1, 1, 0, 0, 0)),
+                Collections.<HourlyRow>emptyList(), Collections.<SongInfo>emptyList(),
+                Collections.<HistoryData.RecapRow>emptyList(),
+                Arrays.asList(new HistoryData.OverrideRow(1234, "SAD", 1L)));
+        HistoryMerge.Plan p = HistoryMerge.plan(d, new HashMap<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
+        assertEquals(1, p.daily.size());
+        assertTrue(p.daily.get(0).songId < -1);
+        assertTrue(p.overrides.isEmpty());
+    }
+
+    @Test
+    public void remappedRecapDropsAlbumIdFromAnotherPhone() throws Exception {
+        String json = HistoryMerge.remapStats("{\"topAlbumId\":42,\"topSongIds\":[]}", ids());
+        assertEquals(-1L, new JSONObject(json).getLong("topAlbumId"));
+    }
 }

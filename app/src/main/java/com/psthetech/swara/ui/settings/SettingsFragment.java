@@ -66,11 +66,13 @@ public class SettingsFragment extends Fragment {
                 setHistoryBusy(true);
                 new HistoryBackupRepository(requireContext()).export(uri, new HistoryBackupRepository.Callback<Integer>() {
                     @Override public void onDone(Integer songs) {
+                        if (!isAdded()) return;
                         setHistoryBusy(false);
                         toast(getString(R.string.history_export_done));
                     }
 
                     @Override public void onError(@NonNull Exception e) {
+                        if (!isAdded()) return;
                         setHistoryBusy(false);
                         toast(getString(R.string.history_export_failed));
                     }
@@ -84,6 +86,7 @@ public class SettingsFragment extends Fragment {
                 new HistoryBackupRepository(requireContext()).importFrom(uri,
                         new HistoryBackupRepository.Callback<HistoryBackupRepository.ImportResult>() {
                             @Override public void onDone(HistoryBackupRepository.ImportResult r) {
+                                if (!isAdded()) return;
                                 setHistoryBusy(false);
                                 toast(r.daysAdded == 0 ? getString(R.string.history_import_nothing)
                                         : getResources().getQuantityString(R.plurals.history_import_done,
@@ -91,6 +94,7 @@ public class SettingsFragment extends Fragment {
                             }
 
                             @Override public void onError(@NonNull Exception e) {
+                                if (!isAdded()) return;
                                 setHistoryBusy(false);
                                 toast(getString(R.string.history_import_failed));
                             }

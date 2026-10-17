@@ -140,16 +140,16 @@ public final class HistoryBackupRepository {
         }
         Map<Long, Long> ids = SongMatcher.match(d.songs, local);
 
-        Set<String> daily = new HashSet<>();
-        for (ListenDaily r : dao.allDaily()) daily.add(HistoryMerge.dailyKey(r.day, r.songId));
-        Set<String> hourly = new HashSet<>();
-        for (ListenHourly h : dao.allHourly()) hourly.add(HistoryMerge.hourlyKey(h.day, h.hour));
-        Set<String> recaps = new HashSet<>(dao.recapKeys());
-        Set<Long> overrides = new HashSet<>();
-        for (MoodOverride o : db.moodOverrideDao().getAll()) overrides.add(o.songId);
-
-        HistoryMerge.Plan p = HistoryMerge.plan(d, ids, daily, hourly, recaps, overrides);
-        db.runInTransaction(() -> {
+        // Read what exists and write inside one transaction so live listening can't slip in between.
+        return db.runInTransaction(() -> {
+            Set<String> daily = new HashSet<>();
+            for (ListenDaily r : dao.allDaily()) daily.add(HistoryMerge.dailyKey(r.day, r.songId));
+            Set<String> hourly = new HashSet<>();
+            for (ListenHourly h : dao.allHourly()) hourly.add(HistoryMerge.hourlyKey(h.day, h.hour));
+            Set<String> recaps = new HashSet<>(dao.recapKeys());
+            Set<Long> overrides = new HashSet<>();
+            for (MoodOverride o : db.moodOverrideDao().getAll()) overrides.add(o.songId);
+            HistoryMerge.Plan p = HistoryMerge.plan(d, ids, daily, hourly, recaps, overrides);
             for (DailyRow r : p.daily) {
                 ListenDaily e = new ListenDaily();
                 e.day = r.day;
@@ -189,10 +189,10 @@ public final class HistoryBackupRepository {
             for (HistoryData.OverrideRow o : p.overrides) {
                 db.moodOverrideDao().upsert(new MoodOverride(o.songId, o.label, o.setAt));
             }
+            Set<Integer> days = new HashSet<>();
+            for (DailyRow r : p.daily) days.add(r.day);
+            return new ImportResult(p.matchedSongs, p.unmatchedSongs, days.size());
         });
-        Set<Integer> days = new HashSet<>();
-        for (DailyRow r : p.daily) days.add(r.day);
-        return new ImportResult(p.matchedSongs, p.unmatchedSongs, days.size());
     }
 
     private static SongSnapshot fromInfo(SongInfo s) {

@@ -60,10 +60,12 @@ public final class RoomListenSink implements ListenTracker.Sink {
 
     @Override
     public void snapshot(long songId, int day) {
-        Song song = MusicRepository.getCanonicalSong(songId);
-        if (song == null) return; // tags unknown right now; the next play or backfill fills it
-        SongSnapshot s = toSnapshot(song, day);
-        run(() -> dao().upsertSnapshot(s));
+        Song cached = MusicRepository.getCanonicalSong(songId);
+        run(() -> {
+            // The library may not be loaded yet (service restarted on its own); ask MediaStore.
+            Song song = cached != null ? cached : new MusicRepository(context).getSongById(songId);
+            if (song != null) dao().upsertSnapshot(toSnapshot(song, day));
+        });
     }
 
     /** Refreshes a song's stored tags after a metadata edit (keeps firstHeardDay). */

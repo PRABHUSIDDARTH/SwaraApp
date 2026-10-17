@@ -233,10 +233,13 @@ public final class RecapVideoExporter {
     /** Moves encoded frames to the muxer; frame times are assigned by output order at 30 fps. */
     private static void drain(MediaCodec codec, MediaMuxer muxer, MediaCodec.BufferInfo info, int[] track,
                               int[] written, VideoPlan plan, boolean endOfStream) {
+        // Some encoders never signal the end of the stream; give up rather than hang the dialog.
+        long deadline = System.nanoTime() + 10_000_000_000L;
         while (true) {
             int idx = codec.dequeueOutputBuffer(info, endOfStream ? TIMEOUT_US * 10 : 0);
             if (idx == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 if (!endOfStream) return;
+                if (System.nanoTime() > deadline) throw new IllegalStateException("Encoder did not finish");
                 continue;
             }
             if (idx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {

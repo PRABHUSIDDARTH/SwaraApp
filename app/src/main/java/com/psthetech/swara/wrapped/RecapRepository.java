@@ -126,7 +126,8 @@ public final class RecapRepository {
         r.periodStart = s.period.start;
         r.periodEnd = s.period.end;
         r.statsJson = s.toJson();
-        r.createdAt = System.currentTimeMillis();
+        // A rebuild keeps the first creation time so its Home banner doesn't come back.
+        if (r.createdAt == 0) r.createdAt = System.currentTimeMillis();
         dao.upsertRecap(r);
     }
 
@@ -156,12 +157,20 @@ public final class RecapRepository {
         Bitmap b = custom != null ? decode(cr, custom) : null;
         if (b == null && info != null && info.albumId > 0) b = decode(cr, ArtworkRepository.getAlbumArtUri(info.albumId));
         if (b == null && songId > 0) {
-            try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
+            // Not try-with-resources: MediaMetadataRetriever.close() needs API 29.
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            try {
                 mmr.setDataSource(context, ArtworkRepository.getSongUri(songId));
                 byte[] pic = mmr.getEmbeddedPicture();
                 if (pic != null) b = sampled(pic);
             } catch (Exception ignored) {
                 // no embedded art
+            } finally {
+                try {
+                    mmr.release();
+                } catch (Exception ignored) {
+                    // already released
+                }
             }
         }
         return b;

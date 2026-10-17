@@ -162,7 +162,9 @@ public class WrappedStoryActivity extends AppCompatActivity {
                         exportJob = null;
                         if (isFinishing() || isDestroyed()) return;
                         dialog.dismiss();
-                        Toast.makeText(WrappedStoryActivity.this, R.string.wrapped_video_saved, Toast.LENGTH_SHORT).show();
+                        if (android.provider.MediaStore.AUTHORITY.equals(uri.getAuthority())) {
+                            Toast.makeText(WrappedStoryActivity.this, R.string.wrapped_video_saved, Toast.LENGTH_SHORT).show();
+                        }
                         SlideImageExporter.shareVideo(WrappedStoryActivity.this, uri);
                     }
 

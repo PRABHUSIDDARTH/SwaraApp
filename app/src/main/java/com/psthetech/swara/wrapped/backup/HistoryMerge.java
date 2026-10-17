@@ -96,9 +96,11 @@ public final class HistoryMerge {
         return p;
     }
 
+    /** A song id from the other phone with no tags can't be matched, so it never reuses a local id. */
     private static long map(Map<Long, Long> ids, long id) {
         Long m = ids.get(id);
-        return m != null ? m : id;
+        if (m != null) return m;
+        return id > 0 ? SongMatcher.syntheticId("id:" + id) : id;
     }
 
     /** The recap's song ids rewritten to this phone's ids; null when unreadable. */
@@ -106,6 +108,8 @@ public final class HistoryMerge {
     static String remapStats(String json, Map<Long, Long> ids) {
         try {
             JSONObject o = new JSONObject(json);
+            // Album ids differ between phones; the album slide is left out.
+            if (o.has("topAlbumId")) o.put("topAlbumId", -1);
             JSONArray top = o.optJSONArray("topSongIds");
             if (top != null) {
                 for (int i = 0; i < top.length(); i++) top.put(i, mapKeepingNone(ids, top.getLong(i)));
