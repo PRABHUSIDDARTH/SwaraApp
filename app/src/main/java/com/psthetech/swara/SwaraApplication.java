@@ -38,6 +38,9 @@ public class SwaraApplication extends Application {
         // Undo any tag rewrite that was interrupted by the process dying mid-write
         ioExecutor.execute(() -> com.psthetech.swara.util.Id3MetadataWriter.recoverInterruptedWrites(this));
 
+        // Swara Wrapped: convert pre-existing history into the aggregates once
+        ioExecutor.execute(() -> com.psthetech.swara.wrapped.HistoryBackfill.runOnce(this));
+
         // Background mood analysis (runs when charging and idle)
         com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueue(this);
 
