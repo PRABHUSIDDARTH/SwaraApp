@@ -140,9 +140,10 @@ public class SongDeletionManager {
         // 4. Custom artwork file cleanup
         customArtworkStore.removeCustomArtwork(songId);
 
-        // 5. Recommender data (mood analysis and listen events)
+        // 5. Recommender data (mood analysis, mood override and listen events)
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
             db.moodDao().deleteForSong(songId);
+            db.moodOverrideDao().deleteForSong(songId);
             db.listenEventDao().deleteForSong(songId);
         });
     }

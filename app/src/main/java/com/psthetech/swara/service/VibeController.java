@@ -14,6 +14,7 @@ import com.psthetech.swara.data.db.entity.ListenEvent;
 import com.psthetech.swara.data.preference.LibraryPreferences;
 import com.psthetech.swara.data.repository.MusicRepository;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.vibe.MoodLabel;
 import com.psthetech.swara.vibe.RefillGate;
 import com.psthetech.swara.vibe.VibeQueuePolicy;
 import com.psthetech.swara.vibe.VibeSession;
@@ -60,6 +61,10 @@ final class VibeController {
     private final Set<Long> vibePickIds = new HashSet<>();
     /** Song ids early-skipped this session; excluded from further picks. */
     private final Set<Long> skippedIds = new HashSet<>();
+    /** Song the session's m0 came from (-1 when unknown, e.g. after a restore). */
+    private long startSongId = -1;
+    /** The start song's mood override when m0 was read (null = none). */
+    @Nullable private MoodLabel startOverride;
     /** Media id of a PLAYLIST_CHANGED transition this controller (or a restore) caused. */
     @Nullable private String expectedPlaylistChangeId;
 
@@ -147,6 +152,8 @@ final class VibeController {
         replaceUpcoming = false;
         vibePickIds.clear();
         skippedIds.clear();
+        startSongId = -1;
+        startOverride = null;
         onStateChanged.run();
     }
 
@@ -159,13 +166,18 @@ final class VibeController {
         replaceUpcoming = replace;
         vibePickIds.clear();
         skippedIds.clear();
+        startSongId = -1;
+        startOverride = null;
         onStateChanged.run();
         final long songId = parseId(mediaId);
         io.execute(() -> {
+            final MoodLabel override = songId > 0 ? recommendations.overrideOf(songId) : null;
             final double[] m0 = songId > 0 ? recommendations.moodOf(songId) : new double[]{0.5, 0.5};
             mainHandler.post(() -> {
                 if (released || gen != generation || !vibeOn) return;
                 session = new VibeSession(m0[0], m0[1]);
+                startSongId = songId;
+                startOverride = override;
                 Log.d(TAG, "Vibe session started at v=" + m0[0] + " e=" + m0[1]);
                 onStateChanged.run(); // persist the real session
                 maybeRefill();
@@ -252,6 +264,8 @@ final class VibeController {
         vibeOn = true;
         session = restored;
         replaceUpcoming = false;
+        startSongId = -1; // the start song isn't persisted; picks have usually landed anyway
+        startOverride = null;
         vibePickIds.clear();
         for (long id : pickIds) vibePickIds.add(id);
         skippedIds.clear();
@@ -312,6 +326,10 @@ final class VibeController {
         final String requestLastId = player.getMediaItemAt(count - 1).mediaId;
         final int requestCount = count;
         final int gen = generation;
+        // Until a pick lands, a changed mood override on the start song re-seeds m0.
+        final long reseedId = vibe && vibePickIds.isEmpty() ? startSongId : -1;
+        final MoodLabel seededOverride = startOverride;
+        final int plannedCount = needed;
 
         gate.start(gen);
         recheckPending = false;
@@ -319,7 +337,20 @@ final class VibeController {
             List<MediaItem> items = new ArrayList<>();
             List<Long> ids = new ArrayList<>();
             List<Long> background = new ArrayList<>();
+            VibeSession reseeded = null;
+            MoodLabel reseededOverride = null;
             try {
+                if (reseedId > 0) {
+                    MoodLabel override = recommendations.overrideOf(reseedId);
+                    if (override != seededOverride) {
+                        double[] m0 = recommendations.moodOf(reseedId);
+                        reseeded = new VibeSession(m0[0], m0[1]);
+                        reseededOverride = override;
+                        VibeSession plan = VibeSession.deserialize(reseeded.serialize());
+                        targets.clear();
+                        for (int i = 0; i < plannedCount; i++) targets.add(plan.nextTarget());
+                    }
+                }
                 List<VibeQueuePolicy.Relaxation> levels =
                         VibeQueuePolicy.relaxations(currentId, queueIds, skipped, vibe);
                 RecommendationService.Pool pool = recommendations.loadPool(levels.get(0).excluded);
@@ -349,8 +380,10 @@ final class VibeController {
             } catch (RuntimeException e) {
                 Log.w(TAG, "Refill failed", e);
             }
+            final VibeSession newSession = reseeded;
+            final MoodLabel newOverride = reseededOverride;
             mainHandler.post(() -> onRefillLanded(gen, vibe, replace, requestCurrentId,
-                    requestCount, requestLastId, items, ids));
+                    requestCount, requestLastId, items, ids, newSession, newOverride));
             // Fire-and-forget: improves the next refill without holding this one.
             recommendations.analyzeInBackground(background, () -> released);
         });
@@ -358,7 +391,9 @@ final class VibeController {
 
     private void onRefillLanded(int gen, boolean vibe, boolean replace, String requestCurrentId,
                                 int requestCount, String requestLastId,
-                                List<MediaItem> items, List<Long> ids) {
+                                List<MediaItem> items, List<Long> ids,
+                                @Nullable VibeSession reseeded,
+                                @Nullable MoodLabel reseededOverride) {
         boolean owned = gate.finish(gen);
         if (released) return;
         if (gen != generation) {
@@ -375,6 +410,15 @@ final class VibeController {
         if (!fresh) {
             maybeRefill(); // the queue moved on: plan again against it
             return;
+        }
+        boolean reseedApplied = false;
+        if (vibe && reseeded != null && session != null && vibePickIds.isEmpty()) {
+            // No pick has landed, so the session is still pristine: swap in the new m0.
+            session = reseeded;
+            startOverride = reseededOverride;
+            reseedApplied = true;
+            Log.d(TAG, "Vibe start mood overridden; re-seeded at v=" + reseeded.v0()
+                    + " e=" + reseeded.e0());
         }
         if (!items.isEmpty()) {
             int idx = player.getCurrentMediaItemIndex();
@@ -396,6 +440,7 @@ final class VibeController {
         } else {
             // Nothing found even after relaxing; the next transition retries.
             Log.d(TAG, (vibe ? "Vibe" : "Autoplay") + " found no picks; retrying on next transition");
+            if (reseedApplied) onStateChanged.run(); // persist the re-seeded session
         }
         if (recheckPending) {
             recheckPending = false;

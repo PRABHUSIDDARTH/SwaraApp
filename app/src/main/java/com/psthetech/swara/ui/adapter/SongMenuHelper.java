@@ -26,6 +26,7 @@ public final class SongMenuHelper {
     private static final int ID_SHARE = 8;
     private static final int ID_EDIT_INFO = 9;
     private static final int ID_START_VIBE = 10;
+    private static final int ID_SET_MOOD = 11;
 
     private SongMenuHelper() {}
 
@@ -36,6 +37,7 @@ public final class SongMenuHelper {
         popup.getMenu().add(0, ID_PLAY_NEXT, 0, ctx.getString(R.string.play_next));
         popup.getMenu().add(0, ID_ADD_TO_QUEUE, 1, ctx.getString(R.string.add_to_queue));
         popup.getMenu().add(0, ID_START_VIBE, 2, ctx.getString(R.string.start_vibe_mode));
+        popup.getMenu().add(0, ID_SET_MOOD, 2, ctx.getString(R.string.set_mood));
         popup.getMenu().add(0, ID_ADD_TO_PLAYLIST, 2, ctx.getString(R.string.add_to_playlist));
         popup.getMenu().add(0, ID_FAVORITE, 3, ctx.getString(isFavorite
                 ? R.string.remove_from_favorites : R.string.add_to_favorites));
@@ -51,6 +53,7 @@ public final class SongMenuHelper {
                 case ID_PLAY_NEXT: listener.onPlayNext(song); return true;
                 case ID_ADD_TO_QUEUE: listener.onAddToQueue(song); return true;
                 case ID_START_VIBE: listener.onStartVibe(song); return true;
+                case ID_SET_MOOD: listener.onSetMood(anchor.getContext(), song); return true;
                 case ID_ADD_TO_PLAYLIST: listener.onAddToPlaylist(song); return true;
                 case ID_FAVORITE: listener.onFavoriteToggle(song, isFavorite); return true;
                 case ID_REMOVE_FROM_PLAYLIST: listener.onRemoveFromPlaylist(song); return true;

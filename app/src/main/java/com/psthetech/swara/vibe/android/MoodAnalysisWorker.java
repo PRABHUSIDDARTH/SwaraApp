@@ -95,7 +95,7 @@ public class MoodAnalysisWorker extends Worker {
     }
 
     /**
-     * Deletes mood rows and listen events of songs no longer in the library (spec section 5), so
+     * Deletes mood rows, mood overrides and listen events of songs no longer in the library (spec section 5), so
      * they stop skewing percentiles and taste. Never prunes on an empty library result, which is
      * what a failed or permission-less query returns.
      */
@@ -109,7 +109,12 @@ public class MoodAnalysisWorker extends Worker {
         }
         List<Long> staleMood = LibraryPrune.staleIds(storedMood, library);
         List<Long> staleEvents = LibraryPrune.staleIds(db.listenEventDao().distinctSongIds(), library);
-        if (staleMood.isEmpty() && staleEvents.isEmpty()) return false;
+        List<Long> storedOverrides = new ArrayList<>();
+        for (com.psthetech.swara.data.db.entity.MoodOverride o : db.moodOverrideDao().getAll()) {
+            storedOverrides.add(o.songId);
+        }
+        List<Long> staleOverrides = LibraryPrune.staleIds(storedOverrides, library);
+        if (staleMood.isEmpty() && staleEvents.isEmpty() && staleOverrides.isEmpty()) return false;
         db.runInTransaction(() -> {
             for (List<Long> c : LibraryPrune.chunks(staleMood, LibraryPrune.CHUNK)) {
                 db.moodDao().deleteForSongs(c);
@@ -117,9 +122,12 @@ public class MoodAnalysisWorker extends Worker {
             for (List<Long> c : LibraryPrune.chunks(staleEvents, LibraryPrune.CHUNK)) {
                 db.listenEventDao().deleteForSongs(c);
             }
+            for (List<Long> c : LibraryPrune.chunks(staleOverrides, LibraryPrune.CHUNK)) {
+                db.moodOverrideDao().deleteForSongs(c);
+            }
         });
         android.util.Log.i("MoodAnalysisWorker", "Pruned " + staleMood.size() + " mood rows, "
-                + staleEvents.size() + " songs' listen events");
+                + staleEvents.size() + " songs' listen events, " + staleOverrides.size() + " mood overrides");
         return true;
     }
 }

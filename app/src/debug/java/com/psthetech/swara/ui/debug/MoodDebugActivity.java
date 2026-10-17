@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.psthetech.swara.R;
 import com.psthetech.swara.SwaraApplication;
 import com.psthetech.swara.data.db.AppDatabase;
+import com.psthetech.swara.data.db.entity.MoodOverride;
 import com.psthetech.swara.data.db.entity.SongMood;
 import com.psthetech.swara.data.repository.MusicRepository;
 import com.psthetech.swara.domain.model.Song;
@@ -32,6 +33,8 @@ public class MoodDebugActivity extends AppCompatActivity {
         double energy;
         double tempo;
         int status;
+        /** User override label, or null. */
+        String override;
     }
 
     private final List<Row> rows = new ArrayList<>();
@@ -59,7 +62,20 @@ public class MoodDebugActivity extends AppCompatActivity {
     private void load() {
         android.content.Context app = getApplicationContext();
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            List<SongMood> moods = AppDatabase.getInstance(app).moodDao().getAll();
+            AppDatabase db = AppDatabase.getInstance(app);
+            List<SongMood> moods = new ArrayList<>(db.moodDao().getAll());
+            java.util.Map<Long, String> overrides = new java.util.HashMap<>();
+            for (MoodOverride o : db.moodOverrideDao().getAll()) overrides.put(o.songId, o.label);
+            // Overridden songs without an analysis row still get a line.
+            java.util.Set<Long> analyzed = new java.util.HashSet<>();
+            for (SongMood m : moods) analyzed.add(m.songId);
+            for (Long id : overrides.keySet()) {
+                if (!analyzed.contains(id)) {
+                    SongMood placeholder = SongMood.failed(id, 0, 0);
+                    placeholder.status = -1; // not analyzed
+                    moods.add(placeholder);
+                }
+            }
             MusicRepository repo = new MusicRepository(app);
             List<Row> loaded = new ArrayList<>();
             for (SongMood m : moods) {
@@ -74,6 +90,7 @@ public class MoodDebugActivity extends AppCompatActivity {
                 r.energy = m.energy;
                 r.tempo = m.tempoBpm;
                 r.status = m.status;
+                r.override = overrides.get(m.songId);
                 loaded.add(r);
             }
             runOnUiThread(() -> {
@@ -95,9 +112,11 @@ public class MoodDebugActivity extends AppCompatActivity {
         });
         List<String> lines = new ArrayList<>();
         for (Row r : sorted) {
-            lines.add(String.format(Locale.US, "%s - %s\nv=%.2f  e=%.2f  tempo=%.0f  %s",
-                    r.title, r.artist, r.valence, r.energy, r.tempo,
-                    r.status == SongMood.STATUS_OK ? "OK" : "FAILED"));
+            String status = r.status == SongMood.STATUS_OK ? "OK"
+                    : r.status == SongMood.STATUS_FAILED ? "FAILED" : "NOT ANALYZED";
+            lines.add(String.format(Locale.US, "%s - %s\nv=%.2f  e=%.2f  tempo=%.0f  %s%s",
+                    r.title, r.artist, r.valence, r.energy, r.tempo, status,
+                    r.override != null ? "  override=" + r.override : ""));
         }
         adapter.clear();
         adapter.addAll(lines);

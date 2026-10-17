@@ -9,11 +9,14 @@ import androidx.annotation.Nullable;
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.data.db.entity.FavoriteSong;
 import com.psthetech.swara.data.db.entity.ListenEvent;
+import com.psthetech.swara.data.db.entity.MoodOverride;
 import com.psthetech.swara.data.db.entity.SongMood;
 import com.psthetech.swara.data.repository.MusicRepository;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.util.ArtistIdentityHelper;
 import com.psthetech.swara.vibe.Candidate;
+import com.psthetech.swara.vibe.MoodLabel;
+import com.psthetech.swara.vibe.MoodResolver;
 import com.psthetech.swara.vibe.Recommender;
 import com.psthetech.swara.vibe.TasteProfile;
 import com.psthetech.swara.vibe.VibeQueuePolicy;
@@ -67,16 +70,37 @@ public final class RecommendationService {
         return ArtistIdentityHelper.getCanonicalKey(song.getArtist());
     }
 
-    /** Mood {valence, energy} of a song, analyzing on demand; neutral (0.5, 0.5) on failure. */
+    /**
+     * Mood {valence, energy} of a song: the user's override if set, else the analyzed mood
+     * (analyzing on demand); neutral (0.5, 0.5) on failure.
+     */
     @NonNull
     public double[] moodOf(long songId) {
-        try {
-            SongMood m = moodRepository.getOrAnalyze(songId);
-            if (m != null && m.status == SongMood.STATUS_OK) return new double[]{m.valence, m.energy};
-        } catch (RuntimeException e) {
-            Log.w(TAG, "Mood analysis failed for " + songId, e);
+        MoodLabel override = overrideOf(songId);
+        double[] analyzed = null;
+        // An override makes the analysis irrelevant here, so don't pay for it on demand.
+        if (override == null) {
+            try {
+                SongMood m = moodRepository.getOrAnalyze(songId);
+                if (m != null && m.status == SongMood.STATUS_OK) analyzed = new double[]{m.valence, m.energy};
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Mood analysis failed for " + songId, e);
+            }
         }
-        return NEUTRAL.clone();
+        double[] mood = MoodResolver.resolve(analyzed, override);
+        return mood != null ? mood : NEUTRAL.clone();
+    }
+
+    /** The user's mood override for a song, or null (also on a read failure). */
+    @Nullable
+    public MoodLabel overrideOf(long songId) {
+        try {
+            MoodOverride o = AppDatabase.getInstance(context).moodOverrideDao().get(songId);
+            return o == null ? null : MoodLabel.fromName(o.label);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Mood override read failed for " + songId, e);
+            return null;
+        }
     }
 
     /**
@@ -127,6 +151,7 @@ public final class RecommendationService {
         pool.taste = taste;
 
         Map<Long, SongMood> moods = moodsById(db);
+        Map<Long, MoodLabel> overrides = overridesById(db);
         int version = moodRepository.scorerVersion();
         int analyzedEligible = 0;
         List<Long> unanalyzedEligible = new ArrayList<>();
@@ -135,7 +160,9 @@ public final class RecommendationService {
             Long lp = lastPlayed.get(id);
             if (!VibeQueuePolicy.eligible(id, lp == null ? 0L : lp, excluded, now)) continue;
             SongMood m = moods.get(id);
-            if (m == null || m.scorerVersion < version) unanalyzedEligible.add(id);
+            // An override supplies the mood, so the song never needs on-demand analysis.
+            if (overrides.containsKey(id)) analyzedEligible++;
+            else if (m == null || m.scorerVersion < version) unanalyzedEligible.add(id);
             else if (m.status == SongMood.STATUS_OK) analyzedEligible++;
         }
         Collections.sort(unanalyzedEligible,
@@ -162,7 +189,8 @@ public final class RecommendationService {
             boolean ok = m != null && m.status == SongMood.STATUS_OK;
             Long lp = lastPlayed.get(id);
             Candidate c = new Candidate(id, artistBySong.get(id),
-                    ok ? new double[]{m.valence, m.energy} : null,
+                    MoodResolver.resolve(ok ? new double[]{m.valence, m.energy} : null,
+                            overrides.get(id)),
                     ok ? m.tempoBpm : 0,
                     lp == null ? 0L : lp,
                     taste.combined(id));
@@ -189,11 +217,20 @@ public final class RecommendationService {
         }
     }
 
-    /** Stored mood of a pool song, or neutral when unanalyzed. */
+    /** Mood of a pool song (override first, then analysis), or neutral when unknown. */
     @NonNull
     public static double[] storedMood(@NonNull Pool pool, long songId) {
         Candidate c = pool.byId.get(songId);
         return c != null && c.mood != null ? c.mood.clone() : NEUTRAL.clone();
+    }
+
+    private static Map<Long, MoodLabel> overridesById(AppDatabase db) {
+        Map<Long, MoodLabel> out = new HashMap<>();
+        for (MoodOverride o : db.moodOverrideDao().getAll()) {
+            MoodLabel l = MoodLabel.fromName(o.label);
+            if (l != null) out.put(o.songId, l);
+        }
+        return out;
     }
 
     private static Map<Long, SongMood> moodsById(AppDatabase db) {
