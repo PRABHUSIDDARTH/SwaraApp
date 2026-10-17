@@ -47,6 +47,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     private RecyclerView rvForYou;
     private View sectionForYou;
     private com.psthetech.swara.ui.adapter.MixAdapter mixAdapter;
+    private List<com.psthetech.swara.data.db.entity.Mix> storedMixes;
     private View sectionRecentlyPlayed;
     private View sectionRecentlyAdded;
     private View sectionPlaylists;
@@ -343,10 +344,8 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         // For you mixes
         com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext().getApplicationContext())
                 .mixDao().allLive().observe(getViewLifecycleOwner(), mixes -> {
-                    boolean has = mixes != null && !mixes.isEmpty();
-                    if (sectionForYou != null) sectionForYou.setVisibility(has ? View.VISIBLE : View.GONE);
-                    if (has) mixAdapter.submitList(mixes);
-                    else mixAdapter.submitList(java.util.Collections.emptyList());
+                    storedMixes = mixes;
+                    showMixesForCurrentHour();
                 });
 
         // Recently Added
@@ -390,9 +389,28 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         });
     }
 
+    /** Shows feel-good/rediscover plus only the time-of-day mix for the current hour. */
+    private void showMixesForCurrentHour() {
+        if (mixAdapter == null) return;
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        List<com.psthetech.swara.data.db.entity.Mix> visible = new ArrayList<>();
+        if (storedMixes != null) {
+            for (com.psthetech.swara.data.db.entity.Mix m : storedMixes) {
+                if (com.psthetech.swara.vibe.MixBuilder.isVisibleAtHour(m.mixKey, hour)) {
+                    visible.add(m);
+                }
+            }
+        }
+        if (sectionForYou != null) {
+            sectionForYou.setVisibility(visible.isEmpty() ? View.GONE : View.VISIBLE);
+        }
+        mixAdapter.submitList(visible);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
+        showMixesForCurrentHour();
         if (playlistAdapter != null) {
             playlistAdapter.notifyDataSetChanged();
         }

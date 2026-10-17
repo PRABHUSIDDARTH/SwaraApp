@@ -124,4 +124,43 @@ public class MixBuilderTest {
         assertEquals(10, MixBuilder.timeOfDay(pool, t, 9, 10).size());
         assertEquals(5, MixBuilder.rediscover(pool, t, 100 * DAY, 5).size());
     }
+
+    @Test
+    public void visibleMixKeys_onlyCurrentBucket() {
+        assertEquals(true, MixBuilder.isVisibleAtHour("feel_good", 3));
+        assertEquals(true, MixBuilder.isVisibleAtHour("rediscover", 14));
+        assertEquals(true, MixBuilder.isVisibleAtHour("time_of_day_0", 8));
+        assertEquals(false, MixBuilder.isVisibleAtHour("time_of_day_3", 8));
+        assertEquals(true, MixBuilder.isVisibleAtHour("time_of_day_1", 12));
+        assertEquals(true, MixBuilder.isVisibleAtHour("time_of_day_2", 21));
+        assertEquals(true, MixBuilder.isVisibleAtHour("time_of_day_3", 23));
+        assertEquals(true, MixBuilder.isVisibleAtHour("time_of_day_3", 4));
+        assertEquals(false, MixBuilder.isVisibleAtHour("time_of_day_0", 4));
+        // legacy single time-of-day row is never shown
+        assertEquals(false, MixBuilder.isVisibleAtHour("time_of_day", 8));
+        assertEquals(false, MixBuilder.isVisibleAtHour(null, 8));
+        assertEquals("time_of_day_2", MixBuilder.timeOfDayKey(2));
+    }
+
+    @Test
+    public void bucketHours_coverDayOnce() {
+        int total = 0;
+        for (int b = 0; b < MixBuilder.BUCKET_COUNT; b++) total += MixBuilder.bucketHours(b).size();
+        assertEquals(24, total);
+        assertEquals(Arrays.asList(0, 1, 2, 3, 4, 22, 23), MixBuilder.bucketHours(3));
+    }
+
+    @Test
+    public void timeOfDayBucket_usesWholeBucket() {
+        List<ListenEvent> events = new ArrayList<>();
+        events.add(ev(1, ListenEvent.TYPE_PLAY, 23)); // late night
+        events.add(ev(2, ListenEvent.TYPE_PLAY, 9));  // morning
+        events.add(ev(3, ListenEvent.TYPE_PLAY, 3));  // late night
+        events.add(ev(3, ListenEvent.TYPE_PLAY, 3));
+        TasteProfile t = profile(events, 1, 2, 3);
+        List<Candidate> pool = Arrays.asList(cand(1, 0.5, 0), cand(2, 0.5, 0), cand(3, 0.5, 0));
+        assertEquals(Arrays.asList(1L, 3L), MixBuilder.timeOfDayBucket(pool, t, 3, 25));
+        assertEquals(Arrays.asList(2L), MixBuilder.timeOfDayBucket(pool, t, 0, 25));
+        assertEquals(Collections.emptyList(), MixBuilder.timeOfDayBucket(pool, t, 1, 25));
+    }
 }

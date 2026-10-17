@@ -17,7 +17,6 @@ import com.psthetech.swara.data.db.entity.Mix;
 import com.psthetech.swara.vibe.MixBuilder;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -56,17 +55,17 @@ public class MixRefreshWorker extends Worker {
                 AppDatabase.getInstance(ctx).mixDao().deleteAll();
                 return Result.success();
             }
-            Calendar cal = Calendar.getInstance();
-            int hour = cal.get(Calendar.HOUR_OF_DAY);
             long now = System.currentTimeMillis();
             int size = MixBuilder.DEFAULT_SIZE;
 
             int[] titles = {R.string.mix_morning, R.string.mix_afternoon,
                     R.string.mix_evening, R.string.mix_late_night};
             List<Mix> mixes = new ArrayList<>();
-            addIfBigEnough(mixes, "time_of_day",
-                    ctx.getString(titles[MixBuilder.hourBucket(hour)]),
-                    MixBuilder.timeOfDay(pool.candidates(), pool.taste, hour, size), now);
+            // All four buckets are built; Home shows only the one for the current hour.
+            for (int b = 0; b < MixBuilder.BUCKET_COUNT; b++) {
+                addIfBigEnough(mixes, MixBuilder.timeOfDayKey(b), ctx.getString(titles[b]),
+                        MixBuilder.timeOfDayBucket(pool.candidates(), pool.taste, b, size), now);
+            }
             addIfBigEnough(mixes, "feel_good", ctx.getString(R.string.mix_feel_good),
                     MixBuilder.feelGood(pool.candidates(), pool.taste, size), now);
             addIfBigEnough(mixes, "rediscover", ctx.getString(R.string.mix_rediscover),

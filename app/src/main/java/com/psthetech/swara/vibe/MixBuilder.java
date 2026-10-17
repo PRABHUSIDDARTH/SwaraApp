@@ -29,6 +29,54 @@ public final class MixBuilder {
         return 3;
     }
 
+    /** Mix key prefix for the per-bucket time-of-day mixes. */
+    public static final String TIME_OF_DAY_PREFIX = "time_of_day_";
+    public static final int BUCKET_COUNT = 4;
+
+    /** Mix key of the time-of-day mix for {@code bucket} (0..3). */
+    public static String timeOfDayKey(int bucket) {
+        return TIME_OF_DAY_PREFIX + bucket;
+    }
+
+    /**
+     * Whether a stored mix should be shown on Home at {@code hour}: every non time-of-day mix,
+     * plus only the time-of-day mix of the current hour's bucket.
+     */
+    public static boolean isVisibleAtHour(String mixKey, int hour) {
+        if (mixKey == null) return false;
+        if (mixKey.startsWith(TIME_OF_DAY_PREFIX)) {
+            return mixKey.equals(timeOfDayKey(hourBucket(hour)));
+        }
+        return !mixKey.startsWith("time_of_day");
+    }
+
+    /** Hours (0..23) belonging to {@code bucket}, per {@link #hourBucket(int)}. */
+    static List<Integer> bucketHours(int bucket) {
+        List<Integer> out = new ArrayList<>();
+        for (int h = 0; h < 24; h++) if (hourBucket(h) == bucket) out.add(h);
+        return out;
+    }
+
+    /**
+     * Songs played during this hour bucket before: affinity is the best {@link #timeOfDay}
+     * hour affinity over the bucket's hours, then taste.
+     */
+    public static List<Long> timeOfDayBucket(List<Candidate> pool, TasteProfile t, int bucket,
+                                             int size) {
+        List<Integer> hours = bucketHours(bucket);
+        List<double[]> keyed = new ArrayList<>();
+        List<Candidate> kept = new ArrayList<>();
+        for (Candidate c : pool) {
+            double best = 0;
+            for (int h : hours) best = Math.max(best, t.hour(c.songId, h));
+            if (best > 0) {
+                kept.add(c);
+                keyed.add(new double[]{best, t.combined(c.songId)});
+            }
+        }
+        return top(kept, keyed, size);
+    }
+
     /** Songs played around this hour before, by hour affinity then taste. */
     public static List<Long> timeOfDay(List<Candidate> pool, TasteProfile t, int hour, int size) {
         List<double[]> keyed = new ArrayList<>();
