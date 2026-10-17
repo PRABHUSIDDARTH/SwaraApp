@@ -25,6 +25,10 @@ public interface MoodDao {
     @Query("DELETE FROM song_mood WHERE songId = :songId")
     void deleteForSong(long songId);
 
+    /** Callers keep {@code songIds} at most 500 long (SQLite variable limit). */
+    @Query("DELETE FROM song_mood WHERE songId IN (:songIds)")
+    void deleteForSongs(List<Long> songIds);
+
     @Query("UPDATE song_mood SET valence = :valence, energy = :energy WHERE songId = :songId")
     void updateNormalized(long songId, double valence, double energy);
 

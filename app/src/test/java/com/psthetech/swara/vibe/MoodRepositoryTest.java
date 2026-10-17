@@ -31,6 +31,7 @@ public class MoodRepositoryTest {
         @Override public List<SongMood> getAll() { return new ArrayList<>(rows.values()); }
         @Override public SongMood get(long id) { return rows.get(id); }
         @Override public void deleteForSong(long id) { rows.remove(id); }
+        @Override public void deleteForSongs(List<Long> ids) { for (Long id : ids) rows.remove(id); }
         @Override public void updateNormalized(long id, double v, double e) { singleCalls++; }
         @Override public void updateNormalizedBatch(long[] ids, double[] v, double[] e) {
             batchCalls++;
