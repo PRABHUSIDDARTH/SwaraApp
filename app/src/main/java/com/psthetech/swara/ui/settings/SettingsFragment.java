@@ -8,6 +8,10 @@ import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,6 +27,11 @@ import com.psthetech.swara.domain.model.MorphismStyle;
 import com.psthetech.swara.domain.model.ThemeMode;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
+import com.psthetech.swara.wrapped.backup.HistoryBackupRepository;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class SettingsFragment extends Fragment {
 
@@ -44,6 +53,53 @@ public class SettingsFragment extends Fragment {
     private com.google.android.material.card.MaterialCardView cardLibraryContainer;
     private com.google.android.material.materialswitch.MaterialSwitch switchHideShortClips;
     private com.google.android.material.materialswitch.MaterialSwitch switchAutoplay;
+    private TextView tvHistoryHeader;
+    private TextView tvHistoryBody;
+    private MaterialCardView cardHistoryContainer;
+    private View btnHistoryExport;
+    private View btnHistoryImport;
+    private View historyProgress;
+
+    private final ActivityResultLauncher<String> createHistoryFile =
+            registerForActivityResult(new ActivityResultContracts.CreateDocument("application/json"), uri -> {
+                if (uri == null) return;
+                setHistoryBusy(true);
+                new HistoryBackupRepository(requireContext()).export(uri, new HistoryBackupRepository.Callback<Integer>() {
+                    @Override public void onDone(Integer songs) {
+                        if (!isAdded()) return;
+                        setHistoryBusy(false);
+                        toast(getString(R.string.history_export_done));
+                    }
+
+                    @Override public void onError(@NonNull Exception e) {
+                        if (!isAdded()) return;
+                        setHistoryBusy(false);
+                        toast(getString(R.string.history_export_failed));
+                    }
+                });
+            });
+
+    private final ActivityResultLauncher<String[]> openHistoryFile =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri == null) return;
+                setHistoryBusy(true);
+                new HistoryBackupRepository(requireContext()).importFrom(uri,
+                        new HistoryBackupRepository.Callback<HistoryBackupRepository.ImportResult>() {
+                            @Override public void onDone(HistoryBackupRepository.ImportResult r) {
+                                if (!isAdded()) return;
+                                setHistoryBusy(false);
+                                toast(r.daysAdded == 0 ? getString(R.string.history_import_nothing)
+                                        : getResources().getQuantityString(R.plurals.history_import_done,
+                                        r.daysAdded, r.daysAdded, r.matchedSongs, r.unmatchedSongs));
+                            }
+
+                            @Override public void onError(@NonNull Exception e) {
+                                if (!isAdded()) return;
+                                setHistoryBusy(false);
+                                toast(getString(R.string.history_import_failed));
+                            }
+                        });
+            });
 
     @Nullable
     @Override
@@ -86,6 +142,16 @@ public class SettingsFragment extends Fragment {
         switchAutoplay.setOnCheckedChangeListener((b, checked) ->
                 com.psthetech.swara.data.preference.LibraryPreferences.setAutoplayEnabled(requireContext(), checked));
 
+        tvHistoryHeader = view.findViewById(R.id.tvHistoryHeader);
+        tvHistoryBody = view.findViewById(R.id.tvHistoryBody);
+        cardHistoryContainer = view.findViewById(R.id.cardHistoryContainer);
+        btnHistoryExport = view.findViewById(R.id.btnHistoryExport);
+        btnHistoryImport = view.findViewById(R.id.btnHistoryImport);
+        historyProgress = view.findViewById(R.id.historyProgress);
+        btnHistoryExport.setOnClickListener(v -> createHistoryFile.launch(
+                "swara-wrapped-" + new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date()) + ".json"));
+        btnHistoryImport.setOnClickListener(v -> openHistoryFile.launch(new String[]{"application/json", "text/plain", "application/octet-stream"}));
+
         rvColorThemes.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         MorphismThemeManager manager = MorphismThemeManager.getInstance();
@@ -124,6 +190,17 @@ public class SettingsFragment extends Fragment {
             updateAdaptersState();
         });
         manager.getActiveColorTheme().observe(getViewLifecycleOwner(), colorTheme -> updateAdaptersState());
+    }
+
+    private void setHistoryBusy(boolean busy) {
+        if (getView() == null) return;
+        historyProgress.setVisibility(busy ? View.VISIBLE : View.GONE);
+        btnHistoryExport.setEnabled(!busy);
+        btnHistoryImport.setEnabled(!busy);
+    }
+
+    private void toast(String message) {
+        if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
     }
 
     private void updateAdaptersState() {
@@ -184,5 +261,8 @@ public class SettingsFragment extends Fragment {
         if (cardLibraryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardLibraryContainer, tokens);
         if (switchHideShortClips != null) switchHideShortClips.setTextColor(tokens.getTextPrimaryColor());
         if (switchAutoplay != null) switchAutoplay.setTextColor(tokens.getTextPrimaryColor());
+        if (tvHistoryHeader != null) tvHistoryHeader.setTextColor(tokens.getAccentColor());
+        if (tvHistoryBody != null) tvHistoryBody.setTextColor(tokens.getTextSecondaryColor());
+        if (cardHistoryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardHistoryContainer, tokens);
     }
 }

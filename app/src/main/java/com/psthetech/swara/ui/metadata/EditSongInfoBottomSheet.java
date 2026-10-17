@@ -426,6 +426,8 @@ public class EditSongInfoBottomSheet extends BottomSheetDialogFragment {
                     // Update Playback in-place (Notification, ExoPlayer, Queue, Now Playing)
                     PlaybackViewModel playbackVm = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
                     playbackVm.updateSongMetadataInPlace(updatedSong);
+                    // Keep Swara Wrapped's stored tags in sync with the edit
+                    com.psthetech.swara.wrapped.RoomListenSink.refreshSnapshot(requireContext(), updatedSong);
 
                     // Update Library list & groupings
                     LibraryViewModel libraryVm = new ViewModelProvider(requireActivity()).get(LibraryViewModel.class);
