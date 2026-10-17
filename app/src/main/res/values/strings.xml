@@ -424,4 +424,13 @@
     <string name="wrapped_video_saved">Video saved to Movies/Swara</string>
     <string name="wrapped_video_failed">Couldn\'t make the video. You can still share the slides as images.</string>
     <string name="wrapped_not_enough">Keep listening — your stats will appear here.</string>
+    <string name="wrapped_your_stats">Your stats</string>
+    <string name="wrapped_banner_title">Your %1$s Wrapped is ready</string>
+    <string name="wrapped_banner_sub">Tap to see how it sounded</string>
+    <string name="wrapped_banner_dismiss">Dismiss</string>
+    <string name="wrapped_stats_title">Your stats</string>
+    <string name="wrapped_period_this_month">This month</string>
+    <string name="wrapped_period_this_year">This year</string>
+    <string name="wrapped_period_all_time">All time</string>
+    <string name="wrapped_play">Play my Wrapped</string>
 </resources>

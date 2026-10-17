@@ -223,6 +223,13 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     Navigation.findNavController(v).navigate(R.id.action_home_to_settings));
         }
 
+        View btnYourStats = view.findViewById(R.id.btnYourStats);
+        if (btnYourStats != null) {
+            btnYourStats.setOnClickListener(v ->
+                    Navigation.findNavController(v).navigate(R.id.action_home_to_stats));
+        }
+        bindWrappedBanner(view);
+
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
@@ -405,6 +412,44 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             sectionForYou.setVisibility(visible.isEmpty() ? View.GONE : View.VISIBLE);
         }
         mixAdapter.submitList(visible);
+    }
+
+    /** Shows "Your <period> Wrapped is ready" for a fresh, undismissed recap. */
+    private void bindWrappedBanner(View view) {
+        View banner = view.findViewById(R.id.wrappedBanner);
+        TextView title = view.findViewById(R.id.tvWrappedBannerTitle);
+        if (banner == null || title == null) return;
+        long since = System.currentTimeMillis() - 14L * 86_400_000L;
+        com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext()).wrappedDao()
+                .latestUndismissedLive(since)
+                .observe(getViewLifecycleOwner(), recap -> {
+                    boolean show = com.psthetech.swara.wrapped.ui.BannerPolicy
+                            .showBanner(recap, System.currentTimeMillis());
+                    banner.setVisibility(show ? View.VISIBLE : View.GONE);
+                    if (!show) return;
+                    String key = recap.recapKey;
+                    title.setText(getString(R.string.wrapped_banner_title, recapName(recap)));
+                    banner.setOnClickListener(v -> startActivity(
+                            com.psthetech.swara.wrapped.ui.WrappedStoryActivity.forRecap(requireContext(), key)));
+                    view.findViewById(R.id.btnWrappedBannerDismiss).setOnClickListener(v -> {
+                        banner.setVisibility(View.GONE);
+                        android.content.Context app = requireContext().getApplicationContext();
+                        com.psthetech.swara.SwaraApplication.getInstance().getDbExecutor().execute(() ->
+                                com.psthetech.swara.data.db.AppDatabase.getInstance(app).wrappedDao().dismissBanner(key));
+                    });
+                    onWrappedBannerShown();
+                });
+    }
+
+    /** "October" for a monthly recap, "2026" for a yearly one. */
+    private static String recapName(com.psthetech.swara.data.db.entity.Recap r) {
+        if (r.recapKey.startsWith("year-")) return String.valueOf(r.periodStart / 10000);
+        int month = (r.periodStart / 100) % 100;
+        return new java.text.DateFormatSymbols(java.util.Locale.getDefault()).getMonths()[month - 1];
+    }
+
+    /** Hook for the one-time notification-permission request (Task 10). */
+    private void onWrappedBannerShown() {
     }
 
     @Override
