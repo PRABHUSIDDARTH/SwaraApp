@@ -98,6 +98,7 @@ public class SwaraPlaybackService extends MediaSessionService {
         public void run() {
             if (player == null || !player.isPlaying()) return;
             saveState();
+            if (listenTracker != null) listenTracker.checkpoint();
             mainHandler.postDelayed(this, STATE_SAVE_INTERVAL_MS);
         }
     };
@@ -107,6 +108,8 @@ public class SwaraPlaybackService extends MediaSessionService {
     private KorokaeModelProvider korokaeModelProvider;
     private KorokaeAudioProcessor korokaeProcessor;
     private VibeController vibeController;
+    /** Swara Wrapped: real listening time and play counts into never-trimmed aggregates. */
+    private com.psthetech.swara.wrapped.ListenTracker listenTracker;
     /** The current item has not yet logged its TYPE_PLAY listen event. */
     private boolean playEventPending = false;
     private final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -171,6 +174,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setHandleAudioBecomingNoisy(true)
                 .build();
 
+        listenTracker = com.psthetech.swara.wrapped.RoomListenSink.newTracker(this);
         vibeController = new VibeController(this, player, mainHandler, () -> {
             publishKorokaeState();
             saveState();
@@ -186,10 +190,12 @@ public class SwaraPlaybackService extends MediaSessionService {
                 saveState();
                 // TYPE_PLAY is logged once per item, when it actually plays: a paused queue
                 // restore logs nothing, resuming from pause logs once.
+                listenTracker.onCurrentItemChanged(songIdOf(mediaItem));
                 playEventPending = mediaItem != null;
                 if (playEventPending && player.isPlaying()) {
                     playEventPending = false;
                     recordListenEvent(mediaItem, ListenEvent.TYPE_PLAY, 0L);
+                    listenTracker.onItemStarted(songIdOf(mediaItem));
                 }
                 vibeController.onMediaItemTransition(mediaItem, reason);
             }
@@ -198,6 +204,7 @@ public class SwaraPlaybackService extends MediaSessionService {
             public void onIsPlayingChanged(boolean isPlaying) {
                 // Push widget update when play/pause state changes
                 MediaItem current = player.getCurrentMediaItem();
+                listenTracker.onIsPlayingChanged(isPlaying);
                 pushWidgetUpdate(current, isPlaying);
                 mainHandler.removeCallbacks(widgetTicker);
                 mainHandler.removeCallbacks(periodicStateSave);
@@ -205,6 +212,7 @@ public class SwaraPlaybackService extends MediaSessionService {
                     if (playEventPending && current != null) {
                         playEventPending = false;
                         recordListenEvent(current, ListenEvent.TYPE_PLAY, 0L);
+                        listenTracker.onItemStarted(songIdOf(current));
                     }
                     mainHandler.postDelayed(widgetTicker, WIDGET_TICK_MS);
                     mainHandler.postDelayed(periodicStateSave, STATE_SAVE_INTERVAL_MS);
@@ -250,7 +258,10 @@ public class SwaraPlaybackService extends MediaSessionService {
                     int type = EventClassifier.classifyLeave(oldPosition.positionMs, duration,
                             autoTransition, sameItemRestarted);
                     recordListenEvent(oldPosition.mediaItem, type, oldPosition.positionMs);
-                    if (left != null) vibeController.onItemLeft(left.getId(), type);
+                    if (left != null) {
+                        listenTracker.onLeaveItem(left.getId(), type);
+                        vibeController.onItemLeft(left.getId(), type);
+                    }
                 }
                 // Seeks (in-app, notification or widget) re-base the widget seekbar + timers
                 if (reason == Player.DISCONTINUITY_REASON_SEEK
@@ -332,6 +343,15 @@ public class SwaraPlaybackService extends MediaSessionService {
     }
 
     // ===== Play history =====
+
+    private static long songIdOf(@Nullable MediaItem item) {
+        if (item == null) return -1L;
+        try {
+            return Long.parseLong(item.mediaId);
+        } catch (NumberFormatException e) {
+            return -1L;
+        }
+    }
 
     private void recordPlay(@Nullable MediaItem item, long positionMs) {
         Song song = MediaItemFactory.toSong(item);
@@ -465,6 +485,7 @@ public class SwaraPlaybackService extends MediaSessionService {
             recordPlay(player.getCurrentMediaItem(), player.getCurrentPosition());
             saveState();
         }
+        if (listenTracker != null) listenTracker.checkpoint();
         if (vibeController != null) vibeController.release();
         SleepTimerManager.getInstance().setPlaybackHooks(null);
         closeEqualizerSession();
@@ -599,6 +620,10 @@ public class SwaraPlaybackService extends MediaSessionService {
                     vibeController.startFrom(startId);
                 } else {
                     vibeController.setEnabled(enable);
+                }
+                if (enable) {
+                    long vibeSong = startId > 0 ? startId : songIdOf(player.getCurrentMediaItem());
+                    listenTracker.onVibeStart(vibeSong);
                 }
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }

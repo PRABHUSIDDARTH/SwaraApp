@@ -37,6 +37,8 @@ Swara plays the music already on your device. It needs no account and no network
 - **Vibe Mode.** Starts from the mood of the song you're playing and lifts it gently, song by song. Mood is estimated on the device from the audio itself.
 - **Autoplay.** When the queue runs out, Swara keeps the music going with songs from your library that fit what you're hearing.
 - **"For you" mixes.** Mixes on Home built from your own library and listening habits. They are computed on the device, and nothing leaves it.
+- **Swara Wrapped.** Monthly and yearly recaps of your listening: minutes, top songs, artists and album, mood mix, habits, discoveries, and a listening personality. The recaps play as story slides you can share as images or save as a short video. A stats screen on Home shows this month, this year, or all time whenever you like. Everything is counted on the device.
+- **Listening history backup.** Settings can save your Wrapped history to a file and restore it on a new phone. Songs are matched by title and artist.
 - **Metadata editing.** Edit song tags and artwork from inside the app.
 
 ## Architecture
@@ -124,7 +126,7 @@ SwaraApp/
 | --- | --- |
 | `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Read the local music library. Which one is used depends on the API level. |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Keep playback running in the background |
-| `POST_NOTIFICATIONS` | Show the media notification on Android 13 and later |
+| `POST_NOTIFICATIONS` | Show the media notification, and one notice when a new Wrapped recap is ready, on Android 13 and later |
 | `WAKE_LOCK` | Keep playback going while the screen is off |
 
 Swara does not request network access for playback.

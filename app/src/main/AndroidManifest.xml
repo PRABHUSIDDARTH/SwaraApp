@@ -62,6 +62,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Swara Wrapped story (opened from Home, the stats screen or the recap notification) -->
+        <activity
+            android:name=".wrapped.ui.WrappedStoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Swara" />
+
         <!--
             SwaraPlaybackService — Media3 MediaSessionService
             - foregroundServiceType = mediaPlayback is REQUIRED on Android 14+ for media playback
