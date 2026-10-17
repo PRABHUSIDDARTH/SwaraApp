@@ -30,6 +30,8 @@ public final class WrappedStats {
     public final int longestStreakDays;
     public final int listeningDays;
     public final long mostRepeatedSongId;
+    /** Repeat count of {@link #mostRepeatedSongId} (0 when none). */
+    public final int mostRepeatedCount;
     public final long mostSkippedSongId;
     public final int newSongs;
     public final long rediscoveredSongId;
@@ -60,6 +62,7 @@ public final class WrappedStats {
         longestStreakDays = b.longestStreakDays;
         listeningDays = b.listeningDays;
         mostRepeatedSongId = b.mostRepeatedSongId;
+        mostRepeatedCount = b.mostRepeatedCount;
         mostSkippedSongId = b.mostSkippedSongId;
         newSongs = b.newSongs;
         rediscoveredSongId = b.rediscoveredSongId;
@@ -86,6 +89,7 @@ public final class WrappedStats {
         int longestStreakDays;
         int listeningDays;
         long mostRepeatedSongId = -1;
+        int mostRepeatedCount;
         long mostSkippedSongId = -1;
         int newSongs;
         long rediscoveredSongId = -1;
@@ -122,6 +126,7 @@ public final class WrappedStats {
             o.put("vibeStarts", vibeStarts).put("topVibeSongId", topVibeSongId);
             o.put("peakHour", peakHour).put("busiestWeekday", busiestWeekday);
             o.put("longestStreakDays", longestStreakDays).put("listeningDays", listeningDays);
+            o.put("mostRepeatedCount", mostRepeatedCount);
             o.put("mostRepeatedSongId", mostRepeatedSongId).put("mostSkippedSongId", mostSkippedSongId);
             o.put("newSongs", newSongs).put("rediscoveredSongId", rediscoveredSongId);
             o.put("distinctSongs", distinctSongs).put("topSongMs", topSongMs);
@@ -169,6 +174,7 @@ public final class WrappedStats {
             b.longestStreakDays = o.getInt("longestStreakDays");
             b.listeningDays = o.getInt("listeningDays");
             b.mostRepeatedSongId = o.getLong("mostRepeatedSongId");
+            b.mostRepeatedCount = o.optInt("mostRepeatedCount", 0);
             b.mostSkippedSongId = o.getLong("mostSkippedSongId");
             b.newSongs = o.getInt("newSongs");
             b.rediscoveredSongId = o.getLong("rediscoveredSongId");

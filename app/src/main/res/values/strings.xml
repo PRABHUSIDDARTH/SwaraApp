@@ -350,4 +350,69 @@
     <string name="mood_clear">Clear</string>
     <string name="mood_saved">Saved</string>
     <string name="settings_autoplay">Keep playing similar songs when the queue ends</string>
+
+    <!-- Swara Wrapped -->
+    <string name="wrapped_footer">Swara Wrapped</string>
+    <string name="wrapped_intro_title">Your %1$s, wrapped</string>
+    <string name="wrapped_intro_sub">Here\'s how it sounded.</string>
+    <string name="wrapped_period_all">all time</string>
+    <string name="wrapped_tag_minutes">Time in music</string>
+    <string name="wrapped_minutes_unit">minutes</string>
+    <plurals name="wrapped_movies">
+        <item quantity="one">That\'s about %d movie\'s worth.</item>
+        <item quantity="other">That\'s about %d movies\' worth.</item>
+    </plurals>
+    <string name="wrapped_tag_top_songs">Top songs</string>
+    <string name="wrapped_tag_top_artists">Top artists</string>
+    <string name="wrapped_tag_top_album">Album on repeat</string>
+    <string name="wrapped_tag_mood_mix">Your mood mix</string>
+    <string name="wrapped_tag_mood_of">The sound of your %1$s</string>
+    <string name="wrapped_mood_sad">Sad</string>
+    <string name="wrapped_mood_calm">Calm</string>
+    <string name="wrapped_mood_happy">Happy</string>
+    <string name="wrapped_mood_energetic">Energetic</string>
+    <string name="wrapped_mood_of_sub">%1$d%% of your listening</string>
+    <string name="wrapped_tag_vibe">Vibe Mode</string>
+    <plurals name="wrapped_vibe_sessions">
+        <item quantity="one">session</item>
+        <item quantity="other">sessions</item>
+    </plurals>
+    <string name="wrapped_vibe_fav">Your go-to start: %1$s</string>
+    <string name="wrapped_tag_habits">Your rhythm</string>
+    <string name="wrapped_habit_peak">Peak hour</string>
+    <string name="wrapped_habit_day">Busiest day</string>
+    <string name="wrapped_habit_streak">Longest streak</string>
+    <plurals name="wrapped_days_in_row">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="wrapped_tag_repeat">On repeat</string>
+    <string name="wrapped_repeat_line">%1$s · played %2$d times again</string>
+    <string name="wrapped_skip_title">Skipped most</string>
+    <string name="wrapped_tag_discovery">New finds</string>
+    <plurals name="wrapped_new_songs">
+        <item quantity="one">new song</item>
+        <item quantity="other">new songs</item>
+    </plurals>
+    <string name="wrapped_rediscovered">Back in rotation: %1$s</string>
+    <string name="wrapped_tag_personality">You listen like a</string>
+    <string name="wrapped_p_night_owl">Night Owl</string>
+    <string name="wrapped_p_night_owl_why">Most of your music happens after 10 pm.</string>
+    <string name="wrapped_p_early_riser">Early Riser</string>
+    <string name="wrapped_p_early_riser_why">Your day starts with a soundtrack.</string>
+    <string name="wrapped_p_mood_lifter">Mood Lifter</string>
+    <string name="wrapped_p_mood_lifter_why">You let Vibe Mode carry the mood up.</string>
+    <string name="wrapped_p_loyalist">Loyalist</string>
+    <string name="wrapped_p_loyalist_why">One song kept coming back, and you let it.</string>
+    <string name="wrapped_p_explorer">Explorer</string>
+    <string name="wrapped_p_explorer_why">A third of what you played was new to you.</string>
+    <string name="wrapped_p_energy_seeker">Energy Seeker</string>
+    <string name="wrapped_p_energy_seeker_why">You keep the tempo high.</string>
+    <string name="wrapped_p_balanced">Balanced Listener</string>
+    <string name="wrapped_p_balanced_why">A little of everything, at every hour.</string>
+    <string name="wrapped_tag_summary">Your %1$s in Swara</string>
+    <string name="wrapped_summary_minutes">Minutes</string>
+    <string name="wrapped_summary_top_artist">Top artist</string>
+    <string name="wrapped_summary_mood">Mood</string>
+    <string name="wrapped_summary_type">Listener type</string>
 </resources>

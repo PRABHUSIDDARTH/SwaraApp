@@ -110,6 +110,7 @@ public final class WrappedStatsEngine {
         // Vibe, repeats, skips.
         b.topVibeSongId = topWithMinimum(perSong, 4, 1);
         b.mostRepeatedSongId = topWithMinimum(perSong, 2, MIN_REPEATS_OR_SKIPS);
+        if (b.mostRepeatedSongId != -1) b.mostRepeatedCount = (int) perSong.get(b.mostRepeatedSongId)[2];
         b.mostSkippedSongId = topWithMinimum(perSong, 3, MIN_REPEATS_OR_SKIPS);
 
         // Hours.

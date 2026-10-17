@@ -136,6 +136,7 @@ public class WrappedStatsEngineTest {
                 songs(1L, "A", 1L, 2L, "B", 2L), new HashMap<>());
         assertEquals(2, w.mostRepeatedSongId);
         assertEquals(1, w.mostSkippedSongId);
+        assertEquals(3, w.mostRepeatedCount);
     }
 
     @Test
