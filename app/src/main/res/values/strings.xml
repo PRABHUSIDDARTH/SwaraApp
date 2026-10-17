@@ -417,4 +417,11 @@
     <string name="wrapped_summary_type">Listener type</string>
     <string name="wrapped_share_caption">My Swara Wrapped 🎧</string>
     <string name="wrapped_share_failed">Couldn\'t create the image. Try again.</string>
+    <string name="wrapped_close">Close</string>
+    <string name="wrapped_save_video">Save video</string>
+    <string name="wrapped_share_slide">Share this slide</string>
+    <string name="wrapped_video_progress">Making your video…</string>
+    <string name="wrapped_video_saved">Video saved to Movies/Swara</string>
+    <string name="wrapped_video_failed">Couldn\'t make the video. You can still share the slides as images.</string>
+    <string name="wrapped_not_enough">Keep listening — your stats will appear here.</string>
 </resources>
