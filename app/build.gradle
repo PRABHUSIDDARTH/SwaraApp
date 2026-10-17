@@ -34,6 +34,10 @@ android {
         }
     }
 
+    sourceSets {
+        androidTest.assets.srcDirs += files("$projectDir/schemas")
+    }
+
     signingConfigs {
         release {
             if (keystorePropertiesFile.exists()) {
@@ -43,6 +47,10 @@ android {
                 keyPassword keystoreProperties['keyPassword']
             }
         }
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -91,10 +99,12 @@ dependencies {
 
     // Room — local database
     implementation libs.room.runtime
+    implementation libs.work.runtime
     annotationProcessor libs.room.compiler
 
     // Testing
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    androidTestImplementation "androidx.room:room-testing:2.6.1"
 }

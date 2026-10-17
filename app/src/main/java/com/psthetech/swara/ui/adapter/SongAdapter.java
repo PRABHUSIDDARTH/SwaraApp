@@ -46,6 +46,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         default void onEditArtwork(Song song) {}
         default void onEditSongInfo(Song song) {}
         default void onDeleteSong(Song song) {}
+        default void onStartVibe(Song song) {}
+        /** "This song feels…": shows the shared mood picker; override only to customize. */
+        default void onSetMood(@NonNull android.content.Context context, @NonNull Song song) {
+            com.psthetech.swara.ui.mood.MoodPickerDialog.show(context, song);
+        }
     }
 
     public static final int VIEW_TYPE_COMPACT  = 0;
