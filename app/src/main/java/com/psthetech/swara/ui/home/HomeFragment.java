@@ -44,6 +44,10 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     private RecyclerView rvRecentlyPlayed;
     private RecyclerView rvRecentlyAdded;
     private RecyclerView rvPlaylists;
+    private RecyclerView rvForYou;
+    private View sectionForYou;
+    private com.psthetech.swara.ui.adapter.MixAdapter mixAdapter;
+    private List<com.psthetech.swara.data.db.entity.Mix> storedMixes;
     private View sectionRecentlyPlayed;
     private View sectionRecentlyAdded;
     private View sectionPlaylists;
@@ -76,6 +80,8 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         rvRecentlyPlayed    = view.findViewById(R.id.rvRecentlyPlayed);
         rvRecentlyAdded     = view.findViewById(R.id.rvRecentlyAdded);
         rvPlaylists         = view.findViewById(R.id.rvPlaylists);
+        rvForYou            = view.findViewById(R.id.rvForYou);
+        sectionForYou       = view.findViewById(R.id.sectionForYou);
         sectionRecentlyPlayed = view.findViewById(R.id.sectionRecentlyPlayed);
         sectionRecentlyAdded  = view.findViewById(R.id.sectionRecentlyAdded);
         sectionPlaylists      = view.findViewById(R.id.sectionPlaylists);
@@ -85,6 +91,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         setGreeting();
 
         recentlyPlayedAdapter = new SongAdapter(new SongAdapter.Listener() {
+            @Override
+            public void onStartVibe(Song song) {
+                HomeFragment.this.onStartVibe(song);
+            }
+
             @Override
             public void onSongClick(Song song, int position) {
                 playSongFromList(song, recentlyPlayedAdapter.getCurrentList());
@@ -129,6 +140,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
 
         recentlyAddedAdapter = new SongAdapter(new SongAdapter.Listener() {
             @Override
+            public void onStartVibe(Song song) {
+                HomeFragment.this.onStartVibe(song);
+            }
+
+            @Override
             public void onSongClick(Song song, int position) {
                 playSongFromList(song, recentlyAddedAdapter.getCurrentList());
             }
@@ -170,6 +186,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyAdded.setAdapter(recentlyAddedAdapter);
 
+        mixAdapter = new com.psthetech.swara.ui.adapter.MixAdapter(this::onMixClick);
+        rvForYou.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvForYou.setAdapter(mixAdapter);
+
         playlistAdapter = new HomePlaylistAdapter(this::onPlaylistClick);
         playlistAdapter.setArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         rvPlaylists.setLayoutManager(
@@ -180,6 +201,20 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         if (tvSeeAllPlaylists != null) {
             tvSeeAllPlaylists.setOnClickListener(v ->
                     Navigation.findNavController(v).navigate(R.id.playlistsFragment));
+        }
+
+        if (com.psthetech.swara.BuildConfig.DEBUG) {
+            View appNameView = view.findViewById(R.id.tvAppName);
+            if (appNameView != null) {
+                appNameView.setOnLongClickListener(v -> {
+                    try {
+                        startActivity(new android.content.Intent().setClassName(
+                                requireContext().getPackageName(),
+                                "com.psthetech.swara.ui.debug.MoodDebugActivity"));
+                    } catch (android.content.ActivityNotFoundException ignored) { }
+                    return true;
+                });
+            }
         }
 
         View btnSettings = view.findViewById(R.id.btnSettings);
@@ -207,6 +242,8 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                         ((android.widget.ImageView) btnClearHistory).setColorFilter(tokens.getReadableAccentColor());
                     }
                     // Explicit Section Headers & Welcome Card Text
+                    TextView tvHeaderForYou = view.findViewById(R.id.tvHeaderForYou);
+                    if (tvHeaderForYou != null) tvHeaderForYou.setTextColor(tokens.getTextPrimaryColor());
                     TextView tvHeaderRecentlyPlayed = view.findViewById(R.id.tvHeaderRecentlyPlayed);
                     if (tvHeaderRecentlyPlayed != null) tvHeaderRecentlyPlayed.setTextColor(tokens.getTextPrimaryColor());
                     TextView tvHeaderPlaylists = view.findViewById(R.id.tvHeaderPlaylists);
@@ -218,6 +255,7 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     TextView tvWelcomeSubtitle = view.findViewById(R.id.tvWelcomeSubtitle);
                     if (tvWelcomeSubtitle != null) tvWelcomeSubtitle.setTextColor(tokens.getTextSecondaryColor());
 
+                    if (mixAdapter != null) mixAdapter.notifyDataSetChanged();
                     if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.notifyDataSetChanged();
                     if (recentlyAddedAdapter != null) recentlyAddedAdapter.notifyDataSetChanged();
                     if (playlistAdapter != null) playlistAdapter.notifyDataSetChanged();
@@ -237,6 +275,38 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                         () -> libraryViewModel.clearPlayHistory());
             });
         }
+    }
+
+    private void onMixClick(com.psthetech.swara.data.db.entity.Mix mix) {
+        List<Song> songs = new ArrayList<>();
+        for (long id : com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds)) {
+            Song s = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
+            if (s != null) songs.add(s);
+        }
+        if (!songs.isEmpty()) {
+            playbackViewModel.playSongs(songs, 0);
+            return;
+        }
+        // Canonical cache is cold: resolve off the main thread, then play on it.
+        final android.content.Context appCtx = requireContext().getApplicationContext();
+        final List<Long> ids = com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds);
+        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
+            com.psthetech.swara.data.repository.MusicRepository repo =
+                    new com.psthetech.swara.data.repository.MusicRepository(appCtx);
+            List<Song> resolved = new ArrayList<>();
+            try {
+                for (long id : ids) {
+                    Song s = repo.getSongById(id);
+                    if (s != null) resolved.add(s);
+                }
+            } catch (RuntimeException e) {
+                android.util.Log.w("HomeFragment", "Mix resolve failed", e);
+            }
+            if (resolved.isEmpty()) return;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (isAdded()) playbackViewModel.playSongs(resolved, 0);
+            });
+        });
     }
 
     private void onPlaylistClick(Playlist playlist) {
@@ -270,6 +340,13 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.setCurrentPlayingSongId(id);
             if (recentlyAddedAdapter != null) recentlyAddedAdapter.setCurrentPlayingSongId(id);
         });
+
+        // For you mixes
+        com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext().getApplicationContext())
+                .mixDao().allLive().observe(getViewLifecycleOwner(), mixes -> {
+                    storedMixes = mixes;
+                    showMixesForCurrentHour();
+                });
 
         // Recently Added
         libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> {
@@ -312,9 +389,28 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         });
     }
 
+    /** Shows feel-good/rediscover plus only the time-of-day mix for the current hour. */
+    private void showMixesForCurrentHour() {
+        if (mixAdapter == null) return;
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        List<com.psthetech.swara.data.db.entity.Mix> visible = new ArrayList<>();
+        if (storedMixes != null) {
+            for (com.psthetech.swara.data.db.entity.Mix m : storedMixes) {
+                if (com.psthetech.swara.vibe.MixBuilder.isVisibleAtHour(m.mixKey, hour)) {
+                    visible.add(m);
+                }
+            }
+        }
+        if (sectionForYou != null) {
+            sectionForYou.setVisibility(visible.isEmpty() ? View.GONE : View.VISIBLE);
+        }
+        mixAdapter.submitList(visible);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
+        showMixesForCurrentHour();
         if (playlistAdapter != null) {
             playlistAdapter.notifyDataSetChanged();
         }
@@ -353,6 +449,11 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     @Override
     public void onPlayNext(Song song) {
         playbackViewModel.playNext(song);
+    }
+
+    @Override
+    public void onStartVibe(Song song) {
+        playbackViewModel.startVibeFrom(song);
     }
 
     @Override

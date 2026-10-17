@@ -43,6 +43,7 @@ public class SettingsFragment extends Fragment {
     private TextView tvLibraryHeader;
     private com.google.android.material.card.MaterialCardView cardLibraryContainer;
     private com.google.android.material.materialswitch.MaterialSwitch switchHideShortClips;
+    private com.google.android.material.materialswitch.MaterialSwitch switchAutoplay;
 
     @Nullable
     @Override
@@ -78,6 +79,12 @@ public class SettingsFragment extends Fragment {
             new androidx.lifecycle.ViewModelProvider(requireActivity())
                     .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class).refreshAll();
         });
+
+        switchAutoplay = view.findViewById(R.id.switchAutoplay);
+        switchAutoplay.setChecked(
+                com.psthetech.swara.data.preference.LibraryPreferences.autoplayEnabled(requireContext()));
+        switchAutoplay.setOnCheckedChangeListener((b, checked) ->
+                com.psthetech.swara.data.preference.LibraryPreferences.setAutoplayEnabled(requireContext(), checked));
 
         rvColorThemes.setLayoutManager(new LinearLayoutManager(requireContext()));
 
@@ -176,5 +183,6 @@ public class SettingsFragment extends Fragment {
         if (tvLibraryHeader != null) tvLibraryHeader.setTextColor(tokens.getAccentColor());
         if (cardLibraryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardLibraryContainer, tokens);
         if (switchHideShortClips != null) switchHideShortClips.setTextColor(tokens.getTextPrimaryColor());
+        if (switchAutoplay != null) switchAutoplay.setTextColor(tokens.getTextPrimaryColor());
     }
 }

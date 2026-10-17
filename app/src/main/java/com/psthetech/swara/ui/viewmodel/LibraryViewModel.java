@@ -158,7 +158,11 @@ public class LibraryViewModel extends AndroidViewModel {
     private static final long MEDIA_CHANGE_DEBOUNCE_MS = 1500L;
     private final android.os.Handler mediaChangeHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
-    private final Runnable mediaChangeReload = this::refreshAll;
+    private final Runnable mediaChangeReload = () -> {
+        refreshAll();
+        com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueue(getApplication());
+        com.psthetech.swara.vibe.android.MixRefreshWorker.refreshNow(getApplication());
+    };
     private final android.database.ContentObserver mediaObserver =
             new android.database.ContentObserver(mediaChangeHandler) {
                 @Override

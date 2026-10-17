@@ -17,6 +17,10 @@
     <!-- Wake lock — Media3 handles this internally when playing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- WorkManager merges this in for network constraints; Swara never uses the network -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
     <!-- Package visibility (Android 11+): find share targets for song files and share cards -->
     <queries>
         <package android:name="com.whatsapp" />

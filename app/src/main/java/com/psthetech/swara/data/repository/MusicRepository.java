@@ -50,8 +50,20 @@ public class MusicRepository {
     private static final Map<Long, Song> canonicalSongMap = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<String, List<Song>> canonicalArtistIndex = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** True once a full-library MediaStore query has populated the cache in this process. */
+    private static volatile boolean fullLibraryCached = false;
+
     public static Song getCanonicalSong(long songId) {
         return canonicalSongMap.get(songId);
+    }
+
+    /**
+     * Snapshot of the full library cache, or an empty list when no full-library query has run
+     * in this process yet (the cache may then hold only a few individually looked-up songs).
+     */
+    public static List<Song> getCachedLibrarySongs() {
+        if (!fullLibraryCached) return Collections.emptyList();
+        return new ArrayList<>(canonicalSongMap.values());
     }
 
     public static List<Song> getSongsForArtistFromCache(String artistName) {
@@ -102,6 +114,11 @@ public class MusicRepository {
                 mainHandler.post(() -> callback.onError("Failed to load music: " + e.getMessage()));
             }
         });
+    }
+
+    /** Blocking full-library query; call from a worker thread only. */
+    public List<Song> loadAllSongsBlocking() {
+        return querySongs(null, null, null);
     }
 
     private static List<Song> capResults(List<Song> songs, int max) {
@@ -398,6 +415,7 @@ public class MusicRepository {
             java.util.Set<Long> present = new java.util.HashSet<>();
             for (Song s : songs) present.add(s.getId());
             canonicalSongMap.keySet().retainAll(present);
+            fullLibraryCached = true;
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");

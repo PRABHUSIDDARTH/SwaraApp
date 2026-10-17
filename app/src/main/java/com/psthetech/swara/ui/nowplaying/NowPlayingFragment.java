@@ -77,6 +77,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnQueue;
     private ImageView btnCollapse;
     private ImageView btnSleepTimer;
+    private View btnVibe;
+    private ImageView ivVibeIcon;
+    private TextView tvVibeLabel;
     private ImageView btnShare;
     private ImageView btnShareCard;
     private ImageView btnEqualizer;
@@ -167,6 +170,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnQueue      = view.findViewById(R.id.btnQueue);
         btnCollapse   = view.findViewById(R.id.btnCollapse);
         btnSleepTimer = view.findViewById(R.id.btnSleepTimer);
+        btnVibe = view.findViewById(R.id.btnVibe);
+        ivVibeIcon = view.findViewById(R.id.ivVibeIcon);
+        tvVibeLabel = view.findViewById(R.id.tvVibeLabel);
         btnShare      = view.findViewById(R.id.btnShare);
         btnShareCard  = view.findViewById(R.id.btnShareCard);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
@@ -216,6 +222,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnFavorite);
         com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnQueue);
         if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
+        if (btnVibe != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVibe);
         if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
         if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
         if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
@@ -275,6 +282,17 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             QueueFragment queueFragment = new QueueFragment();
             queueFragment.show(getParentFragmentManager(), "QueueFragment");
         });
+
+        if (btnVibe != null) {
+            btnVibe.setOnClickListener(v -> {
+                boolean turnOn = !Boolean.TRUE.equals(playbackViewModel.getVibeActive().getValue());
+                playbackViewModel.setVibeMode(turnOn);
+                android.widget.Toast.makeText(requireContext(),
+                        turnOn ? R.string.vibe_on_toast : R.string.vibe_off_toast,
+                        android.widget.Toast.LENGTH_SHORT).show();
+            });
+            playbackViewModel.getVibeActive().observe(getViewLifecycleOwner(), active -> updateVibeUi());
+        }
 
         if (btnSleepTimer != null) {
             btnSleepTimer.setOnClickListener(v -> {
@@ -459,6 +477,30 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         playbackViewModel.getKorokaeState().observe(getViewLifecycleOwner(), this::updateKorokaeUi);
     }
 
+    /** Vibe pill: off mirrors the Karaoke pill; on fills with the accent colour. */
+    private void updateVibeUi() {
+        if (btnVibe == null || ivVibeIcon == null || tvVibeLabel == null || getContext() == null) return;
+        com.psthetech.swara.ui.theme.DesignTokens tokens =
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
+        int accent = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
+        boolean on = Boolean.TRUE.equals(playbackViewModel.getVibeActive().getValue());
+        if (on) {
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setColor(accent);
+            bg.setCornerRadius(20f * getResources().getDisplayMetrics().density);
+            btnVibe.setBackground(bg);
+            ivVibeIcon.setColorFilter(0xFF1A1A1A);
+            tvVibeLabel.setTextColor(0xFF1A1A1A);
+            btnVibe.setAlpha(1.0f);
+        } else {
+            int inactive = android.graphics.Color.argb(200, 255, 255, 255);
+            btnVibe.setBackgroundResource(R.drawable.bg_korokae_pill);
+            ivVibeIcon.setColorFilter(inactive);
+            tvVibeLabel.setTextColor(inactive);
+            btnVibe.setAlpha(0.7f);
+        }
+    }
+
     private void updateKorokaeUi(@Nullable com.psthetech.swara.domain.model.KorokaeState state) {
         if (btnKorokae == null || ivKorokaeIcon == null || tvKorokaeLabel == null || getContext() == null) return;
         com.psthetech.swara.ui.theme.DesignTokens tokens =
@@ -587,6 +629,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnCollapse != null) btnCollapse.setColorFilter(secondary);
         if (btnAudioOutput != null) btnAudioOutput.setColorFilter(secondary);
         if (btnEqualizer != null) btnEqualizer.setColorFilter(secondary);
+        if (btnVibe != null) {
+            updateVibeUi();
+        }
         if (btnSleepTimer != null) {
             boolean timerActive = Boolean.TRUE.equals(SleepTimerManager.getInstance().getActive().getValue());
             btnSleepTimer.setColorFilter(timerActive ? tokens.getAccentColor() : secondary);
