@@ -1,6 +1,5 @@
 package com.psthetech.swara.data.repository;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.content.ContentResolver;
