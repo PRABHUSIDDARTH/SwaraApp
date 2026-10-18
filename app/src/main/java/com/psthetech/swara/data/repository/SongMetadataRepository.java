@@ -17,7 +17,6 @@ import android.util.Log;
 
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.psthetech.swara.SwaraApplication;
 import com.psthetech.swara.data.db.AppDatabase;
