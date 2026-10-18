@@ -179,15 +179,31 @@ public class PlaylistRepository {
 
     /** Bulk-adds all songs, skipping duplicates, preserving order. */
     public void addSongsToPlaylist(long playlistId, List<Song> songs) {
+        if (songs == null || songs.isEmpty()) return;
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            int nextPos = dao.getSongCount(playlistId);
+            List<Long> songIds = new java.util.ArrayList<>(songs.size());
             for (Song song : songs) {
-                if (!dao.isSongInPlaylist(playlistId, song.getId())) {
+                songIds.add(song.getId());
+            }
+
+            List<Long> existingIdsList = dao.getExistingSongIds(playlistId, songIds);
+            java.util.Set<Long> existingIds = new java.util.HashSet<>(existingIdsList);
+
+            int nextPos = dao.getSongCount(playlistId);
+            List<PlaylistSong> toInsert = new java.util.ArrayList<>();
+
+            for (Song song : songs) {
+                if (!existingIds.contains(song.getId())) {
                     PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos++);
-                    dao.addSongToPlaylist(ps);
+                    toInsert.add(ps);
+                    existingIds.add(song.getId()); // In case the input list itself contains duplicates
                 }
             }
-            touchModifiedAt(playlistId);
+
+            if (!toInsert.isEmpty()) {
+                dao.addSongsToPlaylist(toInsert);
+                touchModifiedAt(playlistId);
+            }
         });
     }
 
