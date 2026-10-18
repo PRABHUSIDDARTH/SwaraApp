@@ -46,19 +46,6 @@ public class PlaylistRepository {
         return dao.getSongCountLive(playlistId);
     }
 
-    /** Reactive map of playlistId -> song count for all playlists */
-    public LiveData<java.util.Map<Long, Integer>> getSongCountsMapLive() {
-        return androidx.lifecycle.Transformations.map(dao.getSongCountsLive(), list -> {
-            java.util.Map<Long, Integer> map = new java.util.HashMap<>();
-            if (list != null) {
-                for (PlaylistDao.PlaylistSongCount sc : list) {
-                    map.put(sc.playlistId, sc.count);
-                }
-            }
-            return map;
-        });
-    }
-
     // ===== Playlist CRUD =====
 
     public void createPlaylist(String name, CreateCallback callback) {
@@ -82,45 +69,6 @@ public class PlaylistRepository {
                 dao.deletePlaylist(playlistId));
     }
 
-    /**
-     * Deletes a playlist and its associated artwork files (custom + collage).
-     * All operations run on the background executor.
-     *
-     * @param playlistId  ID of the playlist to delete.
-     * @param artworkStore  PlaylistArtworkStore to clean up artwork files.
-     */
-    public void deletePlaylistWithArtwork(long playlistId, PlaylistArtworkStore artworkStore) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            dao.deletePlaylist(playlistId);
-            if (artworkStore != null) {
-                artworkStore.deleteAllArtwork(playlistId);
-            }
-        });
-    }
-
-    // ===== Playlist Artwork =====
-
-    /**
-     * Updates the artworkPath column for a playlist after saving custom artwork.
-     * Must be called AFTER the artwork file has already been written to disk.
-     */
-    public void setArtworkPath(long playlistId, String path) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            dao.updateArtworkPath(playlistId, path);
-            touchModifiedAt(playlistId);
-        });
-    }
-
-    /**
-     * Clears the artworkPath column for a playlist (user removed custom artwork).
-     */
-    public void clearArtworkPath(long playlistId) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            dao.clearArtworkPath(playlistId);
-            touchModifiedAt(playlistId);
-        });
-    }
-
     // ===== Song management =====
 
     /**
@@ -131,7 +79,10 @@ public class PlaylistRepository {
     public void addSongToPlaylist(long playlistId, Song song) {
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
             int nextPos = dao.getSongCount(playlistId); // 0-based: count is next free index
-            PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos);
+            PlaylistSong ps = new PlaylistSong(
+                    playlistId, song.getId(), nextPos,
+                    song.getTitle(), song.getArtist(), song.getAlbum(),
+                    song.getAlbumId(), song.getDuration());
             dao.addSongToPlaylist(ps);
             touchModifiedAt(playlistId);
         });
@@ -151,7 +102,10 @@ public class PlaylistRepository {
                 }
             } else {
                 int nextPos = dao.getSongCount(playlistId);
-                PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos);
+                PlaylistSong ps = new PlaylistSong(
+                        playlistId, song.getId(), nextPos,
+                        song.getTitle(), song.getArtist(), song.getAlbum(),
+                        song.getAlbumId(), song.getDuration());
                 dao.addSongToPlaylist(ps);
                 touchModifiedAt(playlistId);
                 if (callback != null) {
@@ -168,7 +122,10 @@ public class PlaylistRepository {
             Playlist playlist = new Playlist(name, now, now);
             long id = dao.createPlaylist(playlist);
             // Add song at position 0
-            PlaylistSong ps = createPlaylistSongEntity(id, song, 0);
+            PlaylistSong ps = new PlaylistSong(
+                    id, song.getId(), 0,
+                    song.getTitle(), song.getArtist(), song.getAlbum(),
+                    song.getAlbumId(), song.getDuration());
             dao.addSongToPlaylist(ps);
             dao.renamePlaylist(id, name, System.currentTimeMillis());
             if (callback != null) {
@@ -183,7 +140,10 @@ public class PlaylistRepository {
             int nextPos = dao.getSongCount(playlistId);
             for (Song song : songs) {
                 if (!dao.isSongInPlaylist(playlistId, song.getId())) {
-                    PlaylistSong ps = createPlaylistSongEntity(playlistId, song, nextPos++);
+                    PlaylistSong ps = new PlaylistSong(
+                            playlistId, song.getId(), nextPos++,
+                            song.getTitle(), song.getArtist(), song.getAlbum(),
+                            song.getAlbumId(), song.getDuration());
                     dao.addSongToPlaylist(ps);
                 }
             }
@@ -191,21 +151,9 @@ public class PlaylistRepository {
         });
     }
 
-    private PlaylistSong createPlaylistSongEntity(long playlistId, Song song, int position) {
-        Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
-        long duration = song.getDuration() > 0 ? song.getDuration() : (canonical != null ? canonical.getDuration() : 0);
-        long albumId = song.getAlbumId() != 0 ? song.getAlbumId() : (canonical != null ? canonical.getAlbumId() : 0);
-        return new PlaylistSong(
-                playlistId, song.getId(), position,
-                song.getTitle(), song.getArtist(), song.getAlbum(),
-                albumId, duration);
-    }
-
     public void removeSongFromPlaylist(long playlistId, long songId) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            dao.removeSongFromPlaylist(playlistId, songId);
-            touchModifiedAt(playlistId);
-        });
+        SwaraApplication.getInstance().getDbExecutor().execute(() ->
+                dao.removeSongFromPlaylist(playlistId, songId));
     }
 
     public void deleteSongFromAllPlaylists(long songId) {

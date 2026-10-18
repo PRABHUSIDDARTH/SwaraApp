@@ -31,8 +31,7 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
 
     private RecyclerView recyclerView;
     private View layoutEmpty;
-    private View btnPlayAllFavorites;
-    private View btnShuffleFavorites;
+    private Button btnShuffleFavorites;
     private SongAdapter songAdapter;
 
     @Nullable
@@ -50,30 +49,18 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
 
         recyclerView = view.findViewById(R.id.recyclerView);
         layoutEmpty = view.findViewById(R.id.layoutEmpty);
-        btnPlayAllFavorites  = view.findViewById(R.id.btnPlayAllFavorites);
-        btnShuffleFavorites  = view.findViewById(R.id.btnShuffleFavorites);
+        btnShuffleFavorites = view.findViewById(R.id.btnShuffleFavorites);
 
         songAdapter = new SongAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
-        if (btnPlayAllFavorites != null) {
-            btnPlayAllFavorites.setOnClickListener(v -> {
-                List<Song> songs = songAdapter.getCurrentList();
-                if (songs != null && !songs.isEmpty()) {
-                    playbackViewModel.playSongs(songs, 0);
-                }
-            });
-        }
-
         if (btnShuffleFavorites != null) {
             btnShuffleFavorites.setOnClickListener(v -> {
                 List<Song> songs = songAdapter.getCurrentList();
                 if (songs != null && !songs.isEmpty()) {
-                    if (!Boolean.TRUE.equals(playbackViewModel.getShuffleEnabled().getValue())) {
-                        playbackViewModel.toggleShuffle();
-                    }
                     playbackViewModel.playSongs(songs, 0);
+                    playbackViewModel.toggleShuffle();
                 }
             });
         }
@@ -81,62 +68,10 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-                    applyDesignTokens(tokens);
+                    view.setBackgroundColor(tokens.getBackgroundColor());
                 });
 
         observeData();
-    }
-
-    private void applyDesignTokens(com.psthetech.swara.ui.theme.DesignTokens tokens) {
-        View v = getView();
-        if (v == null || tokens == null) return;
-        v.setBackground(tokens.createAmbientDrawable());
-
-        // Header Title
-        android.widget.TextView tvFavoritesTitle = v.findViewById(R.id.tvFavoritesTitle);
-        if (tvFavoritesTitle != null) {
-            tvFavoritesTitle.setTextColor(tokens.getTextPrimaryColor());
-        }
-
-        // Empty state
-        android.widget.ImageView ivEmptyFavorites = v.findViewById(R.id.ivEmptyFavorites);
-        if (ivEmptyFavorites != null) {
-            ivEmptyFavorites.setColorFilter(tokens.getTextSecondaryColor());
-        }
-        android.widget.TextView tvEmptyTitle = v.findViewById(R.id.tvEmptyTitle);
-        if (tvEmptyTitle != null) {
-            tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
-        }
-        android.widget.TextView tvEmptySubtitle = v.findViewById(R.id.tvEmptySubtitle);
-        if (tvEmptySubtitle != null) {
-            tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
-        }
-
-        // Play-all and Shuffle buttons
-        float dp = v.getContext().getResources().getDisplayMetrics().density;
-        int cornerRadius = (int) (tokens.getCornerRadiusDp() * dp);
-
-        if (btnPlayAllFavorites instanceof com.google.android.material.button.MaterialButton) {
-            com.google.android.material.button.MaterialButton mbPlay =
-                    (com.google.android.material.button.MaterialButton) btnPlayAllFavorites;
-            mbPlay.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
-            mbPlay.setTextColor(tokens.getButtonTextColor());
-            mbPlay.setIconTint(android.content.res.ColorStateList.valueOf(tokens.getButtonTextColor()));
-            mbPlay.setCornerRadius(cornerRadius);
-        }
-
-        if (btnShuffleFavorites instanceof com.google.android.material.button.MaterialButton) {
-            com.google.android.material.button.MaterialButton mbShuffle =
-                    (com.google.android.material.button.MaterialButton) btnShuffleFavorites;
-            mbShuffle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tokens.getSurfaceVariantColor()));
-            mbShuffle.setTextColor(tokens.getTextPrimaryColor());
-            mbShuffle.setStrokeColor(android.content.res.ColorStateList.valueOf(tokens.getStrokeColor()));
-            mbShuffle.setStrokeWidth((int) (tokens.getStrokeWidthDp() * dp));
-            mbShuffle.setIconTint(android.content.res.ColorStateList.valueOf(tokens.getTextPrimaryColor()));
-            mbShuffle.setCornerRadius(cornerRadius);
-        }
-
-        if (songAdapter != null) songAdapter.notifyDataSetChanged();
     }
 
     private void observeData() {
@@ -144,12 +79,10 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
             if (songs == null || songs.isEmpty()) {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.VISIBLE);
                 recyclerView.setVisibility(View.GONE);
-                if (btnPlayAllFavorites != null) btnPlayAllFavorites.setVisibility(View.GONE);
                 if (btnShuffleFavorites != null) btnShuffleFavorites.setVisibility(View.GONE);
             } else {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.GONE);
                 recyclerView.setVisibility(View.VISIBLE);
-                if (btnPlayAllFavorites != null) btnPlayAllFavorites.setVisibility(View.VISIBLE);
                 if (btnShuffleFavorites != null) btnShuffleFavorites.setVisibility(View.VISIBLE);
                 songAdapter.submitList(songs);
             }
@@ -158,12 +91,6 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
-            }
-        });
-
-        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
-            if (songAdapter != null) {
-                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
     }
@@ -185,11 +112,6 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
     }
 
     @Override
-    public void onStartVibe(Song song) {
-        playbackViewModel.startVibeFrom(song);
-    }
-
-    @Override
     public void onAddToQueue(Song song) {
         playbackViewModel.addToQueue(song);
     }
@@ -208,13 +130,6 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
     public void onEditArtwork(Song song) {
         if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
-        }
-    }
-
-    @Override
-    public void onEditSongInfo(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
         }
     }
 

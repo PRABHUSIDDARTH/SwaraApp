@@ -44,10 +44,7 @@ public class PlayHistoryRepository {
      */
     public void maybeRecordPlay(Song song, long positionMs) {
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            Song canonical = MusicRepository.getCanonicalSong(song.getId());
-            long duration = song.getDuration() > 0 ? song.getDuration() : (canonical != null ? canonical.getDuration() : 0);
-            long albumId = song.getAlbumId() != 0 ? song.getAlbumId() : (canonical != null ? canonical.getAlbumId() : 0);
-            long threshold = Math.min(30_000L, (long)(duration * 0.4));
+            long threshold = Math.min(30_000L, (long)(song.getDuration() * 0.4));
             if (positionMs < threshold) {
                 return; // Not enough meaningful playback yet
             }
@@ -62,7 +59,7 @@ public class PlayHistoryRepository {
 
             PlayHistory history = new PlayHistory(
                     song.getId(), song.getTitle(), song.getArtist(),
-                    song.getAlbum(), albumId, duration,
+                    song.getAlbum(), song.getAlbumId(), song.getDuration(),
                     System.currentTimeMillis()
             );
             dao.recordPlay(history);

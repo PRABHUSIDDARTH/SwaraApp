@@ -12,7 +12,6 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.annotation.Nullable;
-import androidx.core.view.ViewCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -56,7 +55,7 @@ public class MorphismThemeManager {
         this.preferences = new ThemePreferences(appContext);
 
         ThemeMode mode = preferences.getThemeMode();
-        MorphismStyle style = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle style = preferences.getMorphismStyle();
         ColorTheme colorTheme = preferences.getColorTheme();
 
         // Apply night mode setting to AppCompat
@@ -91,7 +90,7 @@ public class MorphismThemeManager {
         DesignTokens tokens = designTokensLiveData.getValue();
         if (tokens == null && appContext != null) {
             ThemeMode mode = preferences != null ? preferences.getThemeMode() : ThemeMode.DARK;
-            MorphismStyle style = MorphismStyle.LIQUID_GLASS;
+            MorphismStyle style = preferences != null ? preferences.getMorphismStyle() : MorphismStyle.LIQUID_GLASS;
             ColorTheme colorTheme = preferences != null ? preferences.getColorTheme() : ColorTheme.SWARA;
             tokens = new DesignTokens(appContext, colorTheme, style, isNightMode(appContext, mode));
         }
@@ -108,11 +107,10 @@ public class MorphismThemeManager {
     }
 
     public void setMorphismStyle(Context context, MorphismStyle style) {
-        MorphismStyle fixedStyle = MorphismStyle.LIQUID_GLASS;
         if (preferences != null) {
-            preferences.setMorphismStyle(fixedStyle);
+            preferences.setMorphismStyle(style);
         }
-        activeStyleLiveData.setValue(fixedStyle);
+        activeStyleLiveData.setValue(style);
         refreshTokens(context);
     }
 
@@ -129,18 +127,13 @@ public class MorphismThemeManager {
         if (ctx == null) return;
 
         ThemeMode mode = (preferences != null ? preferences.getThemeMode() : ThemeMode.DARK);
-        MorphismStyle style = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle style = (preferences != null ? preferences.getMorphismStyle() : MorphismStyle.LIQUID_GLASS);
         ColorTheme colorTheme = (preferences != null ? preferences.getColorTheme() : ColorTheme.SWARA);
 
         boolean isNight = isNightMode(ctx, mode);
         DesignTokens tokens = new DesignTokens(ctx, colorTheme, style, isNight);
 
         designTokensLiveData.setValue(tokens);
-
-        // Home-screen widget mirrors the in-app theme: re-render it with the new tokens.
-        try {
-            com.psthetech.swara.widget.SwaraWidgetUpdater.refreshWithLastState(ctx);
-        } catch (RuntimeException ignored) { /* widget refresh is best-effort */ }
     }
 
     public static boolean isNightMode(Context context, ThemeMode mode) {
@@ -184,9 +177,10 @@ public class MorphismThemeManager {
         if (view instanceof MaterialCardView) {
             MaterialCardView card = (MaterialCardView) view;
             applyToCard(card, tokens);
-            // MaterialCardView owns its background. Decorate its content with glass drawable.
+            // MaterialCardView owns its background. Decorate its content instead.
             if (card.getChildCount() > 0) {
-                card.getChildAt(0).setBackground(tokens.createCardDrawable(card.getContext()));
+                card.getChildAt(0).setBackground(tokens.getStyle() == MorphismStyle.LIQUID_GLASS
+                        ? tokens.createCardDrawable(card.getContext()) : null);
             }
             return;
         }
@@ -227,55 +221,7 @@ public class MorphismThemeManager {
     }
 
     /**
-     * Apply design tokens to a TextInputLayout and inner EditText.
-     */
-    public void applyToSearchInput(@Nullable com.google.android.material.textfield.TextInputLayout til,
-                                  @Nullable EditText et,
-                                  @Nullable DesignTokens tokens) {
-        if (tokens == null) tokens = getCurrentTokens();
-        if (tokens == null) return;
-
-        if (et != null) {
-            et.setTextColor(tokens.getSearchTextColor());
-            et.setHintTextColor(tokens.getSearchHintColor());
-        }
-
-        if (til != null) {
-            ColorStateList strokeStateList = new ColorStateList(
-                    new int[][]{
-                            new int[]{android.R.attr.state_focused},
-                            new int[]{}
-                    },
-                    new int[]{
-                            tokens.getAccentColor(),
-                            tokens.getStrokeColor()
-                    }
-            );
-            til.setBoxStrokeColorStateList(strokeStateList);
-            til.setBoxBackgroundColor(tokens.getSearchBackgroundColor());
-            til.setHintTextColor(ColorStateList.valueOf(tokens.getAccentColor()));
-            til.setDefaultHintTextColor(ColorStateList.valueOf(tokens.getSearchHintColor()));
-            if (til.getStartIconDrawable() != null) {
-                til.setStartIconTintList(ColorStateList.valueOf(tokens.getIconSecondaryColor()));
-            }
-            if (til.getEndIconDrawable() != null) {
-                til.setEndIconTintList(ColorStateList.valueOf(tokens.getIconSecondaryColor()));
-            }
-            float rPx = 28f * til.getContext().getResources().getDisplayMetrics().density;
-            til.setBoxCornerRadii(rPx, rPx, rPx, rPx);
-        }
-    }
-
-    /**
-     * Creates a MaterialAlertDialogBuilder respecting the current theme.
-     */
-    public static com.google.android.material.dialog.MaterialAlertDialogBuilder createDialogBuilder(Context context) {
-        return new com.google.android.material.dialog.MaterialAlertDialogBuilder(context);
-    }
-
-    /**
      * Apply active design tokens to BottomNavigationView.
-     * Uses Liquid Glass nav drawable — floating pill with TL→BR highlight gradient.
      */
     public void applyToBottomNav(BottomNavigationView nav, @Nullable DesignTokens tokens) {
         if (nav == null) return;
@@ -285,30 +231,21 @@ public class MorphismThemeManager {
         Context context = nav.getContext();
         float density = context.getResources().getDisplayMetrics().density;
 
-        // Glass pill background (highlight gradient + semi-transparent fill + stroke)
-        nav.setBackground(tokens.createGlassNavDrawable(context));
-        nav.setClipToOutline(true);
-        ViewCompat.setElevation(nav, 8 * density);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setColor(tokens.getSurfaceColor());
 
-        // Active indicator — crisp luminous accent pill sized cleanly for the icon without crowding text
-        nav.setItemActiveIndicatorEnabled(true);
-        nav.setItemActiveIndicatorWidth((int) (48 * density));
-        nav.setItemActiveIndicatorHeight((int) (26 * density));
-        nav.setActiveIndicatorLabelPadding((int) (2 * density));
+        if (tokens.getStyle() == MorphismStyle.BRUTALISM) {
+            bg.setStroke(Math.round(3 * density), tokens.getAccentColor());
+        } else if (tokens.getStrokeWidthDp() > 0) {
+            bg.setStroke(Math.max(1, Math.round(tokens.getStrokeWidthDp() * density)), tokens.getStrokeColor());
+        }
+        bg.setCornerRadius(tokens.getCornerRadiusDp() * density);
+        nav.setBackground(tokens.getStyle() == MorphismStyle.LIQUID_GLASS
+                ? tokens.createSurfaceVariantDrawable(context) : bg);
 
-        com.google.android.material.shape.ShapeAppearanceModel shape =
-                com.google.android.material.shape.ShapeAppearanceModel.builder()
-                        .setAllCornerSizes(13 * density)
-                        .build();
-        nav.setItemActiveIndicatorShapeAppearance(shape);
-
-        int indicatorColor = tokens.isNightMode()
-                ? Color.argb(85, Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()), Color.blue(tokens.getAccentColor()))
-                : Color.argb(45, Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()), Color.blue(tokens.getAccentColor()));
-        nav.setItemActiveIndicatorColor(ColorStateList.valueOf(indicatorColor));
-
-        // Icon + text color state list
-        int activeColor = tokens.getReadableAccentColor();
+        // Active state indicator color
+        int activeColor = ColorStateList.valueOf(tokens.getAccentColor()).getDefaultColor();
         int unselectedColor = tokens.getTextSecondaryColor();
 
         ColorStateList stateList = new ColorStateList(
@@ -323,21 +260,5 @@ public class MorphismThemeManager {
         );
         nav.setItemIconTintList(stateList);
         nav.setItemTextColor(stateList);
-    }
-
-    /**
-     * Apply glass surface to any view with configurable corner radius.
-     * Delegates to LiquidGlassRenderer for consistent application.
-     *
-     * @param view           Target view.
-     * @param tokens         Current design tokens.
-     * @param cornerRadiusDp Corner radius in dp (999 = full pill, 20 = mini-player, etc.)
-     */
-    public void applyGlassToView(View view, @Nullable DesignTokens tokens, float cornerRadiusDp) {
-        if (view == null) return;
-        if (tokens == null) tokens = getCurrentTokens();
-        if (tokens == null) return;
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.applyGlassBackground(
-                view, tokens, cornerRadiusDp);
     }
 }

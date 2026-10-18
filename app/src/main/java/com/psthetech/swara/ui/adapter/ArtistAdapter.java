@@ -33,14 +33,13 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
     private static final DiffUtil.ItemCallback<Artist> DIFF_CALLBACK = new DiffUtil.ItemCallback<Artist>() {
         @Override
         public boolean areItemsTheSame(@NonNull Artist oldItem, @NonNull Artist newItem) {
-            return oldItem.getCanonicalKey().equalsIgnoreCase(newItem.getCanonicalKey());
+            return oldItem.getName().equalsIgnoreCase(newItem.getName());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Artist oldItem, @NonNull Artist newItem) {
             return oldItem.getSongCount() == newItem.getSongCount()
-                    && oldItem.getAlbumCount() == newItem.getAlbumCount()
-                    && oldItem.getName().equals(newItem.getName());
+                    && oldItem.getAlbumCount() == newItem.getAlbumCount();
         }
     };
 
@@ -89,12 +88,6 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
                     .transition(DrawableTransitionOptions.withCrossFade())
                     .into(artistImage);
 
-            itemView.setScaleX(1.0f);
-            itemView.setScaleY(1.0f);
-            itemView.setAlpha(1.0f);
-            itemView.setTranslationX(0f);
-            itemView.setTranslationY(0f);
-
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onArtistClick(artist);
@@ -107,11 +100,5 @@ public class ArtistAdapter extends ListAdapter<Artist, ArtistAdapter.ArtistViewH
     public void onViewRecycled(@NonNull ArtistViewHolder holder) {
         super.onViewRecycled(holder);
         ArtworkHelper.clear(holder.itemView.getContext(), holder.artistImage);
-        holder.artistImage.setImageDrawable(null);
-        holder.itemView.setScaleX(1.0f);
-        holder.itemView.setScaleY(1.0f);
-        holder.itemView.setAlpha(1.0f);
-        holder.itemView.setTranslationX(0f);
-        holder.itemView.setTranslationY(0f);
     }
 }

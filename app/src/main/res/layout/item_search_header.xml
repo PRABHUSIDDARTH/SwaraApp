@@ -6,8 +6,8 @@
     android:paddingHorizontal="@dimen/dp_16"
     android:paddingTop="@dimen/dp_16"
     android:paddingBottom="@dimen/dp_8"
-    android:textSize="20sp"
-    android:textStyle="bold"
-    android:textColor="?android:attr/textColorPrimary"
-    android:fontFamily="sans-serif"
-    android:letterSpacing="-0.01" />
+    android:textSize="@dimen/text_label_md"
+    android:textColor="@color/swara_text_secondary"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.08"
+    android:textAllCaps="true" />

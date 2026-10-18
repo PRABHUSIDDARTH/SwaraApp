@@ -2,31 +2,6 @@
 <resources>
     <string name="app_name">Swara</string>
 
-    <!-- Widget -->
-    <string name="widget_description">See what\'s playing and control Swara. Follows your in-app theme.</string>
-    <string name="widget_vertical_description">Compact vertical now playing card for Swara</string>
-    <string name="widget_name_vertical">Swara Card (Vertical)</string>
-    <string name="widget_no_song">Nothing playing</string>
-    <string name="widget_eyebrow_playing">Now Playing</string>
-    <string name="widget_eyebrow_paused">Paused</string>
-    <string name="widget_eyebrow_idle">Swara</string>
-    <string name="widget_tap_to_play">Tap to start listening</string>
-    <string name="cd_widget_artwork">Album artwork</string>
-    <string name="cd_widget_previous">Previous</string>
-    <string name="cd_widget_play_pause">Play or pause</string>
-    <string name="cd_widget_next">Next</string>
-    <string name="cd_widget_favorite">Add to favorites</string>
-    <string name="cd_widget_unfavorite">Remove from favorites</string>
-    <string name="cd_widget_korokae">Toggle Korokae vocal removal</string>
-    <string name="cd_widget_seek_zone">Jump to %1$d percent</string>
-    <string name="widget_eyebrow_korokae">Korokae on</string>
-    <string name="widget_eyebrow_vibe">Vibe on</string>
-    <string name="cd_widget_vibe_on">Turn on Vibe Mode</string>
-    <string name="cd_widget_vibe_off">Turn off Vibe Mode</string>
-    <string name="view_mode">View Mode</string>
-    <string name="view_mode_compact">Switch to compact list</string>
-    <string name="view_mode_expanded">Switch to expanded cards</string>
-
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_library">Library</string>
@@ -44,16 +19,7 @@
     <string name="play_pause">Play / Pause</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
-    <string name="korokae_mode">Korokae</string>
-    <string name="karaoke_mode">Korokae</string>
-    <string name="karaoke_loading">Loading…</string>
-    <string name="karaoke_unavailable">Unavailable</string>
-    <string name="korokae_on">Korokae Mode ON</string>
-    <string name="korokae_off">Korokae Mode OFF</string>
-    <string name="no_karaoke_found">No karaoke version found for this song</string>
     <string name="shuffle">Shuffle</string>
-    <string name="shuffle_on">Shuffle on</string>
-    <string name="shuffle_off">Shuffle off</string>
     <string name="repeat">Repeat</string>
     <string name="repeat_off">Repeat off</string>
     <string name="repeat_one">Repeat one</string>
@@ -71,6 +37,7 @@
 
     <!-- Favorites -->
     <string name="favorites">Favorites</string>
+    <string name="play_all">Play all</string>
     <string name="shuffle_play">Shuffle play</string>
     <string name="favorites_empty_title">No favorites yet</string>
     <string name="favorites_empty_subtitle">Tap the heart icon on any song to add it here</string>
@@ -102,17 +69,6 @@
     <string name="reorder">Reorder</string>
 
     <!-- Home -->
-    <string name="for_you">For you</string>
-    <string name="mix_morning">Morning</string>
-    <string name="mix_afternoon">Afternoon</string>
-    <string name="mix_evening">Evening</string>
-    <string name="mix_late_night">Late night</string>
-    <string name="mix_feel_good">Feel-good</string>
-    <string name="mix_rediscover">Rediscover</string>
-    <plurals name="mix_song_count">
-        <item quantity="one">%d song</item>
-        <item quantity="other">%d songs</item>
-    </plurals>
     <string name="recently_played">Recently played</string>
     <string name="recently_added">Recently added</string>
     <string name="good_morning">Good morning</string>
@@ -173,7 +129,6 @@
     <string name="cd_favorite_empty">Add to favorites</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_drag_handle">Drag to reorder</string>
-    <string name="cd_playback_progress">Playback progress</string>
 
     <!-- Playlist feedback -->
     <string name="song_added_to_playlist">Added to %1$s</string>
@@ -252,202 +207,7 @@
     <string name="color_theme_forest_title">Forest</string>
     <string name="color_theme_forest_desc">Deep emerald forest with sage leaf gold accents</string>
 
-    <string name="color_theme_off_white_title">Off-White</string>
-    <string name="color_theme_off_white_desc">Premium warm cream with near-black contrast — sophisticated minimal luxury</string>
-
-
     <string name="settings">Settings</string>
     <string name="active_style">Active</string>
 
-    <!-- Library sort -->
-    <string name="sort">Sort</string>
-    <string name="sort_title_az">Title (A–Z)</string>
-    <string name="sort_title_za">Title (Z–A)</string>
-    <string name="sort_artist_az">Artist (A–Z)</string>
-    <string name="sort_date_added">Recently Added</string>
-    <string name="sort_duration">Duration (Shortest)</string>
-    <string name="sort_custom">Custom (drag to arrange)</string>
-
-    <!-- Library labels -->
-    <string name="songs">Songs</string>
-    <string name="albums">Albums</string>
-    <string name="artists">Artists</string>
-
-    <!-- Play All / Shuffle -->
-    <string name="play_all">Play All</string>
-    <string name="shuffle_all">Shuffle</string>
-
-    <!-- Sleep Timer -->
-    <string name="sleep_timer">Sleep Timer</string>
-    <string name="sleep_timer_15">15 minutes</string>
-    <string name="sleep_timer_30">30 minutes</string>
-    <string name="sleep_timer_45">45 minutes</string>
-    <string name="sleep_timer_60">60 minutes</string>
-    <string name="sleep_timer_end_of_song">End of current song</string>
-    <string name="sleep_timer_cancel">Cancel timer</string>
-    <string name="sleep_timer_set">Set Timer</string>
-    <string name="sleep_timer_active">Sleep timer: %1$s remaining</string>
-
-    <!-- Equalizer -->
-    <string name="equalizer">Equalizer</string>
-    <string name="equalizer_not_available">No equalizer available on this device</string>
-
-    <!-- History -->
-    <string name="clear">Clear</string>
-    <string name="clear_history_confirm">Clear play history?</string>
-    <string name="share">Share</string>
-    <string name="remove_artwork">Remove artwork</string>
-    <string name="playlist_artwork">Playlist artwork</string>
-
-    <!-- Metadata Editor -->
-    <string name="edit_song_info">Edit Song Info</string>
-    <string name="save">Save</string>
-    <string name="metadata_saved">Song info updated</string>
-    <string name="metadata_save_failed">Failed to update song info</string>
-    <string name="field_title">Title</string>
-    <string name="field_artist">Artist</string>
-    <string name="field_album">Album</string>
-    <string name="field_album_artist">Album Artist</string>
-    <string name="field_genre">Genre</string>
-    <string name="field_year">Year</string>
-    <string name="field_track">Track Number</string>
-    <string name="field_disc">Disc Number</string>
-    <string name="field_composer">Composer</string>
-    <string name="field_comment">Comment</string>
-    <string name="field_title_required">Title cannot be empty</string>
-    <string name="invalid_year">Enter a valid year (1800–2100)</string>
-    <string name="invalid_track">Enter a valid track number (1–999)</string>
-    <string name="invalid_disc">Enter a valid disc number (1–99)</string>
-
-    <string name="available_outputs">Available outputs</string>
-    <string name="cd_seek_bar">Playback position</string>
-    <string name="audio_output">Audio output</string>
-    <string name="share_nearby">Share song</string>
-    <string name="share_card">Share as card</string>
-    <string name="share_card_title">Share card</string>
-    <string name="share_card_whatsapp">WhatsApp</string>
-    <string name="share_card_ig_story">Instagram Story</string>
-    <string name="share_card_ig_message">Instagram</string>
-    <string name="share_card_more">More</string>
-    <string name="share_card_save">Save</string>
-    <string name="share_card_saved">Card saved to Pictures</string>
-    <string name="share_card_failed">Couldn\'t create the card</string>
-    <string name="share_app_not_installed">%1$s isn\'t installed</string>
-    <string name="share_file_unavailable">This song\'s file isn\'t available to share</string>
-    <string name="share_listening_on">Listening on Swara</string>
-    <!-- Optional: Facebook App ID enables Instagram's direct "Add to story" intent. -->
-    <string name="facebook_app_id" translatable="false"></string>
-    <string name="metadata_non_mp3_notice">Only MP3 files store edited tags in the file itself. For this format, changes are saved to the library only.</string>
-    <string name="settings_library_header">Library</string>
-    <string name="settings_hide_short_clips">Hide clips shorter than 30 seconds</string>
-    <string name="vibe_mode">Vibe</string>
-    <string name="vibe_on_toast">Vibe Mode on</string>
-    <string name="vibe_off_toast">Vibe Mode off</string>
-    <string name="start_vibe_mode">Start Vibe Mode</string>
-    <string name="cd_vibe_mode">Vibe Mode: lifts your mood gently</string>
-    <string name="set_mood">This song feels…</string>
-    <string name="mood_sad">Sad</string>
-    <string name="mood_calm">Calm</string>
-    <string name="mood_happy">Happy</string>
-    <string name="mood_energetic">Energetic</string>
-    <string name="mood_clear">Clear</string>
-    <string name="mood_saved">Saved</string>
-    <string name="settings_autoplay">Keep playing similar songs when the queue ends</string>
-    <string name="settings_history_header">Listening history</string>
-    <string name="settings_history_body">Your Wrapped stats live only on this phone. Save them to a file to keep them when you switch phones or reinstall.</string>
-    <string name="settings_history_export">Save to file</string>
-    <string name="settings_history_import">Restore from file</string>
-    <string name="history_export_done">Listening history saved</string>
-    <string name="history_export_failed">Couldn\'t save the file. Try a different folder.</string>
-    <string name="history_import_failed">That file isn\'t a Swara listening history.</string>
-    <string name="history_import_nothing">Nothing new to restore. This history is already here.</string>
-    <plurals name="history_import_done">
-        <item quantity="one">Restored %1$d day of listening. Songs found: %2$d. Not on this phone: %3$d (they still count in your stats).</item>
-        <item quantity="other">Restored %1$d days of listening. Songs found: %2$d. Not on this phone: %3$d (they still count in your stats).</item>
-    </plurals>
-
-    <!-- Swara Wrapped -->
-    <string name="wrapped_footer">Swara Wrapped</string>
-    <string name="wrapped_intro_title">Your %1$s, wrapped</string>
-    <string name="wrapped_intro_sub">Here\'s how it sounded.</string>
-    <string name="wrapped_period_all">all time</string>
-    <string name="wrapped_tag_minutes">Time in music</string>
-    <string name="wrapped_minutes_unit">minutes</string>
-    <plurals name="wrapped_movies">
-        <item quantity="one">That\'s about %d movie\'s worth.</item>
-        <item quantity="other">That\'s about %d movies\' worth.</item>
-    </plurals>
-    <string name="wrapped_tag_top_songs">Top songs</string>
-    <string name="wrapped_tag_top_artists">Top artists</string>
-    <string name="wrapped_tag_top_album">Album on repeat</string>
-    <string name="wrapped_tag_mood_mix">Your mood mix</string>
-    <string name="wrapped_tag_mood_of">The sound of your %1$s</string>
-    <string name="wrapped_mood_sad">Sad</string>
-    <string name="wrapped_mood_calm">Calm</string>
-    <string name="wrapped_mood_happy">Happy</string>
-    <string name="wrapped_mood_energetic">Energetic</string>
-    <string name="wrapped_mood_of_sub">%1$d%% of your listening</string>
-    <string name="wrapped_tag_vibe">Vibe Mode</string>
-    <plurals name="wrapped_vibe_sessions">
-        <item quantity="one">session</item>
-        <item quantity="other">sessions</item>
-    </plurals>
-    <string name="wrapped_vibe_fav">Your go-to start: %1$s</string>
-    <string name="wrapped_tag_habits">Your rhythm</string>
-    <string name="wrapped_habit_peak">Peak hour</string>
-    <string name="wrapped_habit_day">Busiest day</string>
-    <string name="wrapped_habit_streak">Longest streak</string>
-    <plurals name="wrapped_days_in_row">
-        <item quantity="one">%d day</item>
-        <item quantity="other">%d days</item>
-    </plurals>
-    <string name="wrapped_tag_repeat">On repeat</string>
-    <string name="wrapped_repeat_line">%1$s · played %2$d times again</string>
-    <string name="wrapped_skip_title">Skipped most</string>
-    <string name="wrapped_tag_discovery">New finds</string>
-    <plurals name="wrapped_new_songs">
-        <item quantity="one">new song</item>
-        <item quantity="other">new songs</item>
-    </plurals>
-    <string name="wrapped_rediscovered">Back in rotation: %1$s</string>
-    <string name="wrapped_tag_personality">You listen like a</string>
-    <string name="wrapped_p_night_owl">Night Owl</string>
-    <string name="wrapped_p_night_owl_why">Most of your music happens after 10 pm.</string>
-    <string name="wrapped_p_early_riser">Early Riser</string>
-    <string name="wrapped_p_early_riser_why">Your day starts with a soundtrack.</string>
-    <string name="wrapped_p_mood_lifter">Mood Lifter</string>
-    <string name="wrapped_p_mood_lifter_why">You let Vibe Mode carry the mood up.</string>
-    <string name="wrapped_p_loyalist">Loyalist</string>
-    <string name="wrapped_p_loyalist_why">One song kept coming back, and you let it.</string>
-    <string name="wrapped_p_explorer">Explorer</string>
-    <string name="wrapped_p_explorer_why">A third of what you played was new to you.</string>
-    <string name="wrapped_p_energy_seeker">Energy Seeker</string>
-    <string name="wrapped_p_energy_seeker_why">You keep the tempo high.</string>
-    <string name="wrapped_p_balanced">Balanced Listener</string>
-    <string name="wrapped_p_balanced_why">A little of everything, at every hour.</string>
-    <string name="wrapped_tag_summary">Your %1$s in Swara</string>
-    <string name="wrapped_summary_minutes">Minutes</string>
-    <string name="wrapped_summary_top_artist">Top artist</string>
-    <string name="wrapped_summary_mood">Mood</string>
-    <string name="wrapped_summary_type">Listener type</string>
-    <string name="wrapped_share_caption">My Swara Wrapped 🎧</string>
-    <string name="wrapped_share_failed">Couldn\'t create the image. Try again.</string>
-    <string name="wrapped_close">Close</string>
-    <string name="wrapped_save_video">Save video</string>
-    <string name="wrapped_share_slide">Share this slide</string>
-    <string name="wrapped_video_progress">Making your video…</string>
-    <string name="wrapped_video_saved">Video saved to Movies/Swara</string>
-    <string name="wrapped_video_failed">Couldn\'t make the video. You can still share the slides as images.</string>
-    <string name="wrapped_not_enough">Keep listening — your stats will appear here.</string>
-    <string name="cd_your_stats">Your listening stats</string>
-    <string name="wrapped_your_stats">Your stats</string>
-    <string name="wrapped_banner_title">Your %1$s Wrapped is ready</string>
-    <string name="wrapped_banner_sub">Tap to see how it sounded</string>
-    <string name="wrapped_banner_dismiss">Dismiss</string>
-    <string name="wrapped_stats_title">Your stats</string>
-    <string name="wrapped_period_this_month">This month</string>
-    <string name="wrapped_period_this_year">This year</string>
-    <string name="wrapped_period_all_time">All time</string>
-    <string name="wrapped_play">Play my Wrapped</string>
-    <string name="wrapped_channel_name">Wrapped recaps</string>
 </resources>

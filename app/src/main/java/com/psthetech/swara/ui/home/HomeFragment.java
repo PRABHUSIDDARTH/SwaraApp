@@ -25,7 +25,6 @@ import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,10 +43,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     private RecyclerView rvRecentlyPlayed;
     private RecyclerView rvRecentlyAdded;
     private RecyclerView rvPlaylists;
-    private RecyclerView rvForYou;
-    private View sectionForYou;
-    private com.psthetech.swara.ui.adapter.MixAdapter mixAdapter;
-    private List<com.psthetech.swara.data.db.entity.Mix> storedMixes;
     private View sectionRecentlyPlayed;
     private View sectionRecentlyAdded;
     private View sectionPlaylists;
@@ -68,13 +63,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        notificationPermission = registerForActivityResult(
-                new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), granted -> { });
-    }
-
-    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
@@ -87,8 +75,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         rvRecentlyPlayed    = view.findViewById(R.id.rvRecentlyPlayed);
         rvRecentlyAdded     = view.findViewById(R.id.rvRecentlyAdded);
         rvPlaylists         = view.findViewById(R.id.rvPlaylists);
-        rvForYou            = view.findViewById(R.id.rvForYou);
-        sectionForYou       = view.findViewById(R.id.sectionForYou);
         sectionRecentlyPlayed = view.findViewById(R.id.sectionRecentlyPlayed);
         sectionRecentlyAdded  = view.findViewById(R.id.sectionRecentlyAdded);
         sectionPlaylists      = view.findViewById(R.id.sectionPlaylists);
@@ -97,109 +83,17 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
 
         setGreeting();
 
-        recentlyPlayedAdapter = new SongAdapter(new SongAdapter.Listener() {
-            @Override
-            public void onStartVibe(Song song) {
-                HomeFragment.this.onStartVibe(song);
-            }
-
-            @Override
-            public void onSongClick(Song song, int position) {
-                playSongFromList(song, recentlyPlayedAdapter.getCurrentList());
-            }
-
-            @Override
-            public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
-                HomeFragment.this.onFavoriteToggle(song, currentlyFavorite);
-            }
-
-            @Override
-            public void onPlayNext(Song song) {
-                HomeFragment.this.onPlayNext(song);
-            }
-
-            @Override
-            public void onAddToQueue(Song song) {
-                HomeFragment.this.onAddToQueue(song);
-            }
-
-            @Override
-            public void onAddToPlaylist(Song song) {
-                HomeFragment.this.onAddToPlaylist(song);
-            }
-
-            @Override
-            public void onRemoveFromPlaylist(Song song) {}
-
-            @Override
-            public void onEditArtwork(Song song) {
-                HomeFragment.this.onEditArtwork(song);
-            }
-
-            @Override
-            public void onDeleteSong(Song song) {
-                HomeFragment.this.onDeleteSong(song);
-            }
-        });
+        recentlyPlayedAdapter = new SongAdapter(this);
         rvRecentlyPlayed.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyPlayed.setAdapter(recentlyPlayedAdapter);
 
-        recentlyAddedAdapter = new SongAdapter(new SongAdapter.Listener() {
-            @Override
-            public void onStartVibe(Song song) {
-                HomeFragment.this.onStartVibe(song);
-            }
-
-            @Override
-            public void onSongClick(Song song, int position) {
-                playSongFromList(song, recentlyAddedAdapter.getCurrentList());
-            }
-
-            @Override
-            public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
-                HomeFragment.this.onFavoriteToggle(song, currentlyFavorite);
-            }
-
-            @Override
-            public void onPlayNext(Song song) {
-                HomeFragment.this.onPlayNext(song);
-            }
-
-            @Override
-            public void onAddToQueue(Song song) {
-                HomeFragment.this.onAddToQueue(song);
-            }
-
-            @Override
-            public void onAddToPlaylist(Song song) {
-                HomeFragment.this.onAddToPlaylist(song);
-            }
-
-            @Override
-            public void onRemoveFromPlaylist(Song song) {}
-
-            @Override
-            public void onEditArtwork(Song song) {
-                HomeFragment.this.onEditArtwork(song);
-            }
-
-            @Override
-            public void onDeleteSong(Song song) {
-                HomeFragment.this.onDeleteSong(song);
-            }
-        });
+        recentlyAddedAdapter = new SongAdapter(this);
         rvRecentlyAdded.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvRecentlyAdded.setAdapter(recentlyAddedAdapter);
 
-        mixAdapter = new com.psthetech.swara.ui.adapter.MixAdapter(this::onMixClick);
-        rvForYou.setLayoutManager(
-                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        rvForYou.setAdapter(mixAdapter);
-
         playlistAdapter = new HomePlaylistAdapter(this::onPlaylistClick);
-        playlistAdapter.setArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         rvPlaylists.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvPlaylists.setAdapter(playlistAdapter);
@@ -210,120 +104,29 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                     Navigation.findNavController(v).navigate(R.id.playlistsFragment));
         }
 
-        if (com.psthetech.swara.BuildConfig.DEBUG) {
-            View appNameView = view.findViewById(R.id.tvAppName);
-            if (appNameView != null) {
-                appNameView.setOnLongClickListener(v -> {
-                    try {
-                        startActivity(new android.content.Intent().setClassName(
-                                requireContext().getPackageName(),
-                                "com.psthetech.swara.ui.debug.MoodDebugActivity"));
-                    } catch (android.content.ActivityNotFoundException ignored) { }
-                    return true;
-                });
-            }
-        }
-
         View btnSettings = view.findViewById(R.id.btnSettings);
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v ->
                     Navigation.findNavController(v).navigate(R.id.action_home_to_settings));
         }
 
-        View btnYourStats = view.findViewById(R.id.btnYourStats);
-        if (btnYourStats != null) {
-            btnYourStats.setOnClickListener(v ->
-                    Navigation.findNavController(v).navigate(R.id.action_home_to_stats));
-        }
-        bindWrappedBanner(view);
-
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     View root = view.findViewById(R.id.layoutContent);
                     if (root != null) root.setBackground(tokens.createAmbientDrawable());
-                    if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextPrimaryColor());
+                    if (tvGreeting != null) tvGreeting.setTextColor(tokens.getTextSecondaryColor());
                     TextView tvAppName = view.findViewById(R.id.tvAppName);
-                    if (tvAppName != null) tvAppName.setTextColor(tokens.getTextSecondaryColor());
+                    if (tvAppName != null) tvAppName.setTextColor(tokens.getAccentColor());
                     if (btnSettings != null && btnSettings instanceof android.widget.ImageView) {
-                        ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getIconSecondaryColor());
-                    }
-                    if (btnYourStats instanceof android.widget.ImageView) {
-                        ((android.widget.ImageView) btnYourStats).setColorFilter(tokens.getIconSecondaryColor());
+                        ((android.widget.ImageView) btnSettings).setColorFilter(tokens.getAccentColor());
                     }
                     if (tvSeeAllPlaylists != null && tvSeeAllPlaylists instanceof TextView) {
-                        ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getReadableAccentColor());
+                        ((TextView) tvSeeAllPlaylists).setTextColor(tokens.getAccentColor());
                     }
-                    View btnClearHistory = view.findViewById(R.id.btnClearHistory);
-                    if (btnClearHistory instanceof android.widget.ImageView) {
-                        ((android.widget.ImageView) btnClearHistory).setColorFilter(tokens.getReadableAccentColor());
-                    }
-                    // Explicit Section Headers & Welcome Card Text
-                    TextView tvHeaderForYou = view.findViewById(R.id.tvHeaderForYou);
-                    if (tvHeaderForYou != null) tvHeaderForYou.setTextColor(tokens.getTextPrimaryColor());
-                    TextView tvHeaderRecentlyPlayed = view.findViewById(R.id.tvHeaderRecentlyPlayed);
-                    if (tvHeaderRecentlyPlayed != null) tvHeaderRecentlyPlayed.setTextColor(tokens.getTextPrimaryColor());
-                    TextView tvHeaderPlaylists = view.findViewById(R.id.tvHeaderPlaylists);
-                    if (tvHeaderPlaylists != null) tvHeaderPlaylists.setTextColor(tokens.getTextPrimaryColor());
-                    TextView tvHeaderRecentlyAdded = view.findViewById(R.id.tvHeaderRecentlyAdded);
-                    if (tvHeaderRecentlyAdded != null) tvHeaderRecentlyAdded.setTextColor(tokens.getTextPrimaryColor());
-                    TextView tvWelcomeTitle = view.findViewById(R.id.tvWelcomeTitle);
-                    if (tvWelcomeTitle != null) tvWelcomeTitle.setTextColor(tokens.getTextPrimaryColor());
-                    TextView tvWelcomeSubtitle = view.findViewById(R.id.tvWelcomeSubtitle);
-                    if (tvWelcomeSubtitle != null) tvWelcomeSubtitle.setTextColor(tokens.getTextSecondaryColor());
-
-                    if (mixAdapter != null) mixAdapter.notifyDataSetChanged();
-                    if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.notifyDataSetChanged();
-                    if (recentlyAddedAdapter != null) recentlyAddedAdapter.notifyDataSetChanged();
-                    if (playlistAdapter != null) playlistAdapter.notifyDataSetChanged();
                 });
 
         observeData();
-
-        // Clear recently played history with confirmation
-        View btnClearHistory = view.findViewById(R.id.btnClearHistory);
-        if (btnClearHistory != null) {
-            btnClearHistory.setOnClickListener(v -> {
-                com.psthetech.swara.ui.theme.ThemedDialogHelper.showConfirmationDialog(
-                        requireContext(),
-                        getString(R.string.clear_history_confirm),
-                        null,
-                        getString(android.R.string.ok),
-                        () -> libraryViewModel.clearPlayHistory());
-            });
-        }
-    }
-
-    private void onMixClick(com.psthetech.swara.data.db.entity.Mix mix) {
-        List<Song> songs = new ArrayList<>();
-        for (long id : com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds)) {
-            Song s = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
-            if (s != null) songs.add(s);
-        }
-        if (!songs.isEmpty()) {
-            playbackViewModel.playSongs(songs, 0);
-            return;
-        }
-        // Canonical cache is cold: resolve off the main thread, then play on it.
-        final android.content.Context appCtx = requireContext().getApplicationContext();
-        final List<Long> ids = com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds);
-        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
-            com.psthetech.swara.data.repository.MusicRepository repo =
-                    new com.psthetech.swara.data.repository.MusicRepository(appCtx);
-            List<Song> resolved = new ArrayList<>();
-            try {
-                for (long id : ids) {
-                    Song s = repo.getSongById(id);
-                    if (s != null) resolved.add(s);
-                }
-            } catch (RuntimeException e) {
-                android.util.Log.w("HomeFragment", "Mix resolve failed", e);
-            }
-            if (resolved.isEmpty()) return;
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                if (isAdded()) playbackViewModel.playSongs(resolved, 0);
-            });
-        });
     }
 
     private void onPlaylistClick(Playlist playlist) {
@@ -341,13 +144,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         else if (hour >= 12 && hour < 17) tvGreeting.setText(R.string.greeting_afternoon);
         else if (hour >= 17 && hour < 22) tvGreeting.setText(R.string.greeting_evening);
         else                               tvGreeting.setText(R.string.greeting_night);
-        View view = getView();
-        TextView tvDate = view != null ? view.findViewById(R.id.tvAppName) : null;
-        if (tvDate != null) {
-            tvDate.setText(android.text.format.DateFormat.format(
-                    android.text.format.DateFormat.getBestDateTimePattern(java.util.Locale.getDefault(), "EEEEdMMMM"),
-                    new java.util.Date()));
-        }
     }
 
     private void observeData() {
@@ -358,19 +154,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
                 recentlyAddedAdapter.setFavorites(favoriteSongIds);
             }
         });
-
-        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
-            long id = song != null ? song.getId() : -1L;
-            if (recentlyPlayedAdapter != null) recentlyPlayedAdapter.setCurrentPlayingSongId(id);
-            if (recentlyAddedAdapter != null) recentlyAddedAdapter.setCurrentPlayingSongId(id);
-        });
-
-        // For you mixes
-        com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext().getApplicationContext())
-                .mixDao().allLive().observe(getViewLifecycleOwner(), mixes -> {
-                    storedMixes = mixes;
-                    showMixesForCurrentHour();
-                });
 
         // Recently Added
         libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> {
@@ -400,119 +183,34 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
             if (playlists != null && !playlists.isEmpty()) {
                 if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.VISIBLE);
                 playlistAdapter.submitList(playlists);
+                observePlaylistSongCounts(playlists);
             } else {
                 if (sectionPlaylists != null) sectionPlaylists.setVisibility(View.GONE);
             }
         });
-
-        // Reactive playlist song counts
-        playlistViewModel.getSongCountsMapLive().observe(getViewLifecycleOwner(), counts -> {
-            if (playlistAdapter != null && counts != null) {
-                playlistAdapter.setSongCounts(counts);
-            }
-        });
     }
 
-    /** Shows feel-good/rediscover plus only the time-of-day mix for the current hour. */
-    private void showMixesForCurrentHour() {
-        if (mixAdapter == null) return;
-        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        List<com.psthetech.swara.data.db.entity.Mix> visible = new ArrayList<>();
-        if (storedMixes != null) {
-            for (com.psthetech.swara.data.db.entity.Mix m : storedMixes) {
-                if (com.psthetech.swara.vibe.MixBuilder.isVisibleAtHour(m.mixKey, hour)) {
-                    visible.add(m);
-                }
-            }
-        }
-        if (sectionForYou != null) {
-            sectionForYou.setVisibility(visible.isEmpty() ? View.GONE : View.VISIBLE);
-        }
-        mixAdapter.submitList(visible);
-    }
-
-    /** Shows "Your <period> Wrapped is ready" for a fresh, undismissed recap. */
-    private void bindWrappedBanner(View view) {
-        View banner = view.findViewById(R.id.wrappedBanner);
-        TextView title = view.findViewById(R.id.tvWrappedBannerTitle);
-        if (banner == null || title == null) return;
-        long since = System.currentTimeMillis() - 14L * 86_400_000L;
-        com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext()).wrappedDao()
-                .latestUndismissedLive(since)
-                .observe(getViewLifecycleOwner(), recap -> {
-                    boolean show = com.psthetech.swara.wrapped.ui.BannerPolicy
-                            .showBanner(recap, System.currentTimeMillis());
-                    banner.setVisibility(show ? View.VISIBLE : View.GONE);
-                    if (!show) return;
-                    String key = recap.recapKey;
-                    title.setText(getString(R.string.wrapped_banner_title, recapName(recap)));
-                    banner.setOnClickListener(v -> startActivity(
-                            com.psthetech.swara.wrapped.ui.WrappedStoryActivity.forRecap(requireContext(), key)));
-                    view.findViewById(R.id.btnWrappedBannerDismiss).setOnClickListener(v -> {
-                        banner.setVisibility(View.GONE);
-                        android.content.Context app = requireContext().getApplicationContext();
-                        com.psthetech.swara.SwaraApplication.getInstance().getDbExecutor().execute(() ->
-                                com.psthetech.swara.data.db.AppDatabase.getInstance(app).wrappedDao().dismissBanner(key));
+    private void observePlaylistSongCounts(List<Playlist> playlists) {
+        final Map<Long, Integer> counts = new HashMap<>();
+        for (Playlist p : playlists) {
+            playlistViewModel.getSongsForPlaylist(p.id)
+                    .observe(getViewLifecycleOwner(), songs -> {
+                        counts.put(p.id, songs != null ? songs.size() : 0);
+                        playlistAdapter.setSongCounts(new HashMap<>(counts));
                     });
-                    onWrappedBannerShown();
-                });
-    }
-
-    /** "October" for a monthly recap, "2026" for a yearly one. */
-    private static String recapName(com.psthetech.swara.data.db.entity.Recap r) {
-        if (r.recapKey.startsWith("year-")) return String.valueOf(r.periodStart / 10000);
-        int month = (r.periodStart / 100) % 100;
-        return new java.text.DateFormatSymbols(java.util.Locale.getDefault()).getMonths()[month - 1];
-    }
-
-    private androidx.activity.result.ActivityResultLauncher<String> notificationPermission;
-
-    /** Asks once (Android 13+) for notification permission, only after a recap banner was seen. */
-    private void onWrappedBannerShown() {
-        if (android.os.Build.VERSION.SDK_INT < 33 || notificationPermission == null) return;
-        android.content.SharedPreferences prefs = requireContext()
-                .getSharedPreferences("swara_wrapped", android.content.Context.MODE_PRIVATE);
-        if (prefs.getBoolean("wrapped_notif_asked", false)) return;
-        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
-                android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            return;
         }
-        prefs.edit().putBoolean("wrapped_notif_asked", true).apply();
-        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        showMixesForCurrentHour();
-        if (playlistAdapter != null) {
-            playlistAdapter.notifyDataSetChanged();
-        }
-    }
-
-    private void playSongFromList(Song clickedSong, List<Song> list) {
-        if (clickedSong == null) return;
-        if (list != null && !list.isEmpty()) {
-            int targetIndex = -1;
-            for (int i = 0; i < list.size(); i++) {
-                if (list.get(i).getId() == clickedSong.getId()) {
-                    targetIndex = i;
-                    break;
-                }
-            }
-            if (targetIndex != -1) {
-                playbackViewModel.playSongs(list, targetIndex);
-                return;
-            }
-        }
-        playbackViewModel.playSong(clickedSong);
     }
 
     // ===== SongAdapter.Listener =====
 
     @Override
     public void onSongClick(Song song, int position) {
-        playSongFromList(song, recentlyAddedAdapter.getCurrentList());
+        List<Song> currentList = recentlyAddedAdapter.getCurrentList();
+        if (!currentList.isEmpty()) {
+            playbackViewModel.playSongs(currentList, position);
+        } else {
+            playbackViewModel.playSong(song);
+        }
     }
 
     @Override
@@ -523,11 +221,6 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     @Override
     public void onPlayNext(Song song) {
         playbackViewModel.playNext(song);
-    }
-
-    @Override
-    public void onStartVibe(Song song) {
-        playbackViewModel.startVibeFrom(song);
     }
 
     @Override
@@ -543,19 +236,5 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
     @Override
     public void onRemoveFromPlaylist(Song song) {
         // Not applicable in home screen context
-    }
-
-    @Override
-    public void onEditArtwork(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
-        }
-    }
-
-    @Override
-    public void onDeleteSong(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
-        }
     }
 }

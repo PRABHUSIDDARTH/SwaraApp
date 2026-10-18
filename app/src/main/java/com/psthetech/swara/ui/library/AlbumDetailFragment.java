@@ -74,30 +74,6 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
-        View btnPlayAll = view.findViewById(R.id.btnPlayAll);
-        if (btnPlayAll != null) {
-            btnPlayAll.setOnClickListener(v -> {
-                List<Song> songs = songAdapter.getCurrentList();
-                if (!songs.isEmpty()) {
-                    playbackViewModel.playSongs(songs, 0);
-                }
-            });
-        }
-
-        View btnShuffle = view.findViewById(R.id.btnShuffle);
-        if (btnShuffle != null) {
-            btnShuffle.setOnClickListener(v -> {
-                List<Song> songs = songAdapter.getCurrentList();
-                if (!songs.isEmpty()) {
-                    // Enable shuffle, then start from index 0
-                    if (!Boolean.TRUE.equals(playbackViewModel.getShuffleEnabled().getValue())) {
-                        playbackViewModel.toggleShuffle();
-                    }
-                    playbackViewModel.playSongs(songs, 0);
-                }
-            });
-        }
-
         if (albumArt != null && albumId != -1) {
             Glide.with(this)
                     .load(ArtworkHelper.getAlbumArtUri(albumId))
@@ -106,26 +82,9 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
                     .into(albumArt);
         }
 
-        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
-                    if (tokens == null || getView() == null) return;
-                    getView().setBackground(tokens.createAmbientDrawable());
-                    if (albumTitle != null) albumTitle.setTextColor(tokens.getTextPrimaryColor());
-                    if (albumMeta != null) albumMeta.setTextColor(tokens.getTextSecondaryColor());
-                    ImageView backButton = getView().findViewById(R.id.backButton);
-                    if (backButton != null) backButton.setColorFilter(tokens.getTextPrimaryColor());
-                    if (songAdapter != null) songAdapter.notifyDataSetChanged();
-                });
-
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
-            }
-        });
-
-        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
-            if (songAdapter != null) {
-                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
 
@@ -153,11 +112,6 @@ public class AlbumDetailFragment extends Fragment implements SongAdapter.Listene
     @Override
     public void onPlayNext(Song song) {
         playbackViewModel.playNext(song);
-    }
-
-    @Override
-    public void onStartVibe(Song song) {
-        playbackViewModel.startVibeFrom(song);
     }
 
     @Override

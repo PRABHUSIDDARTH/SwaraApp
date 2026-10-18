@@ -4,7 +4,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,22 +13,16 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.data.db.entity.Playlist;
-import com.psthetech.swara.data.repository.PlaylistArtworkStore;
-import com.psthetech.swara.util.PlaylistArtworkHelper;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Adapter for the Playlists screen list.
- * Shows playlist artwork, name, song count, and a ⋮ menu button.
+ * Shows playlist name, song count, and a ⋮ menu button.
  *
  * Song counts are injected externally via setSongCounts() — they come from
  * PlaylistViewModel which queries Room in the background.
- *
- * Artwork is loaded via PlaylistArtworkHelper following the priority chain:
- *   custom → collage → fallback icon.
  */
 public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.PlaylistViewHolder> {
 
@@ -39,30 +32,17 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
     }
 
     private final OnPlaylistClickListener listener;
-    private PlaylistArtworkStore artworkStore;
     private Map<Long, Integer> songCounts = new HashMap<>();
-    /** Map of playlistId → list of albumIds for songs in that playlist (for collage generation). */
-    private Map<Long, List<Long>> playlistAlbumIds = new HashMap<>();
 
     public PlaylistAdapter(OnPlaylistClickListener listener) {
         super(DIFF_CALLBACK);
         this.listener = listener;
     }
 
-    /** Sets the PlaylistArtworkStore used for loading and generating artwork. */
-    public void setArtworkStore(PlaylistArtworkStore store) {
-        this.artworkStore = store;
-    }
-
-    /** Updates the song count map. */
+    /** Updates the song count map. Call notifyDataSetChanged() is NOT needed —
+     *  this triggers a DiffUtil-friendly re-bind via notifyItemRangeChanged(). */
     public void setSongCounts(Map<Long, Integer> counts) {
         this.songCounts = counts != null ? counts : new HashMap<>();
-        notifyItemRangeChanged(0, getItemCount());
-    }
-
-    /** Updates the album IDs map for collage generation. */
-    public void setPlaylistAlbumIds(Map<Long, List<Long>> albumIds) {
-        this.playlistAlbumIds = albumIds != null ? albumIds : new HashMap<>();
         notifyItemRangeChanged(0, getItemCount());
     }
 
@@ -76,14 +56,7 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
                 @Override
                 public boolean areContentsTheSame(@NonNull Playlist oldItem, @NonNull Playlist newItem) {
                     return oldItem.name.equals(newItem.name)
-                            && oldItem.modifiedAt == newItem.modifiedAt
-                            && safeEquals(oldItem.artworkPath, newItem.artworkPath);
-                }
-
-                private boolean safeEquals(String a, String b) {
-                    if (a == null && b == null) return true;
-                    if (a == null || b == null) return false;
-                    return a.equals(b);
+                            && oldItem.modifiedAt == newItem.modifiedAt;
                 }
             };
 
@@ -99,55 +72,31 @@ public class PlaylistAdapter extends ListAdapter<Playlist, PlaylistAdapter.Playl
     public void onBindViewHolder(@NonNull PlaylistViewHolder holder, int position) {
         Playlist playlist = getItem(position);
         int count = songCounts.containsKey(playlist.id) ? songCounts.get(playlist.id) : 0;
-        holder.bind(playlist, count, artworkStore, listener);
-    }
-
-    @Override
-    public void onViewRecycled(@NonNull PlaylistViewHolder holder) {
-        super.onViewRecycled(holder);
-        PlaylistArtworkHelper.clear(holder.itemView.getContext(), holder.ivPlaylistArtwork);
-        holder.ivPlaylistArtwork.setImageDrawable(null);
-        holder.itemView.setScaleX(1.0f);
-        holder.itemView.setScaleY(1.0f);
-        holder.itemView.setAlpha(1.0f);
-        holder.itemView.setTranslationX(0f);
-        holder.itemView.setTranslationY(0f);
+        holder.bind(playlist, count, listener);
     }
 
     static class PlaylistViewHolder extends RecyclerView.ViewHolder {
-        final ImageView ivPlaylistArtwork;
         private final TextView playlistName;
         private final TextView playlistSongCount;
         private final ImageButton playlistMenuButton;
 
         public PlaylistViewHolder(@NonNull View itemView) {
             super(itemView);
-            ivPlaylistArtwork = itemView.findViewById(R.id.ivPlaylistArtwork);
             playlistName      = itemView.findViewById(R.id.playlistName);
             playlistSongCount = itemView.findViewById(R.id.playlistSongCount);
             playlistMenuButton = itemView.findViewById(R.id.playlistMenuButton);
         }
 
-        public void bind(Playlist playlist, int count,
-                         PlaylistArtworkStore store, OnPlaylistClickListener listener) {
-            // Explicitly reset any recycled state
-            itemView.setScaleX(1.0f);
-            itemView.setScaleY(1.0f);
-            itemView.setAlpha(1.0f);
-            itemView.setTranslationX(0f);
-            itemView.setTranslationY(0f);
-
+        public void bind(Playlist playlist, int count, OnPlaylistClickListener listener) {
             playlistName.setText(playlist.name);
 
             if (playlistSongCount != null) {
-                String countText = count == 1 ? "1 song" : count + " songs";
+                String countText = count == 1
+                        ? "1 song"
+                        : count + " songs";
                 playlistSongCount.setText(countText);
                 playlistSongCount.setVisibility(View.VISIBLE);
             }
-
-            // Load artwork via authoritative priority chain
-            PlaylistArtworkHelper.loadPlaylistArt(
-                    itemView.getContext(), playlist, store, ivPlaylistArtwork);
 
             com.psthetech.swara.ui.theme.DesignTokens tokens =
                     com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();

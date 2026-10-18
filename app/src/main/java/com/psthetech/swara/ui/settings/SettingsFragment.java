@@ -8,10 +8,6 @@ import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,11 +23,6 @@ import com.psthetech.swara.domain.model.MorphismStyle;
 import com.psthetech.swara.domain.model.ThemeMode;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
-import com.psthetech.swara.wrapped.backup.HistoryBackupRepository;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class SettingsFragment extends Fragment {
 
@@ -40,66 +31,18 @@ public class SettingsFragment extends Fragment {
     private TextView tvSettingsTitle;
     private TextView tvThemeHeader;
     private TextView tvColorThemeHeader;
+    private TextView tvMorphismHeader;
     private MaterialCardView cardThemeContainer;
     private RadioGroup rgTheme;
     private RadioButton rbThemeDark;
     private RadioButton rbThemeSystem;
     private RadioButton rbThemeLight;
     private RecyclerView rvColorThemes;
+    private RecyclerView rvMorphismStyles;
 
+    private MorphismPreviewAdapter morphismAdapter;
     private ColorThemePreviewAdapter colorThemeAdapter;
     private boolean isUpdatingRadioState = false;
-    private TextView tvLibraryHeader;
-    private com.google.android.material.card.MaterialCardView cardLibraryContainer;
-    private com.google.android.material.materialswitch.MaterialSwitch switchHideShortClips;
-    private com.google.android.material.materialswitch.MaterialSwitch switchAutoplay;
-    private TextView tvHistoryHeader;
-    private TextView tvHistoryBody;
-    private MaterialCardView cardHistoryContainer;
-    private View btnHistoryExport;
-    private View btnHistoryImport;
-    private View historyProgress;
-
-    private final ActivityResultLauncher<String> createHistoryFile =
-            registerForActivityResult(new ActivityResultContracts.CreateDocument("application/json"), uri -> {
-                if (uri == null) return;
-                setHistoryBusy(true);
-                new HistoryBackupRepository(requireContext()).export(uri, new HistoryBackupRepository.Callback<Integer>() {
-                    @Override public void onDone(Integer songs) {
-                        if (!isAdded()) return;
-                        setHistoryBusy(false);
-                        toast(getString(R.string.history_export_done));
-                    }
-
-                    @Override public void onError(@NonNull Exception e) {
-                        if (!isAdded()) return;
-                        setHistoryBusy(false);
-                        toast(getString(R.string.history_export_failed));
-                    }
-                });
-            });
-
-    private final ActivityResultLauncher<String[]> openHistoryFile =
-            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
-                if (uri == null) return;
-                setHistoryBusy(true);
-                new HistoryBackupRepository(requireContext()).importFrom(uri,
-                        new HistoryBackupRepository.Callback<HistoryBackupRepository.ImportResult>() {
-                            @Override public void onDone(HistoryBackupRepository.ImportResult r) {
-                                if (!isAdded()) return;
-                                setHistoryBusy(false);
-                                toast(r.daysAdded == 0 ? getString(R.string.history_import_nothing)
-                                        : getResources().getQuantityString(R.plurals.history_import_done,
-                                        r.daysAdded, r.daysAdded, r.matchedSongs, r.unmatchedSongs));
-                            }
-
-                            @Override public void onError(@NonNull Exception e) {
-                                if (!isAdded()) return;
-                                setHistoryBusy(false);
-                                toast(getString(R.string.history_import_failed));
-                            }
-                        });
-            });
 
     @Nullable
     @Override
@@ -116,50 +59,27 @@ public class SettingsFragment extends Fragment {
         tvSettingsTitle = view.findViewById(R.id.tvSettingsTitle);
         tvThemeHeader = view.findViewById(R.id.tvThemeHeader);
         tvColorThemeHeader = view.findViewById(R.id.tvColorThemeHeader);
+        tvMorphismHeader = view.findViewById(R.id.tvMorphismHeader);
         cardThemeContainer = view.findViewById(R.id.cardThemeContainer);
         rgTheme = view.findViewById(R.id.rgTheme);
         rbThemeDark = view.findViewById(R.id.rbThemeDark);
         rbThemeSystem = view.findViewById(R.id.rbThemeSystem);
         rbThemeLight = view.findViewById(R.id.rbThemeLight);
         rvColorThemes = view.findViewById(R.id.rvColorThemes);
+        rvMorphismStyles = view.findViewById(R.id.rvMorphismStyles);
 
         btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
 
-        tvLibraryHeader = view.findViewById(R.id.tvLibraryHeader);
-        cardLibraryContainer = view.findViewById(R.id.cardLibraryContainer);
-        switchHideShortClips = view.findViewById(R.id.switchHideShortClips);
-        switchHideShortClips.setChecked(
-                com.psthetech.swara.data.preference.LibraryPreferences.hideShortClips(requireContext()));
-        switchHideShortClips.setOnCheckedChangeListener((b, checked) -> {
-            com.psthetech.swara.data.preference.LibraryPreferences.setHideShortClips(requireContext(), checked);
-            new androidx.lifecycle.ViewModelProvider(requireActivity())
-                    .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class).refreshAll();
-        });
-
-        switchAutoplay = view.findViewById(R.id.switchAutoplay);
-        switchAutoplay.setChecked(
-                com.psthetech.swara.data.preference.LibraryPreferences.autoplayEnabled(requireContext()));
-        switchAutoplay.setOnCheckedChangeListener((b, checked) ->
-                com.psthetech.swara.data.preference.LibraryPreferences.setAutoplayEnabled(requireContext(), checked));
-
-        tvHistoryHeader = view.findViewById(R.id.tvHistoryHeader);
-        tvHistoryBody = view.findViewById(R.id.tvHistoryBody);
-        cardHistoryContainer = view.findViewById(R.id.cardHistoryContainer);
-        btnHistoryExport = view.findViewById(R.id.btnHistoryExport);
-        btnHistoryImport = view.findViewById(R.id.btnHistoryImport);
-        historyProgress = view.findViewById(R.id.historyProgress);
-        btnHistoryExport.setOnClickListener(v -> createHistoryFile.launch(
-                "swara-wrapped-" + new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date()) + ".json"));
-        btnHistoryImport.setOnClickListener(v -> openHistoryFile.launch(new String[]{"application/json", "text/plain", "application/octet-stream"}));
-
         rvColorThemes.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvMorphismStyles.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         MorphismThemeManager manager = MorphismThemeManager.getInstance();
 
         ThemeMode initialThemeMode = manager.getActiveThemeMode().getValue();
         if (initialThemeMode == null) initialThemeMode = ThemeMode.DARK;
 
-        MorphismStyle initialStyle = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle initialStyle = manager.getActiveStyle().getValue();
+        if (initialStyle == null) initialStyle = MorphismStyle.LIQUID_GLASS;
 
         ColorTheme initialColorTheme = manager.getActiveColorTheme().getValue();
         if (initialColorTheme == null) initialColorTheme = ColorTheme.SWARA;
@@ -168,6 +88,11 @@ public class SettingsFragment extends Fragment {
             manager.setColorTheme(requireContext(), selectedColorTheme);
         });
         rvColorThemes.setAdapter(colorThemeAdapter);
+
+        morphismAdapter = new MorphismPreviewAdapter(initialStyle, initialThemeMode, selectedStyle -> {
+            manager.setMorphismStyle(requireContext(), selectedStyle);
+        });
+        rvMorphismStyles.setAdapter(morphismAdapter);
 
         updateRadioSelection(initialThemeMode);
 
@@ -185,6 +110,7 @@ public class SettingsFragment extends Fragment {
         });
 
         manager.getDesignTokens().observe(getViewLifecycleOwner(), this::applyDesignTokens);
+        manager.getActiveStyle().observe(getViewLifecycleOwner(), style -> updateAdaptersState());
         manager.getActiveThemeMode().observe(getViewLifecycleOwner(), mode -> {
             updateRadioSelection(mode);
             updateAdaptersState();
@@ -192,29 +118,22 @@ public class SettingsFragment extends Fragment {
         manager.getActiveColorTheme().observe(getViewLifecycleOwner(), colorTheme -> updateAdaptersState());
     }
 
-    private void setHistoryBusy(boolean busy) {
-        if (getView() == null) return;
-        historyProgress.setVisibility(busy ? View.VISIBLE : View.GONE);
-        btnHistoryExport.setEnabled(!busy);
-        btnHistoryImport.setEnabled(!busy);
-    }
-
-    private void toast(String message) {
-        if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
-    }
-
     private void updateAdaptersState() {
         MorphismThemeManager manager = MorphismThemeManager.getInstance();
         ThemeMode mode = manager.getActiveThemeMode().getValue();
         if (mode == null) mode = ThemeMode.DARK;
 
-        MorphismStyle style = MorphismStyle.LIQUID_GLASS;
+        MorphismStyle style = manager.getActiveStyle().getValue();
+        if (style == null) style = MorphismStyle.LIQUID_GLASS;
 
         ColorTheme colorTheme = manager.getActiveColorTheme().getValue();
         if (colorTheme == null) colorTheme = ColorTheme.SWARA;
 
         if (colorThemeAdapter != null) {
             colorThemeAdapter.updateState(colorTheme, mode, style);
+        }
+        if (morphismAdapter != null) {
+            morphismAdapter.updateState(style, mode);
         }
     }
 
@@ -236,33 +155,11 @@ public class SettingsFragment extends Fragment {
         tvSettingsTitle.setTextColor(tokens.getTextPrimaryColor());
         tvThemeHeader.setTextColor(tokens.getAccentColor());
         if (tvColorThemeHeader != null) tvColorThemeHeader.setTextColor(tokens.getAccentColor());
+        tvMorphismHeader.setTextColor(tokens.getAccentColor());
         btnBack.setColorFilter(tokens.getTextPrimaryColor());
-
-        // Dynamic radio button tint — checked = accent, unchecked = primary text
-        android.content.res.ColorStateList radioTint = new android.content.res.ColorStateList(
-                new int[][]{
-                        new int[]{android.R.attr.state_checked},
-                        new int[]{}
-                },
-                new int[]{
-                        tokens.getAccentColor(),
-                        tokens.getTextPrimaryColor()
-                }
-        );
         rbThemeDark.setTextColor(tokens.getTextPrimaryColor());
         rbThemeSystem.setTextColor(tokens.getTextPrimaryColor());
         rbThemeLight.setTextColor(tokens.getTextPrimaryColor());
-        rbThemeDark.setButtonTintList(radioTint);
-        rbThemeSystem.setButtonTintList(radioTint);
-        rbThemeLight.setButtonTintList(radioTint);
-
         MorphismThemeManager.getInstance().applyToCard(cardThemeContainer, tokens);
-        if (tvLibraryHeader != null) tvLibraryHeader.setTextColor(tokens.getAccentColor());
-        if (cardLibraryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardLibraryContainer, tokens);
-        if (switchHideShortClips != null) switchHideShortClips.setTextColor(tokens.getTextPrimaryColor());
-        if (switchAutoplay != null) switchAutoplay.setTextColor(tokens.getTextPrimaryColor());
-        if (tvHistoryHeader != null) tvHistoryHeader.setTextColor(tokens.getAccentColor());
-        if (tvHistoryBody != null) tvHistoryBody.setTextColor(tokens.getTextSecondaryColor());
-        if (cardHistoryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardHistoryContainer, tokens);
     }
 }

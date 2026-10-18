@@ -32,8 +32,6 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
     private SearchViewModel searchViewModel;
     private PlaylistViewModel playlistViewModel;
-    private com.psthetech.swara.ui.viewmodel.PlaybackViewModel playbackViewModel;
-    private com.psthetech.swara.ui.viewmodel.FavoritesViewModel favoritesViewModel;
 
     private TextInputEditText etSearch;
     private RecyclerView recyclerView;
@@ -42,9 +40,6 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
     private View progressBar;
 
     private SearchResultsAdapter searchAdapter;
-
-    private com.psthetech.swara.ui.viewmodel.LibraryViewModel libraryViewModel;
-    @Nullable private java.util.List<Song> librarySongs;
 
     @Nullable
     @Override
@@ -60,12 +55,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
         searchViewModel   = new ViewModelProvider(this).get(SearchViewModel.class);
         playlistViewModel = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
-        playbackViewModel = new ViewModelProvider(requireActivity())
-                .get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class);
-        favoritesViewModel = new ViewModelProvider(requireActivity())
-                .get(com.psthetech.swara.ui.viewmodel.FavoritesViewModel.class);
 
-        com.google.android.material.textfield.TextInputLayout tilSearch = view.findViewById(R.id.tilSearch);
         etSearch     = view.findViewById(R.id.etSearch);
         recyclerView = view.findViewById(R.id.recyclerView);
         layoutPrompt = view.findViewById(R.id.layoutPrompt);
@@ -73,23 +63,8 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         progressBar  = view.findViewById(R.id.progressBar);
 
         searchAdapter = new SearchResultsAdapter(this);
-        searchAdapter.setPlaylistArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(searchAdapter);
-
-        // Keep the user-ordered library list warm for building the search queue
-        libraryViewModel = new ViewModelProvider(requireActivity())
-                .get(com.psthetech.swara.ui.viewmodel.LibraryViewModel.class);
-        libraryViewModel.getSongs().observe(getViewLifecycleOwner(), songs -> librarySongs = songs);
-
-        favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids ->
-                searchAdapter.setFavorites(ids != null ? new java.util.HashSet<>(ids) : null));
-
-        // --- Observe current playing song for glow highlight ---
-        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
-            long currentId = (song != null) ? song.getId() : -1L;
-            searchAdapter.setCurrentPlayingSongId(currentId);
-        });
 
         // --- Text watcher — debounce is inside SearchViewModel ---
         if (etSearch != null) {
@@ -108,25 +83,20 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
                     view.setBackgroundColor(tokens.getBackgroundColor());
-                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                            .applyToSearchInput(tilSearch, etSearch, tokens);
-
-
-
-                    if (layoutPrompt != null) {
-                        TextView promptTitle = layoutPrompt.findViewById(R.id.tvPromptTitle);
-                        TextView promptSub = layoutPrompt.findViewById(R.id.tvPromptSubtitle);
-                        android.widget.ImageView promptIcon = layoutPrompt.findViewById(R.id.ivPromptIcon);
-                        if (promptTitle != null) promptTitle.setTextColor(tokens.getTextPrimaryColor());
-                        if (promptSub != null) promptSub.setTextColor(tokens.getTextSecondaryColor());
-                        if (promptIcon != null) promptIcon.setColorFilter(tokens.getTextTertiaryColor());
+                    if (etSearch != null) {
+                        etSearch.setTextColor(tokens.getTextPrimaryColor());
+                        etSearch.setHintTextColor(tokens.getTextTertiaryColor());
+                    }
+                    View promptTitle = view.findViewById(R.id.layoutPrompt);
+                    if (promptTitle != null) {
+                        TextView tv1 = promptTitle.findViewById(R.id.tvSectionHeader);
+                        TextView tv2 = promptTitle.findViewById(R.id.tvNoResults);
                     }
                     if (tvNoResults != null) tvNoResults.setTextColor(tokens.getTextSecondaryColor());
                     if (progressBar != null && progressBar instanceof ProgressBar) {
                         ((ProgressBar) progressBar).setIndeterminateTintList(
                                 android.content.res.ColorStateList.valueOf(tokens.getAccentColor()));
                     }
-                    searchAdapter.notifyDataSetChanged();
                 });
 
         observeData();
@@ -183,14 +153,10 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
 
     @Override
     public void onSongClick(Song song) {
-        // Queue the whole library in the user's Songs order, starting at the tapped
-        // song, so playback continues to the next tracks instead of stopping.
-        java.util.List<Song> library = librarySongs;
-        if ((library == null || library.isEmpty()) && libraryViewModel != null) {
-            library = libraryViewModel.getAllSongs().getValue();
-        }
-        SearchQueueBuilder.Queue queue = SearchQueueBuilder.build(library, song);
-        playbackViewModel.playSongs(queue.songs, queue.startIndex);
+        // Play the tapped song (single-song queue)
+        new ViewModelProvider(requireActivity())
+                .get(com.psthetech.swara.ui.viewmodel.PlaybackViewModel.class)
+                .playSong(song);
     }
 
     @Override
@@ -206,7 +172,6 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
     public void onArtistClick(Artist artist) {
         Bundle args = new Bundle();
         args.putString("artistName", artist.getName());
-        args.putString("canonicalKey", artist.getCanonicalKey());
         Navigation.findNavController(requireView())
                 .navigate(R.id.action_search_to_artistDetail, args);
     }
@@ -221,48 +186,7 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
     }
 
     @Override
-    public void onPlayNext(Song song) {
-        playbackViewModel.playNext(song);
-    }
-
-    @Override
-    public void onStartVibe(Song song) {
-        playbackViewModel.startVibeFrom(song);
-    }
-
-    @Override
-    public void onAddToQueue(Song song) {
-        playbackViewModel.addToQueue(song);
-    }
-
-    @Override
-    public void onAddToPlaylist(Song song) {
+    public void onSongAddToPlaylist(Song song) {
         AddToPlaylistDialog.show(requireActivity(), requireView(), song, playlistViewModel);
-    }
-
-    @Override
-    public void onFavoriteToggle(Song song, boolean currentlyFavorite) {
-        favoritesViewModel.toggleFavorite(song);
-    }
-
-    @Override
-    public void onEditArtwork(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
-        }
-    }
-
-    @Override
-    public void onEditSongInfo(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
-        }
-    }
-
-    @Override
-    public void onDeleteSong(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptDeleteSong(song);
-        }
     }
 }

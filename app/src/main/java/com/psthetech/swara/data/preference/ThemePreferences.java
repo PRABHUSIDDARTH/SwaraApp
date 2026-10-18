@@ -39,11 +39,17 @@ public class ThemePreferences {
     }
 
     public MorphismStyle getMorphismStyle() {
-        return MorphismStyle.LIQUID_GLASS;
+        try {
+            String key = prefs.getString(KEY_MORPHISM_STYLE, MorphismStyle.LIQUID_GLASS.getKey());
+            return MorphismStyle.fromKey(key);
+        } catch (Exception e) {
+            return MorphismStyle.LIQUID_GLASS;
+        }
     }
 
     public void setMorphismStyle(MorphismStyle style) {
-        prefs.edit().putString(KEY_MORPHISM_STYLE, MorphismStyle.LIQUID_GLASS.getKey()).apply();
+        if (style == null) style = MorphismStyle.LIQUID_GLASS;
+        prefs.edit().putString(KEY_MORPHISM_STYLE, style.getKey()).apply();
     }
 
     public ColorTheme getColorTheme() {

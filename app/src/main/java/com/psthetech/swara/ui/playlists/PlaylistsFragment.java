@@ -21,9 +21,6 @@ import com.psthetech.swara.data.db.entity.Playlist;
 import com.psthetech.swara.data.db.entity.PlaylistSong;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.adapter.PlaylistAdapter;
-import com.psthetech.swara.ui.theme.DesignTokens;
-import com.psthetech.swara.ui.theme.MorphismThemeManager;
-import com.psthetech.swara.ui.theme.ThemedDialogHelper;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
@@ -64,7 +61,6 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         btnNewPlaylist = view.findViewById(R.id.btnNewPlaylist);
 
         playlistAdapter = new PlaylistAdapter(this);
-        playlistAdapter.setArtworkStore(playlistViewModel.getPlaylistArtworkStore());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(playlistAdapter);
 
@@ -72,38 +68,8 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             btnNewPlaylist.setOnClickListener(v -> showCreatePlaylistDialog());
         }
 
-        // Observe design tokens for live theme updates
-        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
-                    if (tokens == null || getView() == null) return;
-                    getView().setBackground(tokens.createAmbientDrawable());
-                    // Empty state
-                    android.widget.TextView tvEmptyTitle =
-                            getView().findViewById(R.id.tvEmptyTitle);
-                    if (tvEmptyTitle != null) tvEmptyTitle.setTextColor(tokens.getTextPrimaryColor());
-                    android.widget.TextView tvEmptySubtitle =
-                            getView().findViewById(R.id.tvEmptySubtitle);
-                    if (tvEmptySubtitle != null) tvEmptySubtitle.setTextColor(tokens.getTextSecondaryColor());
-                    // New playlist button
-                    if (btnNewPlaylist instanceof android.widget.TextView) {
-                        ((android.widget.TextView) btnNewPlaylist).setTextColor(tokens.getButtonTextColor());
-                    }
-                    if (btnNewPlaylist != null) {
-                        android.graphics.drawable.GradientDrawable bg =
-                                new android.graphics.drawable.GradientDrawable();
-                        bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                        bg.setColor(tokens.getAccentColor());
-                        float dp = getResources().getDisplayMetrics().density;
-                        bg.setCornerRadius(tokens.getCornerRadiusDp() * dp);
-                        btnNewPlaylist.setBackground(bg);
-                    }
-                    if (playlistAdapter != null) playlistAdapter.notifyDataSetChanged();
-                });
-
         observeData();
     }
-
-    private boolean pendingNewPlaylistAnimation = false;
 
     private void observeData() {
         playlistViewModel.getAllPlaylists().observe(getViewLifecycleOwner(), playlists -> {
@@ -114,35 +80,57 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             } else {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.GONE);
                 recyclerView.setVisibility(View.VISIBLE);
-                playlistAdapter.submitList(currentPlaylists, () -> {
-                    if (pendingNewPlaylistAnimation) {
-                        pendingNewPlaylistAnimation = false;
-                        recyclerView.scrollToPosition(0);
-                        recyclerView.postDelayed(() -> {
-                            RecyclerView.ViewHolder vh = recyclerView.findViewHolderForAdapterPosition(0);
-                            if (vh != null) {
-                                DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
-                                ThemedDialogHelper.animateNewItemAppearance(vh.itemView, tokens);
-                            }
-                        }, 50);
-                    }
-                });
+                playlistAdapter.submitList(currentPlaylists);
             }
         });
 
-        // Load song counts for all playlists reactively
-        playlistViewModel.getSongCountsMapLive().observe(getViewLifecycleOwner(), counts -> {
-            if (playlistAdapter != null && counts != null) {
-                playlistAdapter.setSongCounts(counts);
+        // Load song counts for all playlists and push to adapter
+        // Using a manual approach since we need counts across all playlists.
+        // We observe each playlist's songs live and aggregate in the adapter.
+        // Simplified: update adapter counts whenever playlist list changes.
+        observeSongCounts();
+    }
+
+    /**
+     * Loads song counts for visible playlists.
+     * Calls getPlaylistSongsLive() for each playlist and aggregates into a map.
+     * This re-subscribes when the playlists list changes.
+     */
+    private void observeSongCounts() {
+        playlistViewModel.getAllPlaylists().observe(getViewLifecycleOwner(), playlists -> {
+            if (playlists == null || playlists.isEmpty()) return;
+
+            final Map<Long, Integer> counts = new HashMap<>();
+            final int[] pending = {playlists.size()};
+
+            for (Playlist p : playlists) {
+                playlistViewModel.getSongsForPlaylist(p.id)
+                        .observe(getViewLifecycleOwner(), songs -> {
+                            counts.put(p.id, songs != null ? songs.size() : 0);
+                            // Update adapter each time any count updates
+                            playlistAdapter.setSongCounts(new HashMap<>(counts));
+                        });
             }
         });
     }
 
     private void showCreatePlaylistDialog() {
-        com.psthetech.swara.ui.theme.ThemedDialogHelper.showCreatePlaylistDialog(requireContext(), name -> {
-            pendingNewPlaylistAnimation = true;
-            playlistViewModel.createPlaylist(name);
-        });
+        EditText input = new EditText(getContext());
+        input.setHint(R.string.playlist_name_hint);
+        int margin = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(margin, margin, margin, margin);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.create_playlist)
+                .setView(input)
+                .setPositiveButton(R.string.create, (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (!name.isEmpty()) {
+                        playlistViewModel.createPlaylist(name);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     @Override
@@ -186,11 +174,8 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
             List<Song> songs = new ArrayList<>();
             for (PlaylistSong ps : entries) {
-                Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(ps.songId);
-                long dur = ps.duration > 0 ? ps.duration : (canonical != null ? canonical.getDuration() : 0);
-                long albumId = ps.albumId != 0 ? ps.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                 songs.add(new Song(ps.songId, ps.title, ps.artist, ps.album,
-                        albumId, dur, ps.position, canonical != null ? canonical.getYear() : 0, 0));
+                        ps.albumId, ps.duration, ps.position, 0, 0));
             }
 
             if (!songs.isEmpty()) {
@@ -201,18 +186,32 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     }
 
     private void showRenameDialog(Playlist playlist) {
-        com.psthetech.swara.ui.theme.ThemedDialogHelper.showRenamePlaylistDialog(
-                requireContext(),
-                playlist.name,
-                newName -> playlistViewModel.renamePlaylist(playlist.id, newName));
+        EditText input = new EditText(getContext());
+        input.setText(playlist.name);
+        input.selectAll();
+        int margin = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(margin, margin, margin, margin);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.rename_playlist)
+                .setView(input)
+                .setPositiveButton(R.string.rename, (dialog, which) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty()) {
+                        playlistViewModel.renamePlaylist(playlist.id, newName);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void confirmDelete(Playlist playlist) {
-        com.psthetech.swara.ui.theme.ThemedDialogHelper.showConfirmationDialog(
-                requireContext(),
-                getString(R.string.confirm_delete_playlist),
-                playlist.name,
-                getString(R.string.delete),
-                () -> playlistViewModel.deletePlaylist(playlist));
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.confirm_delete_playlist)
+                .setMessage(playlist.name)
+                .setPositiveButton(R.string.delete, (dialog, which) ->
+                        playlistViewModel.deletePlaylist(playlist))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 }
