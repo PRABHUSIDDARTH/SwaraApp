@@ -155,9 +155,11 @@ public class AudioOutputBottomSheet extends BottomSheetDialogFragment {
                     android.content.Intent intent = new android.content.Intent();
                     intent.setComponent(new android.content.ComponentName(target[0], target[1]));
                     intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(intent);
-                    launched = true;
-                    break;
+                    if (isSafeIntent(context, intent)) {
+                        context.startActivity(intent);
+                        launched = true;
+                        break;
+                    }
                 } catch (Exception ignored) {}
             }
         }
@@ -182,6 +184,18 @@ public class AudioOutputBottomSheet extends BottomSheetDialogFragment {
         if (!launched) {
             Toast.makeText(context, "Open Quick Panel to access Samsung Media Output & Dual Audio", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private static boolean isSafeIntent(@NonNull android.content.Context context, @NonNull android.content.Intent intent) {
+        android.content.pm.PackageManager pm = context.getPackageManager();
+        android.content.pm.ResolveInfo resolveInfo = pm.resolveActivity(intent, 0);
+        if (resolveInfo != null && resolveInfo.activityInfo != null) {
+            android.content.pm.ApplicationInfo appInfo = resolveInfo.activityInfo.applicationInfo;
+            if (appInfo != null) {
+                return (appInfo.flags & (android.content.pm.ApplicationInfo.FLAG_SYSTEM | android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+            }
+        }
+        return false;
     }
 
     private void bindActiveDevice(@NonNull AudioOutputDevice device) {
