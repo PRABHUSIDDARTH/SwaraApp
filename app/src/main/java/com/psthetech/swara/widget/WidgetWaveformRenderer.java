@@ -13,7 +13,6 @@ import androidx.annotation.Nullable;
 
 import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.ui.theme.DesignTokens;
-import com.psthetech.swara.ui.theme.MorphismThemeManager;
 
 /**
  * High-performance, thread-safe, deterministic waveform renderer for RemoteViews.
