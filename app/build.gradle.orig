@@ -1,0 +1,115 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+// Release signing is read from keystore.properties (never committed), e.g.:
+//   storeFile=/path/to/swara.jks
+//   storePassword=...
+//   keyAlias=swara
+//   keyPassword=...
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+android {
+    namespace 'com.psthetech.swara'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.psthetech.swara"
+        minSdk 24
+        targetSdk 36
+        versionCode 3
+        versionName "2.1"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Export Room schemas so migrations can be reviewed and verified.
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+    }
+
+    sourceSets {
+        androidTest.assets.srcDirs += files("$projectDir/schemas")
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    // Core UI
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.constraintlayout
+    implementation libs.recyclerview
+    implementation libs.viewpager2
+    implementation libs.core.splashscreen
+
+    // Lifecycle — ViewModel + LiveData (pure Java, no KTX)
+    implementation libs.lifecycle.viewmodel
+    implementation libs.lifecycle.livedata
+    implementation libs.lifecycle.runtime
+    implementation libs.lifecycle.common
+
+    // Navigation Component (pure Java)
+    implementation libs.navigation.fragment
+    implementation libs.navigation.ui
+
+    // Media3 / ExoPlayer
+    implementation libs.media3.exoplayer
+    implementation libs.media3.session
+    implementation libs.media3.ui
+
+    // Glide — image loading and artwork caching
+    implementation libs.glide
+    annotationProcessor libs.glide.compiler
+
+    // Room — local database
+    implementation libs.room.runtime
+    implementation libs.work.runtime
+    annotationProcessor libs.room.compiler
+
+    // Testing
+    testImplementation libs.junit
+    // Real org.json for JVM tests (Android's is a stub off-device); not shipped in the app
+    testImplementation 'org.json:json:20240303'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+    testImplementation 'org.mockito:mockito-inline:4.11.0'
+    testImplementation 'net.bytebuddy:byte-buddy:1.12.18'
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+    androidTestImplementation "androidx.room:room-testing:2.6.1"
+}

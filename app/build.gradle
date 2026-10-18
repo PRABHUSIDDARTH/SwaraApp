@@ -111,6 +111,8 @@ dependencies {
     testImplementation libs.mockito.core
     // Real org.json for JVM tests (Android's is a stub off-device); not shipped in the app
     testImplementation 'org.json:json:20240303'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+    testImplementation 'org.mockito:mockito-inline:4.11.0'
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
     androidTestImplementation "androidx.room:room-testing:2.6.1"
