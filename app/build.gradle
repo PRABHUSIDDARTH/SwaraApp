@@ -34,6 +34,10 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     sourceSets {
         androidTest.assets.srcDirs += files("$projectDir/schemas")
     }
@@ -104,6 +108,7 @@ dependencies {
 
     // Testing
     testImplementation libs.junit
+    testImplementation libs.mockito.core
     // Real org.json for JVM tests (Android's is a stub off-device); not shipped in the app
     testImplementation 'org.json:json:20240303'
     androidTestImplementation libs.ext.junit
