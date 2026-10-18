@@ -165,7 +165,10 @@ public final class Id3MetadataWriter {
             try (InputStream in = resolver.openInputStream(uri);
                  FileOutputStream out = new FileOutputStream(backup)) {
                 if (in == null || copy(in, out) != sourceLength) {
-                    backup.delete();
+                    if (!backup.delete()) {
+                        Log.w(TAG, "Failed to delete backup file: " + backup);
+                        backup.deleteOnExit();
+                    }
                     Log.e(TAG, "Could not back up original before rewrite: " + uri);
                     return false;
                 }
@@ -193,8 +196,14 @@ public final class Id3MetadataWriter {
                 return false;
             } finally {
                 if (backup != null) {
-                    uriRecord.delete();
-                    backup.delete();
+                    if (!uriRecord.delete()) {
+                        Log.w(TAG, "Failed to delete uriRecord: " + uriRecord);
+                        uriRecord.deleteOnExit();
+                    }
+                    if (!backup.delete()) {
+                        Log.w(TAG, "Failed to delete backup: " + backup);
+                        backup.deleteOnExit();
+                    }
                 }
             }
 
@@ -203,7 +212,10 @@ public final class Id3MetadataWriter {
             return false;
         } finally {
             if (stagingFile != null && stagingFile.exists()) {
-                stagingFile.delete();
+                if (!stagingFile.delete()) {
+                    Log.w(TAG, "Failed to delete staging file: " + stagingFile);
+                    stagingFile.deleteOnExit();
+                }
             }
         }
     }
@@ -228,7 +240,10 @@ public final class Id3MetadataWriter {
             String base = name.substring(0, name.length() - BACKUP_SUFFIX.length());
             File uriRecord = new File(backup.getParentFile(), base + URI_SUFFIX);
             if (!uriRecord.exists()) {
-                backup.delete(); // backup never completed, so the original was never touched
+                if (!backup.delete()) {
+                    Log.w(TAG, "Failed to delete incomplete backup: " + backup);
+                    backup.deleteOnExit();
+                } // backup never completed, so the original was never touched
                 continue;
             }
             try {
@@ -239,8 +254,14 @@ public final class Id3MetadataWriter {
                 Uri uri = Uri.parse(new String(raw, StandardCharsets.UTF_8));
                 writeFileTo(resolver, uri, backup);
                 Log.w(TAG, "Restored original after interrupted tag write: " + uri);
-                uriRecord.delete();
-                backup.delete();
+                if (!uriRecord.delete()) {
+                    Log.w(TAG, "Failed to delete restored uriRecord: " + uriRecord);
+                    uriRecord.deleteOnExit();
+                }
+                if (!backup.delete()) {
+                    Log.w(TAG, "Failed to delete restored backup: " + backup);
+                    backup.deleteOnExit();
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Could not restore interrupted tag write " + base + "; will retry", e);
             }
@@ -249,7 +270,12 @@ public final class Id3MetadataWriter {
         for (File f : entries) {
             if (f.getName().endsWith(URI_SUFFIX)) {
                 String base = f.getName().substring(0, f.getName().length() - URI_SUFFIX.length());
-                if (!new File(f.getParentFile(), base + BACKUP_SUFFIX).exists()) f.delete();
+                if (!new File(f.getParentFile(), base + BACKUP_SUFFIX).exists()) {
+                    if (!f.delete()) {
+                        Log.w(TAG, "Failed to delete orphaned URI record: " + f);
+                        f.deleteOnExit();
+                    }
+                }
             }
         }
     }
