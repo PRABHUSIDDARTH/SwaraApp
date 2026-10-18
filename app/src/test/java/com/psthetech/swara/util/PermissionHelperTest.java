@@ -30,6 +30,7 @@ public class PermissionHelperTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("net.bytebuddy.experimental", "true");
         mockContextCompat = Mockito.mockStatic(ContextCompat.class);
         mockActivityCompat = Mockito.mockStatic(ActivityCompat.class);
         mockPermissionHelper = Mockito.mockStatic(PermissionHelper.class, Mockito.CALLS_REAL_METHODS);
@@ -40,6 +41,7 @@ public class PermissionHelperTest {
         mockContextCompat.close();
         mockActivityCompat.close();
         mockPermissionHelper.close();
+        System.clearProperty("net.bytebuddy.experimental");
     }
 
     @Test
@@ -47,7 +49,7 @@ public class PermissionHelperTest {
         mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.TIRAMISU);
         assertEquals(Manifest.permission.READ_MEDIA_AUDIO, PermissionHelper.getRequiredPermission());
 
-        mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.UPSIDE_DOWN_CAKE);
+        mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(34);
         assertEquals(Manifest.permission.READ_MEDIA_AUDIO, PermissionHelper.getRequiredPermission());
     }
 
@@ -64,7 +66,7 @@ public class PermissionHelperTest {
     public void hasAudioPermission_granted() {
         Context mockContext = mock(Context.class);
         mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.TIRAMISU);
-        mockContextCompat.when(() -> ContextCompat.checkSelfPermission(any(Context.class), any(String.class)))
+        mockContextCompat.when(() -> ContextCompat.checkSelfPermission(any(Context.class), eq(Manifest.permission.READ_MEDIA_AUDIO)))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
 
         assertTrue(PermissionHelper.hasAudioPermission(mockContext));
@@ -74,7 +76,7 @@ public class PermissionHelperTest {
     public void hasAudioPermission_denied() {
         Context mockContext = mock(Context.class);
         mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.TIRAMISU);
-        mockContextCompat.when(() -> ContextCompat.checkSelfPermission(any(Context.class), any(String.class)))
+        mockContextCompat.when(() -> ContextCompat.checkSelfPermission(any(Context.class), eq(Manifest.permission.READ_MEDIA_AUDIO)))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
 
         assertFalse(PermissionHelper.hasAudioPermission(mockContext));
@@ -98,7 +100,7 @@ public class PermissionHelperTest {
     public void shouldShowRationale_true() throws Exception {
         mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.TIRAMISU);
         Activity mockActivity = mock(Activity.class);
-        mockActivityCompat.when(() -> ActivityCompat.shouldShowRequestPermissionRationale(any(Activity.class), any(String.class)))
+        mockActivityCompat.when(() -> ActivityCompat.shouldShowRequestPermissionRationale(any(Activity.class), eq(Manifest.permission.READ_MEDIA_AUDIO)))
                 .thenReturn(true);
 
         assertTrue(PermissionHelper.shouldShowRationale(mockActivity));
@@ -112,7 +114,7 @@ public class PermissionHelperTest {
     public void shouldShowRationale_false() throws Exception {
         mockPermissionHelper.when(PermissionHelper::getSdkInt).thenReturn(Build.VERSION_CODES.TIRAMISU);
         Activity mockActivity = mock(Activity.class);
-        mockActivityCompat.when(() -> ActivityCompat.shouldShowRequestPermissionRationale(any(Activity.class), any(String.class)))
+        mockActivityCompat.when(() -> ActivityCompat.shouldShowRequestPermissionRationale(any(Activity.class), eq(Manifest.permission.READ_MEDIA_AUDIO)))
                 .thenReturn(false);
 
         assertFalse(PermissionHelper.shouldShowRationale(mockActivity));
