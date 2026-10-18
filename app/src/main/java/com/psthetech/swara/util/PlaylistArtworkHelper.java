@@ -19,8 +19,10 @@ import com.psthetech.swara.data.repository.PlaylistArtworkStore;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Playlist artwork loading helper.
@@ -45,6 +47,7 @@ public class PlaylistArtworkHelper {
 
     private static final int COLLAGE_SIZE_PX = 512;
     private static final ExecutorService COLLAGE_EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final ExecutorService IMAGE_FETCH_EXECUTOR = Executors.newFixedThreadPool(4);
 
     private static final RequestOptions PLAYLIST_OPTIONS = new RequestOptions()
             .diskCacheStrategy(DiskCacheStrategy.ALL)
@@ -214,43 +217,53 @@ public class PlaylistArtworkHelper {
             List<Bitmap> bitmaps = new ArrayList<>();
             int cellSize = COLLAGE_SIZE_PX / 2;
 
+            List<Future<Bitmap>> futures = new ArrayList<>();
             for (com.psthetech.swara.data.db.entity.PlaylistSong s : uniqueSongs) {
-                Bitmap bmp = null;
-                // Try embedded artwork from audio content URI first (supported on Android 10, 11, 12, 13, 14)
-                if (s.songId > 0) {
-                    Uri songUri = ArtworkRepository.getSongUri(s.songId);
-                    if (songUri != null) {
-                        try {
-                            bmp = Glide.with(appContext)
-                                    .asBitmap()
-                                    .load(songUri)
-                                    .apply(new RequestOptions()
-                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                            .centerCrop()
-                                            .override(cellSize, cellSize))
-                                    .submit(cellSize, cellSize)
-                                    .get();
-                        } catch (Exception ignored) {}
+                futures.add(IMAGE_FETCH_EXECUTOR.submit(() -> {
+                    Bitmap bmp = null;
+                    // Try embedded artwork from audio content URI first (supported on Android 10, 11, 12, 13, 14)
+                    if (s.songId > 0) {
+                        Uri songUri = ArtworkRepository.getSongUri(s.songId);
+                        if (songUri != null) {
+                            try {
+                                bmp = Glide.with(appContext)
+                                        .asBitmap()
+                                        .load(songUri)
+                                        .apply(new RequestOptions()
+                                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                                .centerCrop()
+                                                .override(cellSize, cellSize))
+                                        .submit(cellSize, cellSize)
+                                        .get();
+                            } catch (Exception ignored) {}
+                        }
                     }
-                }
-                // Fallback to MediaStore album artwork URI if song content URI failed
-                if (bmp == null && s.albumId > 0) {
-                    Uri albumUri = ArtworkRepository.getAlbumArtUri(s.albumId);
-                    if (albumUri != null) {
-                        try {
-                            bmp = Glide.with(appContext)
-                                    .asBitmap()
-                                    .load(albumUri)
-                                    .apply(new RequestOptions()
-                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                            .centerCrop()
-                                            .override(cellSize, cellSize))
-                                    .submit(cellSize, cellSize)
-                                    .get();
-                        } catch (Exception ignored) {}
+                    // Fallback to MediaStore album artwork URI if song content URI failed
+                    if (bmp == null && s.albumId > 0) {
+                        Uri albumUri = ArtworkRepository.getAlbumArtUri(s.albumId);
+                        if (albumUri != null) {
+                            try {
+                                bmp = Glide.with(appContext)
+                                        .asBitmap()
+                                        .load(albumUri)
+                                        .apply(new RequestOptions()
+                                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                                .centerCrop()
+                                                .override(cellSize, cellSize))
+                                        .submit(cellSize, cellSize)
+                                        .get();
+                            } catch (Exception ignored) {}
+                        }
                     }
-                }
-                if (bmp != null) bitmaps.add(bmp);
+                    return bmp;
+                }));
+            }
+
+            for (Future<Bitmap> future : futures) {
+                try {
+                    Bitmap bmp = future.get();
+                    if (bmp != null) bitmaps.add(bmp);
+                } catch (Exception ignored) {}
             }
 
             if (bitmaps.isEmpty()) {
@@ -337,19 +350,29 @@ public class PlaylistArtworkHelper {
                 List<Bitmap> bitmaps = new ArrayList<>();
                 int cellSize = COLLAGE_SIZE_PX / 2;
 
+                List<Future<Bitmap>> futures = new ArrayList<>();
                 for (Long albumId : uniqueIds) {
-                    Uri uri = ArtworkRepository.getAlbumArtUri(albumId);
-                    if (uri == null) continue;
+                    futures.add(IMAGE_FETCH_EXECUTOR.submit(() -> {
+                        Uri uri = ArtworkRepository.getAlbumArtUri(albumId);
+                        if (uri == null) return null;
+                        try {
+                            return Glide.with(appContext)
+                                    .asBitmap()
+                                    .load(uri)
+                                    .apply(new RequestOptions()
+                                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                            .centerCrop()
+                                            .override(cellSize, cellSize))
+                                    .submit(cellSize, cellSize)
+                                    .get();
+                        } catch (Exception ignored) {}
+                        return null;
+                    }));
+                }
+
+                for (Future<Bitmap> future : futures) {
                     try {
-                        Bitmap bmp = Glide.with(appContext)
-                                .asBitmap()
-                                .load(uri)
-                                .apply(new RequestOptions()
-                                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                                        .centerCrop()
-                                        .override(cellSize, cellSize))
-                                .submit(cellSize, cellSize)
-                                .get();
+                        Bitmap bmp = future.get();
                         if (bmp != null) bitmaps.add(bmp);
                     } catch (Exception ignored) {}
                 }
