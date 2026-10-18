@@ -6,6 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.net.Uri;
+
 import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.domain.model.SongMetadata;
@@ -202,6 +206,28 @@ public class Phase7MetadataManagementTest {
         assertFalse(Id3MetadataWriter.isSupportedFormat("audio/wav", "/music/song.wav"));
         assertFalse(Id3MetadataWriter.isSupportedFormat("audio/flac", "/music/song.flac"));
         assertFalse(Id3MetadataWriter.isSupportedFormat(null, null));
+    }
+
+    @Test
+    public void testWriteMetadataExceptionPath() {
+        Context mockContext = new android.content.ContextWrapper(null) {
+            @Override
+            public ContentResolver getContentResolver() {
+                return null; // This causes NullPointerException inside the try block of writeMetadata
+            }
+        };
+
+        Uri nullUri = null;
+        SongMetadata metadata = new SongMetadata.Builder().setSongId(1L).setTitle("Test Title").build();
+
+        try {
+            boolean result = Id3MetadataWriter.writeMetadata(mockContext, nullUri, metadata);
+            assertFalse("Writer should return false when an exception occurs", result);
+        } catch (RuntimeException e) {
+            if (e.getMessage() == null || !e.getMessage().contains("Log")) {
+                throw e; // fail the test if it's not the Log exception
+            }
+        }
     }
 
     // =========================================================================
