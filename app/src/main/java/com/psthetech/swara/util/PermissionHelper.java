@@ -21,8 +21,12 @@ public class PermissionHelper {
 
     private PermissionHelper() {}
 
+    static int getSdkInt() {
+        return Build.VERSION.SDK_INT;
+    }
+
     public static String getRequiredPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (getSdkInt() >= Build.VERSION_CODES.TIRAMISU) {
             return Manifest.permission.READ_MEDIA_AUDIO;
         } else {
             return Manifest.permission.READ_EXTERNAL_STORAGE;

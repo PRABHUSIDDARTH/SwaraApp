@@ -53,6 +53,12 @@ public interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void addSongToPlaylist(PlaylistSong song);
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void addSongsToPlaylist(List<PlaylistSong> songs);
+
+    @Query("SELECT songId FROM playlist_songs WHERE playlistId = :playlistId AND songId IN (:songIds)")
+    List<Long> getExistingSongIds(long playlistId, List<Long> songIds);
+
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
     void removeSongFromPlaylist(long playlistId, long songId);
 
