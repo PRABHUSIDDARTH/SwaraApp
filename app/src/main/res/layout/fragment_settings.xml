@@ -4,7 +4,8 @@
     android:id="@+id/layoutSettingsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/swara_night">
 
     <!-- Top Bar Header -->
     <LinearLayout
@@ -44,8 +45,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:overScrollMode="never"
-        android:paddingBottom="@dimen/bottom_content_padding"
-        android:clipToPadding="false">
+        android:paddingBottom="144dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -90,7 +90,8 @@
                         android:text="@string/theme_dark"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12" />
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
 
                     <RadioButton
                         android:id="@+id/rbThemeSystem"
@@ -99,7 +100,8 @@
                         android:text="@string/theme_system"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12" />
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
 
                     <RadioButton
                         android:id="@+id/rbThemeLight"
@@ -108,7 +110,8 @@
                         android:text="@string/theme_light"
                         android:textColor="@color/swara_text_primary"
                         android:textSize="@dimen/text_body_md"
-                        android:padding="@dimen/dp_12" />
+                        android:padding="@dimen/dp_12"
+                        android:buttonTint="@color/swara_gold" />
 
                 </RadioGroup>
 
@@ -132,122 +135,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:layout_marginBottom="@dimen/dp_16" />
+
+            <!-- Section 3: Morphism Language -->
+            <TextView
+                android:id="@+id/tvMorphismHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/morphism_title"
+                android:textSize="@dimen/text_title_md"
+                android:textColor="@color/swara_gold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="@dimen/dp_24"
+                android:paddingTop="@dimen/dp_8"
+                android:paddingBottom="@dimen/dp_8" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvMorphismStyles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
-
-            <!-- Section 3: Library -->
-            <TextView
-                android:id="@+id/tvLibraryHeader"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_library_header"
-                android:textSize="@dimen/text_title_md"
-                android:textColor="@color/swara_gold"
-                android:fontFamily="sans-serif-medium"
-                android:paddingHorizontal="@dimen/dp_24"
-                android:paddingTop="@dimen/dp_16"
-                android:paddingBottom="@dimen/dp_8" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardLibraryContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="@dimen/dp_16"
-                android:layout_marginBottom="@dimen/dp_24"
-                app:cardBackgroundColor="@color/swara_surface_2"
-                app:cardCornerRadius="@dimen/radius_md"
-                app:strokeColor="@color/swara_glass_stroke"
-                app:strokeWidth="@dimen/border_regular">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchHideShortClips"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="@dimen/dp_16"
-                    android:text="@string/settings_hide_short_clips"
-                    android:textColor="@color/swara_text_primary"
-                    android:textSize="@dimen/text_body_md" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchAutoplay"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="@dimen/dp_16"
-                    android:text="@string/settings_autoplay"
-                    android:textColor="@color/swara_text_primary"
-                    android:textSize="@dimen/text_body_md" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Section 4: Listening history -->
-            <TextView
-                android:id="@+id/tvHistoryHeader"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_history_header"
-                android:textSize="@dimen/text_title_md"
-                android:textColor="@color/swara_gold"
-                android:fontFamily="sans-serif-medium"
-                android:paddingHorizontal="@dimen/dp_24"
-                android:paddingBottom="@dimen/dp_8" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardHistoryContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="@dimen/dp_16"
-                android:layout_marginBottom="@dimen/dp_24"
-                app:cardBackgroundColor="@color/swara_surface_2"
-                app:cardCornerRadius="@dimen/radius_md"
-                app:strokeColor="@color/swara_glass_stroke"
-                app:strokeWidth="@dimen/border_regular">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/dp_16">
-
-                    <TextView
-                        android:id="@+id/tvHistoryBody"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_history_body"
-                        android:textColor="@color/swara_text_primary"
-                        android:textSize="@dimen/text_body_md" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnHistoryExport"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/dp_12"
-                        android:text="@string/settings_history_export" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnHistoryImport"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_history_import" />
-
-                    <ProgressBar
-                        android:id="@+id/historyProgress"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/dp_8"
-                        android:indeterminate="true"
-                        android:visibility="gone" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 

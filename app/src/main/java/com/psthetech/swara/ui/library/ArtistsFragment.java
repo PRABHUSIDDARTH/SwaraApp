@@ -44,15 +44,6 @@ public class ArtistsFragment extends Fragment implements ArtistAdapter.OnArtistC
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
         recyclerView.setAdapter(artistAdapter);
 
-        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
-                    if (tokens == null || getView() == null) return;
-                    getView().setBackground(tokens.createAmbientDrawable());
-                    View headerBar = getView().findViewById(R.id.headerBar);
-                    if (headerBar != null) headerBar.setVisibility(View.GONE);
-                    if (artistAdapter != null) artistAdapter.notifyDataSetChanged();
-                });
-
         libraryViewModel.getArtists().observe(getViewLifecycleOwner(), artists -> {
             if (artists == null || artists.isEmpty()) {
                 if (layoutEmpty != null) layoutEmpty.setVisibility(View.VISIBLE);
@@ -69,7 +60,6 @@ public class ArtistsFragment extends Fragment implements ArtistAdapter.OnArtistC
     public void onArtistClick(Artist artist) {
         Bundle bundle = new Bundle();
         bundle.putString("artistName", artist.getName());
-        bundle.putString("canonicalKey", artist.getCanonicalKey());
         Navigation.findNavController(requireView()).navigate(R.id.action_library_to_artistDetail, bundle);
     }
 }

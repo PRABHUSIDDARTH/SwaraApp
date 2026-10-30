@@ -60,66 +60,309 @@ public class DesignTokens {
         this.elevationDp = this.style.getDefaultElevationDp();
         this.strokeWidthDp = this.style.getDefaultStrokeWidthDp();
 
-        // Apple-style neutral material system: every theme shares the same system greys,
-        // and the ColorTheme only contributes a single accent hue.
-        final int accent = resolveAccent(this.colorTheme, isNightMode);
-        this.accentColor = accent;
-        this.secondaryColor = accent;
         if (isNightMode) {
-            this.backgroundColor = Color.parseColor("#000000");
-            this.backgroundSecondaryColor = Color.parseColor("#0B0B0D");
-            this.surfaceColor = Color.parseColor("#1C1C1E");
-            this.surfaceElevatedColor = Color.parseColor("#2C2C2E");
-            this.surfaceVariantColor = Color.parseColor("#2C2C2E");
-            this.primaryColor = accent;
-            this.primaryContainerColor = Color.parseColor("#2C2C2E");
-            this.textPrimaryColor = Color.parseColor("#FFFFFF");
-            this.textSecondaryColor = Color.parseColor("#A1A1A6");
-            this.textTertiaryColor = Color.parseColor("#8E8E93");
-            this.iconPrimaryColor = Color.parseColor("#FFFFFF");
-            this.iconSecondaryColor = Color.parseColor("#A1A1A6");
-            this.strokeColor = Color.parseColor("#38383A");
-            this.dividerColor = Color.parseColor("#2C2C2E");
-            this.selectedColor = withAlpha(accent, 0x26);
-            this.overlayColor = Color.parseColor("#CC000000");
+            // ===== DARK PALETTES =====
+            switch (this.colorTheme) {
+                case MIDNIGHT:
+                    this.backgroundColor = Color.parseColor("#080A0F");
+                    this.backgroundSecondaryColor = Color.parseColor("#0F131C");
+                    this.surfaceColor = Color.parseColor("#161C29");
+                    this.surfaceElevatedColor = Color.parseColor("#1E2638");
+                    this.surfaceVariantColor = Color.parseColor("#27324A");
+                    this.accentColor = Color.parseColor("#38BDF8");
+                    this.primaryColor = Color.parseColor("#38BDF8");
+                    this.primaryContainerColor = Color.parseColor("#1E2638");
+                    this.secondaryColor = Color.parseColor("#7DD3FC");
+                    this.textPrimaryColor = Color.parseColor("#F0F6FC");
+                    this.textSecondaryColor = Color.parseColor("#94A3B8");
+                    this.textTertiaryColor = Color.parseColor("#64748B");
+                    this.iconPrimaryColor = Color.parseColor("#F0F6FC");
+                    this.iconSecondaryColor = Color.parseColor("#94A3B8");
+                    this.strokeColor = Color.parseColor("#2A3852");
+                    this.dividerColor = Color.parseColor("#1E2638");
+                    this.selectedColor = Color.parseColor("#2638BDF8");
+                    this.overlayColor = Color.parseColor("#CC080A0F");
+                    break;
+
+                case LAVENDER:
+                    this.backgroundColor = Color.parseColor("#11091F");
+                    this.backgroundSecondaryColor = Color.parseColor("#190D2E");
+                    this.surfaceColor = Color.parseColor("#22123B");
+                    this.surfaceElevatedColor = Color.parseColor("#2E194F");
+                    this.surfaceVariantColor = Color.parseColor("#3C2166");
+                    this.accentColor = Color.parseColor("#C084FC");
+                    this.primaryColor = Color.parseColor("#C084FC");
+                    this.primaryContainerColor = Color.parseColor("#2E194F");
+                    this.secondaryColor = Color.parseColor("#E9D5FF");
+                    this.textPrimaryColor = Color.parseColor("#FAF5FF");
+                    this.textSecondaryColor = Color.parseColor("#D8B4FE");
+                    this.textTertiaryColor = Color.parseColor("#A855F7");
+                    this.iconPrimaryColor = Color.parseColor("#FAF5FF");
+                    this.iconSecondaryColor = Color.parseColor("#D8B4FE");
+                    this.strokeColor = Color.parseColor("#4C1D95");
+                    this.dividerColor = Color.parseColor("#2E194F");
+                    this.selectedColor = Color.parseColor("#26C084FC");
+                    this.overlayColor = Color.parseColor("#CC11091F");
+                    break;
+
+                case CHAMPAGNE:
+                    this.backgroundColor = Color.parseColor("#140F0A");
+                    this.backgroundSecondaryColor = Color.parseColor("#1F1810");
+                    this.surfaceColor = Color.parseColor("#2A2016");
+                    this.surfaceElevatedColor = Color.parseColor("#382A1C");
+                    this.surfaceVariantColor = Color.parseColor("#473624");
+                    this.accentColor = Color.parseColor("#F59E0B");
+                    this.primaryColor = Color.parseColor("#FBBF24");
+                    this.primaryContainerColor = Color.parseColor("#382A1C");
+                    this.secondaryColor = Color.parseColor("#FDE68A");
+                    this.textPrimaryColor = Color.parseColor("#FEF3C7");
+                    this.textSecondaryColor = Color.parseColor("#FDE68A");
+                    this.textTertiaryColor = Color.parseColor("#D97706");
+                    this.iconPrimaryColor = Color.parseColor("#FEF3C7");
+                    this.iconSecondaryColor = Color.parseColor("#FDE68A");
+                    this.strokeColor = Color.parseColor("#5E4426");
+                    this.dividerColor = Color.parseColor("#382A1C");
+                    this.selectedColor = Color.parseColor("#26F59E0B");
+                    this.overlayColor = Color.parseColor("#CC140F0A");
+                    break;
+
+                case ROSE:
+                    this.backgroundColor = Color.parseColor("#170910");
+                    this.backgroundSecondaryColor = Color.parseColor("#240D19");
+                    this.surfaceColor = Color.parseColor("#301222");
+                    this.surfaceElevatedColor = Color.parseColor("#40182E");
+                    this.surfaceVariantColor = Color.parseColor("#521F3B");
+                    this.accentColor = Color.parseColor("#FB7185");
+                    this.primaryColor = Color.parseColor("#FDA4AF");
+                    this.primaryContainerColor = Color.parseColor("#40182E");
+                    this.secondaryColor = Color.parseColor("#FECDD3");
+                    this.textPrimaryColor = Color.parseColor("#FFF1F2");
+                    this.textSecondaryColor = Color.parseColor("#FECDD3");
+                    this.textTertiaryColor = Color.parseColor("#F43F5E");
+                    this.iconPrimaryColor = Color.parseColor("#FFF1F2");
+                    this.iconSecondaryColor = Color.parseColor("#FECDD3");
+                    this.strokeColor = Color.parseColor("#6B1D45");
+                    this.dividerColor = Color.parseColor("#40182E");
+                    this.selectedColor = Color.parseColor("#26FB7185");
+                    this.overlayColor = Color.parseColor("#CC170910");
+                    break;
+
+                case OCEAN:
+                    this.backgroundColor = Color.parseColor("#07121A");
+                    this.backgroundSecondaryColor = Color.parseColor("#0C1D29");
+                    this.surfaceColor = Color.parseColor("#122738");
+                    this.surfaceElevatedColor = Color.parseColor("#19334A");
+                    this.surfaceVariantColor = Color.parseColor("#21415E");
+                    this.accentColor = Color.parseColor("#14B8A6");
+                    this.primaryColor = Color.parseColor("#2DD4BF");
+                    this.primaryContainerColor = Color.parseColor("#19334A");
+                    this.secondaryColor = Color.parseColor("#99F6E4");
+                    this.textPrimaryColor = Color.parseColor("#F0FDFA");
+                    this.textSecondaryColor = Color.parseColor("#99F6E4");
+                    this.textTertiaryColor = Color.parseColor("#0D9488");
+                    this.iconPrimaryColor = Color.parseColor("#F0FDFA");
+                    this.iconSecondaryColor = Color.parseColor("#99F6E4");
+                    this.strokeColor = Color.parseColor("#275270");
+                    this.dividerColor = Color.parseColor("#19334A");
+                    this.selectedColor = Color.parseColor("#2614B8A6");
+                    this.overlayColor = Color.parseColor("#CC07121A");
+                    break;
+
+                case FOREST:
+                    this.backgroundColor = Color.parseColor("#08140C");
+                    this.backgroundSecondaryColor = Color.parseColor("#0D2114");
+                    this.surfaceColor = Color.parseColor("#132E1C");
+                    this.surfaceElevatedColor = Color.parseColor("#1C3D26");
+                    this.surfaceVariantColor = Color.parseColor("#254E31");
+                    this.accentColor = Color.parseColor("#34D399");
+                    this.primaryColor = Color.parseColor("#6EE7B7");
+                    this.primaryContainerColor = Color.parseColor("#1C3D26");
+                    this.secondaryColor = Color.parseColor("#A7F3D0");
+                    this.textPrimaryColor = Color.parseColor("#ECFDF5");
+                    this.textSecondaryColor = Color.parseColor("#A7F3D0");
+                    this.textTertiaryColor = Color.parseColor("#059669");
+                    this.iconPrimaryColor = Color.parseColor("#ECFDF5");
+                    this.iconSecondaryColor = Color.parseColor("#A7F3D0");
+                    this.strokeColor = Color.parseColor("#2B633C");
+                    this.dividerColor = Color.parseColor("#1C3D26");
+                    this.selectedColor = Color.parseColor("#2634D399");
+                    this.overlayColor = Color.parseColor("#CC08140C");
+                    break;
+
+                case SWARA:
+                default:
+                    this.backgroundColor = Color.parseColor("#0D0819");
+                    this.backgroundSecondaryColor = Color.parseColor("#140D24");
+                    this.surfaceColor = Color.parseColor("#1A0E2E");
+                    this.surfaceElevatedColor = Color.parseColor("#231645");
+                    this.surfaceVariantColor = Color.parseColor("#2E1A5A");
+                    this.accentColor = Color.parseColor("#C9A84C"); // Swara Gold
+                    this.primaryColor = Color.parseColor("#3D1F7A");
+                    this.primaryContainerColor = Color.parseColor("#231645");
+                    this.secondaryColor = Color.parseColor("#9B7EC8");
+                    this.textPrimaryColor = Color.parseColor("#F0E6C8");
+                    this.textSecondaryColor = Color.parseColor("#9B7EC8");
+                    this.textTertiaryColor = Color.parseColor("#7A6A9A");
+                    this.iconPrimaryColor = Color.parseColor("#F0E6C8");
+                    this.iconSecondaryColor = Color.parseColor("#9B7EC8");
+                    this.strokeColor = Color.parseColor("#4D3080");
+                    this.dividerColor = Color.parseColor("#231645");
+                    this.selectedColor = Color.parseColor("#26C9A84C");
+                    this.overlayColor = Color.parseColor("#CC0D0819");
+                    break;
+            }
         } else {
-            this.backgroundColor = Color.parseColor("#F2F2F7");
-            this.backgroundSecondaryColor = Color.parseColor("#EBEBF0");
-            this.surfaceColor = Color.parseColor("#FFFFFF");
-            this.surfaceElevatedColor = Color.parseColor("#FFFFFF");
-            this.surfaceVariantColor = Color.parseColor("#E9E9EE");
-            this.primaryColor = Color.parseColor("#1C1C1E");
-            this.primaryContainerColor = Color.parseColor("#E9E9EE");
-            this.textPrimaryColor = Color.parseColor("#1C1C1E");
-            this.textSecondaryColor = Color.parseColor("#55555A");
-            this.textTertiaryColor = Color.parseColor("#6E6E73");
-            this.iconPrimaryColor = Color.parseColor("#1C1C1E");
-            this.iconSecondaryColor = Color.parseColor("#55555A");
-            this.strokeColor = Color.parseColor("#D1D1D6");
-            this.dividerColor = Color.parseColor("#E5E5EA");
-            this.selectedColor = withAlpha(accent, 0x1F);
-            this.overlayColor = Color.parseColor("#CCF2F2F7");
-        }
-    }
+            // ===== LIGHT PALETTES =====
+            switch (this.colorTheme) {
+                case MIDNIGHT:
+                    this.backgroundColor = Color.parseColor("#F4F7FA");
+                    this.backgroundSecondaryColor = Color.parseColor("#E8EEF5");
+                    this.surfaceColor = Color.parseColor("#DCE4F0");
+                    this.surfaceElevatedColor = Color.parseColor("#CFD9E8");
+                    this.surfaceVariantColor = Color.parseColor("#C1CFE0");
+                    this.accentColor = Color.parseColor("#0284C7");
+                    this.primaryColor = Color.parseColor("#0F172A");
+                    this.primaryContainerColor = Color.parseColor("#CFD9E8");
+                    this.secondaryColor = Color.parseColor("#334155");
+                    this.textPrimaryColor = Color.parseColor("#0F172A"); // Strong dark
+                    this.textSecondaryColor = Color.parseColor("#334155");
+                    this.textTertiaryColor = Color.parseColor("#64748B");
+                    this.iconPrimaryColor = Color.parseColor("#0F172A");
+                    this.iconSecondaryColor = Color.parseColor("#334155");
+                    this.strokeColor = Color.parseColor("#B0C2DE");
+                    this.dividerColor = Color.parseColor("#DCE4F0");
+                    this.selectedColor = Color.parseColor("#260284C7");
+                    this.overlayColor = Color.parseColor("#CCF4F7FA");
+                    break;
 
-    /** One accent per theme; light values are tuned for >= 4.5:1 on white. */
-    @ColorInt
-    static int resolveAccent(ColorTheme theme, boolean night) {
-        switch (theme) {
-            case MIDNIGHT:  return Color.parseColor(night ? "#0A84FF" : "#0066D6");
-            case LAVENDER:  return Color.parseColor(night ? "#BF5AF2" : "#8E3DBD");
-            case CHAMPAGNE: return Color.parseColor(night ? "#FF9F0A" : "#B25000");
-            case ROSE:      return Color.parseColor(night ? "#FF375F" : "#D30F45");
-            case OCEAN:     return Color.parseColor(night ? "#40C8E0" : "#0A7C8C");
-            case FOREST:    return Color.parseColor(night ? "#30D158" : "#1E7F3A");
-            case OFF_WHITE: return Color.parseColor(night ? "#E8C97A" : "#5C4A1E");
-            case SWARA:
-            default:        return Color.parseColor(night ? "#D4AF5A" : "#8A6610");
-        }
-    }
+                case LAVENDER:
+                    this.backgroundColor = Color.parseColor("#FBF7FE");
+                    this.backgroundSecondaryColor = Color.parseColor("#F3E8FF");
+                    this.surfaceColor = Color.parseColor("#E9D5FF");
+                    this.surfaceElevatedColor = Color.parseColor("#DDD6FE");
+                    this.surfaceVariantColor = Color.parseColor("#C4B5FD");
+                    this.accentColor = Color.parseColor("#7E22CE");
+                    this.primaryColor = Color.parseColor("#3B0764");
+                    this.primaryContainerColor = Color.parseColor("#DDD6FE");
+                    this.secondaryColor = Color.parseColor("#6B21A8");
+                    this.textPrimaryColor = Color.parseColor("#2E0A4E");
+                    this.textSecondaryColor = Color.parseColor("#6B21A8");
+                    this.textTertiaryColor = Color.parseColor("#9333EA");
+                    this.iconPrimaryColor = Color.parseColor("#2E0A4E");
+                    this.iconSecondaryColor = Color.parseColor("#6B21A8");
+                    this.strokeColor = Color.parseColor("#C4B5FD");
+                    this.dividerColor = Color.parseColor("#E9D5FF");
+                    this.selectedColor = Color.parseColor("#267E22CE");
+                    this.overlayColor = Color.parseColor("#CCFBF7FE");
+                    break;
 
-    private static int withAlpha(int color, int alpha) {
-        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+                case CHAMPAGNE:
+                    this.backgroundColor = Color.parseColor("#FAF6F0");
+                    this.backgroundSecondaryColor = Color.parseColor("#F3EBE0");
+                    this.surfaceColor = Color.parseColor("#EAE0CF");
+                    this.surfaceElevatedColor = Color.parseColor("#DECFC0");
+                    this.surfaceVariantColor = Color.parseColor("#D2BFB0");
+                    this.accentColor = Color.parseColor("#B45309");
+                    this.primaryColor = Color.parseColor("#451A03");
+                    this.primaryContainerColor = Color.parseColor("#DECFC0");
+                    this.secondaryColor = Color.parseColor("#78350F");
+                    this.textPrimaryColor = Color.parseColor("#361504");
+                    this.textSecondaryColor = Color.parseColor("#78350F");
+                    this.textTertiaryColor = Color.parseColor("#92400E");
+                    this.iconPrimaryColor = Color.parseColor("#361504");
+                    this.iconSecondaryColor = Color.parseColor("#78350F");
+                    this.strokeColor = Color.parseColor("#CBB6A4");
+                    this.dividerColor = Color.parseColor("#EAE0CF");
+                    this.selectedColor = Color.parseColor("#26B45309");
+                    this.overlayColor = Color.parseColor("#CCFAF6F0");
+                    break;
+
+                case ROSE:
+                    this.backgroundColor = Color.parseColor("#FDF4F6");
+                    this.backgroundSecondaryColor = Color.parseColor("#FCE7F0");
+                    this.surfaceColor = Color.parseColor("#FBCFE8");
+                    this.surfaceElevatedColor = Color.parseColor("#F472B6");
+                    this.surfaceVariantColor = Color.parseColor("#E11D48");
+                    this.accentColor = Color.parseColor("#E11D48");
+                    this.primaryColor = Color.parseColor("#4C0519");
+                    this.primaryContainerColor = Color.parseColor("#FBCFE8");
+                    this.secondaryColor = Color.parseColor("#881337");
+                    this.textPrimaryColor = Color.parseColor("#3B0313");
+                    this.textSecondaryColor = Color.parseColor("#881337");
+                    this.textTertiaryColor = Color.parseColor("#BE123C");
+                    this.iconPrimaryColor = Color.parseColor("#3B0313");
+                    this.iconSecondaryColor = Color.parseColor("#881337");
+                    this.strokeColor = Color.parseColor("#F472B6");
+                    this.dividerColor = Color.parseColor("#FCE7F0");
+                    this.selectedColor = Color.parseColor("#26E11D48");
+                    this.overlayColor = Color.parseColor("#CCFDF4F6");
+                    break;
+
+                case OCEAN:
+                    this.backgroundColor = Color.parseColor("#F2F9FA");
+                    this.backgroundSecondaryColor = Color.parseColor("#E3F2F5");
+                    this.surfaceColor = Color.parseColor("#D2E7ED");
+                    this.surfaceElevatedColor = Color.parseColor("#C0DCE3");
+                    this.surfaceVariantColor = Color.parseColor("#ADCFD9");
+                    this.accentColor = Color.parseColor("#0D9488");
+                    this.primaryColor = Color.parseColor("#042F2E");
+                    this.primaryContainerColor = Color.parseColor("#C0DCE3");
+                    this.secondaryColor = Color.parseColor("#115E59");
+                    this.textPrimaryColor = Color.parseColor("#042F2E");
+                    this.textSecondaryColor = Color.parseColor("#115E59");
+                    this.textTertiaryColor = Color.parseColor("#0F766E");
+                    this.iconPrimaryColor = Color.parseColor("#042F2E");
+                    this.iconSecondaryColor = Color.parseColor("#115E59");
+                    this.strokeColor = Color.parseColor("#8CC0CE");
+                    this.dividerColor = Color.parseColor("#D2E7ED");
+                    this.selectedColor = Color.parseColor("#260D9488");
+                    this.overlayColor = Color.parseColor("#CCF2F9FA");
+                    break;
+
+                case FOREST:
+                    this.backgroundColor = Color.parseColor("#F3F9F5");
+                    this.backgroundSecondaryColor = Color.parseColor("#E4F2E9");
+                    this.surfaceColor = Color.parseColor("#D2E7DC");
+                    this.surfaceElevatedColor = Color.parseColor("#BEDCCD");
+                    this.surfaceVariantColor = Color.parseColor("#A8CEBD");
+                    this.accentColor = Color.parseColor("#059669");
+                    this.primaryColor = Color.parseColor("#022C22");
+                    this.primaryContainerColor = Color.parseColor("#BEDCCD");
+                    this.secondaryColor = Color.parseColor("#065F46");
+                    this.textPrimaryColor = Color.parseColor("#022C22");
+                    this.textSecondaryColor = Color.parseColor("#065F46");
+                    this.textTertiaryColor = Color.parseColor("#047857");
+                    this.iconPrimaryColor = Color.parseColor("#022C22");
+                    this.iconSecondaryColor = Color.parseColor("#065F46");
+                    this.strokeColor = Color.parseColor("#8CBFA9");
+                    this.dividerColor = Color.parseColor("#D2E7DC");
+                    this.selectedColor = Color.parseColor("#26059669");
+                    this.overlayColor = Color.parseColor("#CCF3F9F5");
+                    break;
+
+                case SWARA:
+                default:
+                    this.backgroundColor = Color.parseColor("#F6F2FC");
+                    this.backgroundSecondaryColor = Color.parseColor("#EDE6F7");
+                    this.surfaceColor = Color.parseColor("#E5D9F4");
+                    this.surfaceElevatedColor = Color.parseColor("#D9C9EE");
+                    this.surfaceVariantColor = Color.parseColor("#CDBAE8");
+                    this.accentColor = Color.parseColor("#A68020"); // Darker Gold for Light Mode contrast
+                    this.primaryColor = Color.parseColor("#3D1F7A");
+                    this.primaryContainerColor = Color.parseColor("#D9C9EE");
+                    this.secondaryColor = Color.parseColor("#5B4380");
+                    this.textPrimaryColor = Color.parseColor("#1F0F3D"); // Deep Purple (Crisp dark text!)
+                    this.textSecondaryColor = Color.parseColor("#5B4380");
+                    this.textTertiaryColor = Color.parseColor("#7E69A3");
+                    this.iconPrimaryColor = Color.parseColor("#1F0F3D");
+                    this.iconSecondaryColor = Color.parseColor("#5B4380");
+                    this.strokeColor = Color.parseColor("#C6B0EA");
+                    this.dividerColor = Color.parseColor("#E5D9F4");
+                    this.selectedColor = Color.parseColor("#26A68020");
+                    this.overlayColor = Color.parseColor("#CCF6F2FC");
+                    break;
+            }
+        }
     }
 
     public ColorTheme getColorTheme() {
@@ -218,116 +461,6 @@ public class DesignTokens {
         return overlayColor;
     }
 
-    // ===== Additional semantic tokens =====
-
-    /** Accent tint for a filled favorite icon. Uses readable accent in light mode for crisp contrast. */
-    public int getFavoriteActiveColor() {
-        return isNightMode ? accentColor : getReadableAccentColor();
-    }
-
-    /**
-     * Tint for an empty/unfilled favorite icon.
-     * In dark mode uses iconSecondaryColor; in light mode uses a slightly muted icon color
-     * to ensure visibility on light surfaces.
-     */
-    public int getFavoriteInactiveColor() {
-        // In light mode iconSecondaryColor is already the darker theme secondary — good contrast.
-        return iconSecondaryColor;
-    }
-
-    /**
-     * Semantic playback surface color for the currently playing item row background.
-     * In dark mode: mixes surfaceElevatedColor with accent at 14% for an atmospheric tinted glass feel.
-     * In light mode: mixes surfaceVariantColor with accent at 22% so it is immediately and clearly
-     * identifiable against light background surfaces while preserving WCAG AAA text contrast.
-     */
-    public int getPlaybackSurfaceColor() {
-        // Quiet selection fill: the accent-coloured title carries the state, not a loud card.
-        return isNightMode ? mix(surfaceColor, accentColor, 0.06f) : mix(surfaceColor, accentColor, 0.07f);
-    }
-
-    /**
-     * Backward-compatible alias for getPlaybackSurfaceColor().
-     */
-    public int getPlaybackHighlightColor() {
-        return getPlaybackSurfaceColor();
-    }
-
-    /**
-     * Semantic playback stroke border color for currently playing rows.
-     * In dark mode: uses a restrained ~35% alpha accent border.
-     * In light mode: mixes accent with deep primary color at 20% to produce a crisp, readable,
-     * high-definition stroke that never washes out on light surfaces.
-     */
-    public int getPlaybackStrokeColor() {
-        return Color.TRANSPARENT; // no border on the playing row
-    }
-
-    /**
-     * Soft accent glow color (with alpha) for ambient highlight cues.
-     * In dark mode: uses ~31% alpha accent for atmospheric glow.
-     * In light mode: uses ~47% alpha accent for controlled definition.
-     */
-    public int getPlaybackGlowColor() {
-        int r = android.graphics.Color.red(accentColor);
-        int g = android.graphics.Color.green(accentColor);
-        int b = android.graphics.Color.blue(accentColor);
-        if (isNightMode) {
-            return android.graphics.Color.argb(80, r, g, b); // ~31%
-        } else {
-            return android.graphics.Color.argb(120, r, g, b); // ~47%
-        }
-    }
-
-    /**
-     * Semantic icon/accent tint for playback indicators.
-     */
-    public int getPlaybackIconColor() {
-        return getReadableAccentColor();
-    }
-
-    /**
-     * A readable foreground variant of the accent color.
-     * In light mode, some accent colors (e.g. pale champagne gold) have insufficient contrast
-     * on light surfaces, so we dynamically darken the hue while preserving its color theme identity.
-     * In dark mode the accent is vibrant and readable as-is.
-     */
-    public int getReadableAccentColor() {
-        if (isNightMode) {
-            return accentColor;
-        }
-        // For light mode: ensure >= 4.5:1 WCAG AA contrast against light surfaces
-        double r = android.graphics.Color.red(accentColor) / 255.0;
-        double g = android.graphics.Color.green(accentColor) / 255.0;
-        double b = android.graphics.Color.blue(accentColor) / 255.0;
-        double lr = (r <= 0.03928) ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-        double lg = (g <= 0.03928) ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-        double lb = (b <= 0.03928) ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
-        double l1 = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-        double contrast = 1.05 / (l1 + 0.05);
-
-        if (contrast < 5.2) {
-            float[] hsv = new float[3];
-            android.graphics.Color.colorToHSV(accentColor, hsv);
-            hsv[2] = Math.min(hsv[2], 0.34f); // Darken value to guarantee >= 4.5:1 across all tinted light backgrounds
-            hsv[1] = Math.max(hsv[1], 0.75f); // Rich theme saturation
-            return android.graphics.Color.HSVToColor(hsv);
-        }
-        return accentColor;
-    }
-
-    /**
-     * Text color to use on accent-colored button backgrounds.
-     * Dark text for light-accent buttons; white for dark-accent buttons.
-     */
-    public int getButtonTextColor() {
-        double lum = (0.299 * android.graphics.Color.red(accentColor)
-                + 0.587 * android.graphics.Color.green(accentColor)
-                + 0.114 * android.graphics.Color.blue(accentColor)) / 255.0;
-        return lum > 0.55 ? android.graphics.Color.parseColor("#1A1A1A")
-                : android.graphics.Color.WHITE;
-    }
-
     public int getCornerRadiusDp() {
         return cornerRadiusDp;
     }
@@ -338,39 +471,6 @@ public class DesignTokens {
 
     public int getStrokeWidthDp() {
         return strokeWidthDp;
-    }
-
-    /**
-     * Creates an ambient glow drawable for the Now Playing album art.
-     * Uses a multi-stop radial gradient centered behind the art, with soft fading alpha.
-     */
-    public Drawable createArtworkGlowDrawable(int glowColor) {
-        GradientDrawable glow = new GradientDrawable();
-        glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        glow.setShape(GradientDrawable.RECTANGLE);
-        int r = android.graphics.Color.red(glowColor);
-        int g = android.graphics.Color.green(glowColor);
-        int b = android.graphics.Color.blue(glowColor);
-        int centerAlpha = isNightMode ? 90 : 50;
-        int midAlpha    = isNightMode ? 40 : 20;
-        int centerColor = android.graphics.Color.argb(centerAlpha, r, g, b);
-        int midColor    = android.graphics.Color.argb(midAlpha, r, g, b);
-        int outerColor  = android.graphics.Color.argb(0, r, g, b);
-        glow.setColors(new int[] { centerColor, midColor, outerColor });
-        glow.setGradientRadius(550f);
-        glow.setCornerRadius(60f);
-        return glow;
-    }
-
-    /**
-     * Creates a circular glass play/pause button background with subtle accent glow and border.
-     */
-    public Drawable createPlayButtonDrawable(Context context) {
-        // Apple Music style: the play glyph stands alone; only a soft circular press target.
-        GradientDrawable disk = new GradientDrawable();
-        disk.setShape(GradientDrawable.OVAL);
-        disk.setColor(isNightMode ? Color.argb(28, 255, 255, 255) : Color.argb(14, 0, 0, 0));
-        return disk;
     }
 
     /**
@@ -435,200 +535,28 @@ public class DesignTokens {
         return drawable;
     }
 
-    // ===== Semantic Component Helpers =====
-
-    public int getSearchBackgroundColor() {
-        return isNightMode ? surfaceVariantColor : surfaceColor;
-    }
-
-    public int getSearchTextColor() {
-        return textPrimaryColor;
-    }
-
-    public int getSearchHintColor() {
-        return textTertiaryColor;
-    }
-
-    public int getNavBackgroundColor() {
-        return surfaceColor;
-    }
-
-    public int getNavSelectedColor() {
-        return accentColor;
-    }
-
-    public int getNavUnselectedColor() {
-        return textTertiaryColor;
-    }
-
-    public int getDialogBackgroundColor() {
-        return surfaceColor;
-    }
-
-    public int getDialogTextColor() {
-        return textPrimaryColor;
-    }
-
-    public int getDialogSecondaryTextColor() {
-        return textSecondaryColor;
-    }
-
-    public int getOnAccentColor() {
-        return getButtonTextColor();
-    }
-
     /** Palette-aware glass approximation; no offscreen blur or continuous GPU work. */
     private GradientDrawable createGlassDrawable(Context context, boolean elevated) {
+        int base = elevated ? surfaceVariantColor : surfaceColor;
+        int light = isNightMode ? Color.WHITE : primaryColor;
+        GradientDrawable glass = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{mix(base, light, 0.22f), mix(base, light, 0.06f),
+                        mix(base, secondaryColor, 0.10f)});
         float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setShape(GradientDrawable.RECTANGLE);
-        glass.setColor(elevated ? surfaceElevatedColor : surfaceColor);
         glass.setCornerRadius(cornerRadiusDp * density);
+        glass.setAlpha(238);
+        glass.setStroke(Math.max(1, Math.round(density)), mix(base, light, 0.38f));
         return glass;
     }
 
     /** An opaque backdrop keeps the glass and text contrast stable in every palette. */
     public Drawable createAmbientDrawable() {
-        return new android.graphics.drawable.ColorDrawable(backgroundColor);
-    }
-
-    // ===== Liquid Glass Semantic Tokens =====
-    // All derived from existing palette fields — zero hardcoded colors.
-    // Adapt automatically across all 7 themes and both light/dark modes.
-
-    /**
-     * Glass background fill color — semi-transparent surface for blur overlays.
-     * Dark: surface at ~62% alpha for deep translucency.
-     * Light: white at ~85% alpha for a clean frosted look.
-     */
-    @ColorInt
-    public int getGlassBackgroundColor() {
-        return isNightMode ? Color.argb(214, 30, 30, 32) : Color.argb(214, 249, 249, 251);
-    }
-
-    /**
-     * Elevated glass fill — high-opacity frosted base for floating nav/mini-player surfaces.
-     * Prevents content underneath from causing double-exposure collisions while maintaining
-     * rich translucent depth and specular highlight.
-     */
-    @ColorInt
-    public int getGlassNavBackgroundColor() {
-        // Thick material: translucent enough to hint at content beneath, opaque enough for legibility.
-        return isNightMode ? Color.argb(224, 28, 28, 30) : Color.argb(230, 250, 250, 252);
-    }
-
-    /**
-     * Subtle theme-colored tint wash over glass surfaces.
-     * Dark: accent at 9% alpha for atmospheric coloring.
-     * Light: accent at 5% alpha (very subtle, avoids washing out text).
-     */
-    @ColorInt
-    public int getGlassTintColor() {
-        return Color.TRANSPARENT;
-    }
-
-    /**
-     * Glass border/stroke color — alpha-adjusted stroke for crisp glass edges.
-     * Dark: stroke at ~55% alpha.
-     * Light: stroke at ~65% alpha (needs to be more visible on white).
-     */
-    @ColorInt
-    public int getGlassBorderColor() {
-        return isNightMode ? Color.argb(46, 255, 255, 255) : Color.argb(26, 0, 0, 0);
-    }
-
-    /**
-     * Glass highlight color — top-left to bottom-right sheen.
-     */
-    @ColorInt
-    public int getGlassHighlightColor() {
-        return isNightMode ? Color.argb(20, 255, 255, 255) : Color.argb(90, 255, 255, 255);
-    }
-
-    /**
-     * Accent-colored glow for glass-selected/active states.
-     * Uses readableAccentColor at controlled alpha so it works in both modes.
-     */
-    @ColorInt
-    public int getGlassAccentGlowColor() {
-        int r = Color.red(accentColor);
-        int g = Color.green(accentColor);
-        int b = Color.blue(accentColor);
-        return Color.argb(isNightMode ? 65 : 45, r, g, b);
-    }
-
-    /**
-     * Creates a premium pill-shaped glass surface drawable for the Bottom Navigation.
-     * Structure: high-opacity frosted base fill + TL→BR specular highlight + crisp refraction border.
-     * Corner radius: full pill (999dp).
-     */
-    public GradientDrawable createGlassNavDrawable(Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setShape(GradientDrawable.RECTANGLE);
-        glass.setColor(getGlassNavBackgroundColor());
-        glass.setCornerRadius(999 * density);
-        glass.setStroke(Math.max(1, Math.round(0.5f * density)), getGlassBorderColor());
-        return glass;
-    }
-
-    /**
-     * Creates a glass drawable for the Mini Player — fully rounded on all corners (22dp pill).
-     * High-opacity frosted base fill blocks text bleed-through from background lists.
-     */
-    public GradientDrawable createGlassMiniPlayerDrawable(Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setShape(GradientDrawable.RECTANGLE);
-        glass.setColor(getGlassNavBackgroundColor());
-        glass.setCornerRadius(16f * density);
-        glass.setStroke(Math.max(1, Math.round(0.5f * density)), getGlassBorderColor());
-        return glass;
-    }
-
-    /**
-     * Creates a glass pill drawable for action chips, search bars, and segmented control backgrounds.
-     */
-    public GradientDrawable createGlassPillDrawable(Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setShape(GradientDrawable.RECTANGLE);
-        glass.setColor(isNightMode ? surfaceVariantColor : Color.parseColor("#E3E3E8"));
-        glass.setCornerRadius(999 * density);
-        glass.setStroke(Math.max(1, Math.round(0.5f * density)), getGlassBorderColor());
-        return glass;
-    }
-
-    /**
-     * Creates a glass card drawable with theme corner radius.
-     */
-    public GradientDrawable createGlassCardDrawable(Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setShape(GradientDrawable.RECTANGLE);
-        glass.setColor(surfaceColor);
-        glass.setCornerRadius(cornerRadiusDp * density);
-        return glass;
-    }
-
-    /**
-     * Creates a shuffle action button background.
-     * Glass pill with accent glow — visually distinctive from ordinary buttons.
-     */
-    public GradientDrawable createShuffleButtonDrawable(Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        GradientDrawable pill = new GradientDrawable();
-        pill.setShape(GradientDrawable.RECTANGLE);
-        pill.setColor(isNightMode ? surfaceElevatedColor : Color.parseColor("#E3E3E8"));
-        pill.setCornerRadius(12 * density);
-        return pill;
-    }
-
-    // ===== Internal Helpers =====
-
-    /** Package-visible color mix for use in LiquidGlassRenderer. */
-    static int mixColors(int from, int to, float amount) {
-        return mix(from, to, amount);
+        if (style != MorphismStyle.LIQUID_GLASS) {
+            return new android.graphics.drawable.ColorDrawable(backgroundColor);
+        }
+        return new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{mix(backgroundColor, primaryColor, 0.13f),
+                        backgroundSecondaryColor, backgroundColor});
     }
 
     private static int mix(int from, int to, float amount) {

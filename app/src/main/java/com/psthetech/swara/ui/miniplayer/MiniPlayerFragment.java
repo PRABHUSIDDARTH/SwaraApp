@@ -1,6 +1,6 @@
 package com.psthetech.swara.ui.miniplayer;
 
-import android.graphics.drawable.GradientDrawable;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,7 +16,6 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.ui.glass.LiquidGlassRenderer;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
 import com.psthetech.swara.util.ArtworkHelper;
 
@@ -37,7 +36,6 @@ public class MiniPlayerFragment extends Fragment {
     private ImageView btnNext;
     private View progressLine;
     private View rootView;
-    private com.psthetech.swara.ui.widget.AudioWaveView miniAudioWaveView;
 
     @Nullable
     @Override
@@ -57,10 +55,6 @@ public class MiniPlayerFragment extends Fragment {
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
         btnNext = view.findViewById(R.id.btnNext);
         progressLine = view.findViewById(R.id.progressLine);
-        miniAudioWaveView = view.findViewById(R.id.miniAudioWaveView);
-        if (miniAudioWaveView != null) {
-            miniAudioWaveView.setCompact(true);
-        }
 
         // Activity-scoped ViewModel
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
@@ -70,12 +64,8 @@ public class MiniPlayerFragment extends Fragment {
 
         // Observe playing state
         playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), playing -> {
-            boolean isPlaying = Boolean.TRUE.equals(playing);
-            btnPlayPause.setImageResource(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
-            btnPlayPause.setContentDescription(getString(isPlaying ? R.string.pause : R.string.play));
-            if (miniAudioWaveView != null) {
-                miniAudioWaveView.setPlaying(isPlaying);
-            }
+            btnPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
+            btnPlayPause.setContentDescription(getString(playing ? R.string.pause : R.string.play));
         });
 
         // Observe progress for the top line
@@ -91,47 +81,15 @@ public class MiniPlayerFragment extends Fragment {
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;
-
-                    // Apply glass mini-player surface (fully-rounded, translucent, highlight gradient)
-                    GradientDrawable glassDrawable = tokens.createGlassMiniPlayerDrawable(requireContext());
-                    rootView.setBackground(glassDrawable);
-                    rootView.setClipToOutline(true);
-
-                    // Round the artwork corners using a ShapeAppearance-style outline
-                    if (ivArtwork != null) {
-                        float artworkCornerPx = 8 * requireContext().getResources().getDisplayMetrics().density;
-                        android.graphics.drawable.GradientDrawable artworkBg =
-                                new android.graphics.drawable.GradientDrawable();
-                        artworkBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                        artworkBg.setColor(tokens.getSurfaceElevatedColor());
-                        artworkBg.setCornerRadius(artworkCornerPx);
-                        ivArtwork.setBackground(artworkBg);
-                        ivArtwork.setClipToOutline(true);
-                    }
-
-                    // Text colors
-                    tvTitle.setTextColor(tokens.getTextPrimaryColor());
-                    tvArtist.setTextColor(tokens.getTextSecondaryColor());
-
-                    // Play/pause button — glass pill with accent tint
-                    if (btnPlayPause != null) {
-                        GradientDrawable btnBg = tokens.createGlassPillDrawable(requireContext());
-                        btnPlayPause.setBackground(btnBg);
-                        btnPlayPause.setColorFilter(tokens.getReadableAccentColor());
-                    }
-
-                    // Next button — simple accent tint on transparent
-                    if (btnNext != null) {
-                        btnNext.setColorFilter(tokens.getReadableAccentColor());
-                    }
-
-                    // Progress line color
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                            .applyToView(rootView, true, tokens);
+                    tvTitle.setTextColor(tokens.getPrimaryTextColor());
+                    tvArtist.setTextColor(tokens.getSecondaryTextColor());
+                    btnPlayPause.setBackground(tokens.createCardDrawable(requireContext()));
+                    btnPlayPause.setColorFilter(tokens.getPrimaryTextColor());
+                    btnNext.setColorFilter(tokens.getAccentColor());
                     if (progressLine != null) {
                         progressLine.setBackgroundColor(tokens.getAccentColor());
-                    }
-
-                    if (miniAudioWaveView != null) {
-                        miniAudioWaveView.setDesignTokens(tokens);
                     }
                 });
 
@@ -146,11 +104,6 @@ public class MiniPlayerFragment extends Fragment {
                 navHostFragment.getNavController().navigate(R.id.nowPlayingFragment);
             }
         });
-
-        // Attach press animation to the entire mini-player (respects reduced-motion)
-        LiquidGlassRenderer.attachPressAnimation(rootView);
-        if (btnPlayPause != null) LiquidGlassRenderer.attachPressAnimation(btnPlayPause);
-        if (btnNext != null) LiquidGlassRenderer.attachPressAnimation(btnNext);
 
         btnPlayPause.setOnClickListener(v -> {
             Boolean isPlaying = playbackViewModel.getIsPlaying().getValue();
@@ -168,7 +121,7 @@ public class MiniPlayerFragment extends Fragment {
         if (song == null) return;
         tvTitle.setText(song.getTitle());
         tvArtist.setText(song.getArtist());
-        ArtworkHelper.loadSongArtWithCrossfade(requireContext(), song, ivArtwork);
+        ArtworkHelper.loadSongArt(requireContext(), song, ivArtwork);
     }
 
     private void updateProgressLine(@Nullable Long pos, @Nullable Long duration) {

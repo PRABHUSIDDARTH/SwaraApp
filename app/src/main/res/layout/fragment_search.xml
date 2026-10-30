@@ -3,36 +3,35 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/swara_night">
 
-    <!-- Search bar — single integrated rounded capsule surface -->
-    <com.google.android.material.textfield.TextInputLayout
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/tilSearch"
-        style="@style/Widget.Swara.TextField"
+    <!-- Search bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
-        app:startIconDrawable="@drawable/ic_nav_search"
-        app:boxCornerRadiusTopStart="28dp"
-        app:boxCornerRadiusTopEnd="28dp"
-        app:boxCornerRadiusBottomStart="28dp"
-        app:boxCornerRadiusBottomEnd="28dp"
-        android:hint="@string/search_hint">
+        android:orientation="horizontal"
+        android:padding="@dimen/dp_16"
+        android:gravity="center_vertical">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etSearch"
-            android:layout_width="match_parent"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Swara.TextField"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:imeOptions="actionSearch"
-            android:maxLines="1"
-            android:paddingVertical="12dp"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:layout_weight="1"
+            android:hint="@string/search_hint">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
+                android:textColor="@color/swara_cream" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
 
     <!-- Results -->
     <FrameLayout
@@ -44,7 +43,7 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingBottom="@dimen/bottom_content_padding"
+            android:paddingBottom="144dp"
             android:clipToPadding="false"
             android:overScrollMode="never"
             android:visibility="gone" />
@@ -60,30 +59,28 @@
             android:padding="@dimen/dp_32">
 
             <ImageView
-                android:id="@+id/ivPromptIcon"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:src="@drawable/ic_nav_search"
-                android:alpha="0.3" />
+                android:alpha="0.3"
+                android:tint="@color/swara_lavender" />
 
             <TextView
-                android:id="@+id/tvPromptTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/search_empty_title"
                 android:textSize="@dimen/text_title_md"
-                android:textColor="?android:attr/textColorPrimary"
+                android:textColor="@color/swara_text_primary"
                 android:fontFamily="sans-serif-medium"
                 android:layout_marginTop="@dimen/dp_16"
                 android:gravity="center" />
 
             <TextView
-                android:id="@+id/tvPromptSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/search_empty_subtitle"
                 android:textSize="@dimen/text_body_sm"
-                android:textColor="?android:attr/textColorSecondary"
+                android:textColor="@color/swara_text_secondary"
                 android:layout_marginTop="@dimen/dp_8"
                 android:gravity="center" />
 

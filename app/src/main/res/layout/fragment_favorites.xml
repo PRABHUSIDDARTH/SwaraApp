@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/swara_night">
 
     <!-- Header with Play All / Shuffle -->
     <LinearLayout
@@ -13,7 +14,6 @@
         android:gravity="center_vertical">
 
         <TextView
-            android:id="@+id/tvFavoritesTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -22,28 +22,15 @@
             android:textColor="@color/swara_text_primary"
             android:fontFamily="sans-serif-medium" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPlayAllFavorites"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="@string/play_all"
-            android:textSize="12sp"
-            android:textAllCaps="false"
-            android:visibility="gone"
-            style="@style/Widget.Material3.Button.TonalButton" />
-
-        <com.google.android.material.button.MaterialButton
+        <Button
             android:id="@+id/btnShuffleFavorites"
-            android:layout_width="0dp"
+            style="@style/Widget.Swara.Button.Ghost"
+            android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_weight="1"
-            android:text="@string/shuffle_all"
+            android:text="@string/shuffle_play"
             android:textSize="12sp"
-            android:textAllCaps="false"
-            android:visibility="gone"
-            style="@style/Widget.Material3.Button.OutlinedButton" />
+            android:paddingHorizontal="@dimen/dp_16"
+            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -57,7 +44,7 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingBottom="@dimen/bottom_content_padding"
+            android:paddingBottom="144dp"
             android:clipToPadding="false"
             android:overScrollMode="never" />
 
@@ -73,14 +60,13 @@
             android:visibility="gone">
 
             <ImageView
-                android:id="@+id/ivEmptyFavorites"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:src="@drawable/ic_nav_favorites"
-                android:alpha="0.4" />
+                android:alpha="0.3"
+                android:tint="@color/swara_gold" />
 
             <TextView
-                android:id="@+id/tvEmptyTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/favorites_empty_title"
@@ -91,7 +77,6 @@
                 android:gravity="center" />
 
             <TextView
-                android:id="@+id/tvEmptySubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/favorites_empty_subtitle"

@@ -1,7 +1,6 @@
 package com.psthetech.swara.ui.viewmodel;
 
 import android.app.Application;
-import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -13,7 +12,6 @@ import com.psthetech.swara.SwaraApplication;
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.data.db.entity.Playlist;
 import com.psthetech.swara.data.db.entity.PlaylistSong;
-import com.psthetech.swara.data.repository.PlaylistArtworkStore;
 import com.psthetech.swara.data.repository.PlaylistRepository;
 import com.psthetech.swara.domain.model.Song;
 
@@ -23,14 +21,12 @@ import java.util.List;
 public class PlaylistViewModel extends AndroidViewModel {
 
     private final PlaylistRepository repository;
-    private final PlaylistArtworkStore artworkStore;
     private final LiveData<List<Playlist>> playlists;
 
     public PlaylistViewModel(@NonNull Application application) {
         super(application);
         AppDatabase db = AppDatabase.getInstance(application);
         repository = new PlaylistRepository(db);
-        artworkStore = new PlaylistArtworkStore(application);
         playlists = repository.getAllPlaylistsLive();
     }
 
@@ -52,19 +48,14 @@ public class PlaylistViewModel extends AndroidViewModel {
             List<Song> songs = new ArrayList<>();
             if (list != null) {
                 for (PlaylistSong item : list) {
-                    Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(item.songId);
-                    long dur = item.duration > 0 ? item.duration : (canonical != null ? canonical.getDuration() : 0);
-                    long albumId = item.albumId != 0 ? item.albumId : (canonical != null ? canonical.getAlbumId() : 0);
                     songs.add(new Song(
                             item.songId,
                             item.title,
                             item.artist,
                             item.album,
-                            albumId,
-                            dur,
-                            item.position,
-                            canonical != null ? canonical.getYear() : 0,
-                            0
+                            item.albumId,
+                            item.duration,
+                            item.position, 0, 0
                     ));
                 }
             }
@@ -75,11 +66,6 @@ public class PlaylistViewModel extends AndroidViewModel {
     /** Reactive song count for a single playlist (used in detail screen header). */
     public LiveData<Integer> getSongCountLive(long playlistId) {
         return repository.getSongCountLive(playlistId);
-    }
-
-    /** Reactive map of playlistId -> song count for all playlists. */
-    public LiveData<java.util.Map<Long, Integer>> getSongCountsMapLive() {
-        return repository.getSongCountsMapLive();
     }
 
     // ===== CRUD =====
@@ -98,65 +84,19 @@ public class PlaylistViewModel extends AndroidViewModel {
 
     public void deletePlaylist(Playlist playlist) {
         if (playlist != null) {
-            repository.deletePlaylistWithArtwork(playlist.id, artworkStore);
+            repository.deletePlaylist(playlist.id);
         }
     }
 
     public void deletePlaylist(long playlistId) {
-        repository.deletePlaylistWithArtwork(playlistId, artworkStore);
-    }
-
-    // ===== Playlist Artwork =====
-
-    /** Returns the shared PlaylistArtworkStore (used by adapters for loading artwork). */
-    public PlaylistArtworkStore getPlaylistArtworkStore() {
-        return artworkStore;
-    }
-
-    /**
-     * Saves a user-selected image URI as custom artwork for a playlist.
-     * Runs on a background thread; calls onComplete on the main thread.
-     */
-    public void setPlaylistArtwork(long playlistId, Uri imageUri, Runnable onComplete) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            boolean saved = artworkStore.saveCustomArtwork(playlistId, imageUri);
-            if (saved) {
-                String path = artworkStore.getCustomArtworkFile(playlistId).getAbsolutePath();
-                repository.setArtworkPath(playlistId, path);
-            }
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
-                if (onComplete != null) {
-                    onComplete.run();
-                }
-            });
-        });
-    }
-
-    /**
-     * Removes the custom artwork for a playlist, reverting to collage/default.
-     * Runs on a background thread; calls onComplete on the main thread.
-     */
-    public void removePlaylistArtwork(long playlistId, Runnable onComplete) {
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            artworkStore.removeCustomArtwork(playlistId);
-            repository.clearArtworkPath(playlistId);
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
-                if (onComplete != null) {
-                    onComplete.run();
-                }
-            });
-        });
+        repository.deletePlaylist(playlistId);
     }
 
     // ===== Song management =====
 
     /** Adds a song to a playlist (no duplicate check — use addSongToPlaylistChecked for UI). */
     public void addSongToPlaylist(long playlistId, Song song) {
-        artworkStore.invalidateCollage(playlistId);
         repository.addSongToPlaylist(playlistId, song);
-        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     /**
@@ -165,48 +105,26 @@ public class PlaylistViewModel extends AndroidViewModel {
      */
     public void addSongToPlaylistChecked(long playlistId, String playlistName,
                                          Song song, PlaylistRepository.AddSongCallback callback) {
-        repository.addSongToPlaylistChecked(playlistId, playlistName, song, new PlaylistRepository.AddSongCallback() {
-            @Override
-            public void onAdded(String pName) {
-                artworkStore.invalidateCollage(playlistId);
-                com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
-                if (callback != null) callback.onAdded(pName);
-            }
-
-            @Override
-            public void onDuplicate(String pName) {
-                if (callback != null) callback.onDuplicate(pName);
-            }
-        });
+        repository.addSongToPlaylistChecked(playlistId, playlistName, song, callback);
     }
 
     /** Creates a new playlist and immediately adds the given song. */
     public void createPlaylistAndAddSong(String name, Song song,
                                          PlaylistRepository.CreateCallback callback) {
-        repository.createPlaylistAndAddSong(name, song, playlistId -> {
-            artworkStore.invalidateCollage(playlistId);
-            com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
-            if (callback != null) callback.onCreated(playlistId);
-        });
+        repository.createPlaylistAndAddSong(name, song, callback);
     }
 
     /** Bulk-adds songs to a playlist, skipping duplicates. */
     public void addSongsToPlaylist(long playlistId, List<Song> songs) {
-        artworkStore.invalidateCollage(playlistId);
         repository.addSongsToPlaylist(playlistId, songs);
-        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     public void removeSongFromPlaylist(long playlistId, long songId) {
-        artworkStore.invalidateCollage(playlistId);
         repository.removeSongFromPlaylist(playlistId, songId);
-        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     public void reorderSong(long playlistId, long songId, int newPosition) {
-        artworkStore.invalidateCollage(playlistId);
         repository.reorderSong(playlistId, songId, newPosition);
-        com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
     }
 
     /**

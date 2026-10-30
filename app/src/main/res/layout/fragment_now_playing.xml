@@ -1,390 +1,243 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Now Playing: Apple Music inspired structure. Artwork-tinted backdrop, large rounded
-     artwork that settles back when paused, flat scrubber, glyph-only transport. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Now Playing — full screen bottom sheet -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/nowPlayingRoot"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@android:color/transparent"
+    android:paddingHorizontal="@dimen/dp_24"
+    android:paddingTop="@dimen/dp_16"
+    android:paddingBottom="@dimen/dp_24">
 
-    <!-- Blurred artwork backdrop (API 31+ blur; tinted scrim keeps text legible everywhere) -->
-    <ImageView
-        android:id="@+id/ivBackdrop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:importantForAccessibility="no"
-        android:contentDescription="@null" />
-
-    <View
-        android:id="@+id/viewBackdropScrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:overScrollMode="never">
-
+    <!-- Drag handle / top bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="28dp"
-        android:paddingTop="@dimen/dp_8"
-        android:paddingBottom="@dimen/dp_24">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="@dimen/dp_16">
 
-        <!-- Grabber -->
-        <View
-            android:id="@+id/dragHandle"
-            android:layout_width="38dp"
-            android:layout_height="5dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="@dimen/dp_4"
-            android:background="@drawable/shape_drag_handle" />
+        <!-- Back / collapse button -->
+        <ImageView
+            android:id="@+id/btnCollapse"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_arrow_back"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:rotation="-90"
+            android:contentDescription="@string/close" />
 
-        <!-- Top bar: collapse, card | Now playing | share, queue (balanced so the title stays centred) -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/nowPlayingHeader"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/dp_4">
+            android:text="@string/now_playing"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12" />
 
-            <ImageView
-                android:id="@+id/btnCollapse"
-                android:layout_width="@dimen/btn_min_touch_target"
-                android:layout_height="@dimen/btn_min_touch_target"
-                android:layout_marginStart="-12dp"
-                android:src="@drawable/ic_arrow_back"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:rotation="-90"
-                android:contentDescription="@string/close" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
-            <ImageView
-                android:id="@+id/btnShareCard"
-                android:layout_width="@dimen/btn_min_touch_target"
-                android:layout_height="@dimen/btn_min_touch_target"
-                android:src="@drawable/ic_share_card"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/share_card"
-                android:tooltipText="@string/share_card" />
+        <!-- Queue button -->
+        <ImageView
+            android:id="@+id/btnQueue"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_queue_music"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/queue" />
+
+    </LinearLayout>
+
+    <!-- Large album artwork -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivArtwork"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintWidth_max="360dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:padding="6dp"
+            android:scaleType="centerCrop"
+            android:background="@color/swara_surface_3"
+            android:src="@drawable/ic_artwork_fallback"
+            android:elevation="@dimen/elevation_4"
+            android:contentDescription="Album art" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Song info + favorite -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="@dimen/dp_24">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/nowPlayingHeader"
-                android:layout_width="0dp"
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/now_playing"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_headline_md"
+                android:textColor="@color/swara_text_primary"
                 android:fontFamily="sans-serif-medium"
-                android:textColor="@color/swara_text_secondary" />
+                android:maxLines="1"
+                android:ellipsize="end" />
 
-            <ImageView
-                android:id="@+id/btnShare"
-                android:layout_width="@dimen/btn_min_touch_target"
-                android:layout_height="@dimen/btn_min_touch_target"
-                android:src="@drawable/ic_share"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/share_nearby"
-                android:tooltipText="@string/share_nearby" />
-
-            <ImageView
-                android:id="@+id/btnQueue"
-                android:layout_width="@dimen/btn_min_touch_target"
-                android:layout_height="@dimen/btn_min_touch_target"
-                android:layout_marginEnd="-12dp"
-                android:src="@drawable/ic_queue_music"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/queue" />
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_body_md"
+                android:textColor="@color/swara_text_secondary"
+                android:layout_marginTop="@dimen/dp_4"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
         </LinearLayout>
 
-        <!-- Artwork: rotating disc in a circular frame (retro vinyl feel) with a progress ring -->
-        <com.psthetech.swara.ui.widget.CircularArtworkView
-            android:id="@+id/circularArtworkView"
-            android:layout_width="match_parent"
+        <!-- Favorite toggle -->
+        <ImageView
+            android:id="@+id/btnFavorite"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
+            android:src="@drawable/ic_favorite_border"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/cd_favorite_empty" />
+
+    </LinearLayout>
+
+    <!-- SeekBar -->
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_20"
+        android:progressTint="@color/swara_gold"
+        android:thumbTint="@color/swara_gold"
+        android:progressBackgroundTint="@color/swara_surface_3" />
+
+    <!-- Time labels -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/dp_4">
+
+        <TextView
+            android:id="@+id/tvCurrentTime"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/dp_16"
-            android:contentDescription="@string/cd_album_art"
-            android:focusable="true"
-            android:clickable="true" />
+            android:text="0:00"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_dim" />
 
-        <!-- Title / artist / favorite -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvTotalTime"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/dp_24">
+            android:text="0:00"
+            android:textSize="@dimen/text_label_md"
+            android:textColor="@color/swara_text_dim" />
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+    </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="-0.015"
-                    android:fontFamily="sans-serif"
-                    android:textColor="@color/swara_text_primary"
-                    android:maxLines="1"
-                    android:ellipsize="marquee"
-                    android:marqueeRepeatLimit="marquee_forever"
-                    android:singleLine="true" />
+    <!-- Main controls row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp_24">
 
-                <TextView
-                    android:id="@+id/tvArtist"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="20sp"
-                    android:letterSpacing="-0.01"
-                    android:textColor="@color/swara_text_secondary"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+        <!-- Shuffle -->
+        <ImageView
+            android:id="@+id/btnShuffle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_shuffle"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/shuffle" />
 
-                <TextView
-                    android:id="@+id/tvAlbum"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="@dimen/text_body_md"
-                    android:textColor="@color/swara_text_dim"
-                    android:layout_marginTop="@dimen/dp_2"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
+        <!-- Previous -->
+        <ImageView
+            android:id="@+id/btnPrevious"
+            android:layout_width="@dimen/btn_secondary_size"
+            android:layout_height="@dimen/btn_secondary_size"
+            android:src="@drawable/ic_skip_prev"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_cream"
+            android:contentDescription="@string/previous" />
 
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/btnFavorite"
-                android:layout_width="@dimen/btn_min_touch_target"
-                android:layout_height="@dimen/btn_min_touch_target"
-                android:layout_marginEnd="-10dp"
-                android:src="@drawable/ic_favorite_border"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/cd_favorite_empty" />
-
-        </LinearLayout>
-
-        <!-- Scrubber -->
-        <com.psthetech.swara.ui.widget.AppleScrubberView
-            android:id="@+id/scrubber"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:layout_marginTop="@dimen/dp_16"
-            android:contentDescription="@string/cd_seek_bar" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvCurrentTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0:00"
-                android:textSize="12sp"
-                android:fontFamily="sans-serif-medium"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/swara_text_dim" />
-
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-            <TextView
-                android:id="@+id/tvTotalTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0:00"
-                android:textSize="12sp"
-                android:fontFamily="sans-serif-medium"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/swara_text_dim" />
-
-        </LinearLayout>
-
-        <!-- Transport: glyph-only, play/pause dominant by size -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginTop="@dimen/dp_20">
-
-            <ImageView
-                android:id="@+id/btnShuffle"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_shuffle"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/shuffle" />
-
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-            <ImageView
-                android:id="@+id/btnPrevious"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:padding="14dp"
-                android:src="@drawable/ic_skip_prev"
-                android:scaleType="fitCenter"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/previous" />
-
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
+        <!-- Entire glass control is the playback touch target. -->
             <ImageView
                 android:id="@+id/btnPlayPause"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
                 android:padding="16dp"
                 android:background="@drawable/bg_play_button"
                 android:src="@drawable/ic_play"
-                android:scaleType="fitCenter"
+                android:scaleType="center"
+                android:tint="@color/swara_night"
                 android:contentDescription="@string/play_pause" />
 
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
-            <ImageView
-                android:id="@+id/btnNext"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:padding="14dp"
-                android:src="@drawable/ic_skip_next"
-                android:scaleType="fitCenter"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/next" />
+        <!-- Next -->
+        <ImageView
+            android:id="@+id/btnNext"
+            android:layout_width="@dimen/btn_secondary_size"
+            android:layout_height="@dimen/btn_secondary_size"
+            android:src="@drawable/ic_skip_next"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_cream"
+            android:contentDescription="@string/next" />
 
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-            <ImageView
-                android:id="@+id/btnRepeat"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_repeat"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/repeat" />
-
-        </LinearLayout>
-
-        <!-- Utility row: Korokae | Sleep | Output | EQ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/dp_24">
-
-            <LinearLayout
-                android:id="@+id/btnKorokae"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:minWidth="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:background="@drawable/bg_korokae_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/korokae_mode">
-
-                <ImageView
-                    android:id="@+id/ivKorokaeIcon"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_mic"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:id="@+id/tvKorokaeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/korokae_mode"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium" />
-
-            </LinearLayout>
-
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-            <LinearLayout
-                android:id="@+id/btnVibe"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:background="@drawable/bg_korokae_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_vibe_mode">
-
-                <ImageView
-                    android:id="@+id/ivVibeIcon"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_vibe"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:id="@+id/tvVibeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/vibe_mode"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium" />
-
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/btnSleepTimer"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_timer"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/sleep_timer" />
-
-            <ImageView
-                android:id="@+id/btnAudioOutput"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_speaker"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/audio_output" />
-
-            <ImageView
-                android:id="@+id/btnEqualizer"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="-10dp"
-                android:src="@drawable/ic_equalizer"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/equalizer" />
-
-        </LinearLayout>
+        <!-- Repeat -->
+        <ImageView
+            android:id="@+id/btnRepeat"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_repeat"
+            android:scaleType="center"
+            android:background="@drawable/ripple_circle"
+            android:tint="@color/swara_lavender"
+            android:contentDescription="@string/repeat" />
 
     </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
-</FrameLayout>
+
+</LinearLayout>
+</androidx.core.widget.NestedScrollView>

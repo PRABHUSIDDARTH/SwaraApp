@@ -3,17 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/swara_night"
     android:orientation="vertical">
 
-    <!-- Header row: back + overflow menu -->
+    <!-- Header row: back + title/meta + overflow menu -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="8dp">
+        android:padding="16dp">
 
         <ImageView
             android:id="@+id/backButton"
@@ -22,12 +21,34 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/back"
             android:padding="12dp"
-            android:src="@drawable/ic_arrow_back" />
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/swara_lavender" />
 
-        <View
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/playlistTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/swara_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/playlistMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/swara_text_muted"
+                android:textSize="13sp" />
+
+        </LinearLayout>
 
         <!-- Overflow menu: Rename, Delete -->
         <ImageView
@@ -37,73 +58,8 @@
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/more_options"
             android:padding="12dp"
-            android:src="@drawable/ic_more_vert" />
-
-    </LinearLayout>
-
-    <!-- Hero playlist artwork — visual anchor -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="12dp">
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivPlaylistDetailArtwork"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_gravity="center_horizontal"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_playlist"
-            android:elevation="@dimen/elevation_2"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
-
-        <!-- Camera badge for artwork editing -->
-        <ImageView
-            android:id="@+id/ivArtworkEditBadge"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_gravity="center|bottom"
-            android:layout_marginBottom="4dp"
-            android:layout_marginStart="116dp"
-            android:src="@drawable/ic_camera"
-            android:background="@drawable/bg_rounded_gold_alpha"
-            android:padding="8dp"
-            android:elevation="@dimen/elevation_3"
-            android:contentDescription="@string/change_artwork" />
-
-    </FrameLayout>
-
-    <!-- Playlist Info: Title and Song Count / Duration below artwork -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="16dp">
-
-        <TextView
-            android:id="@+id/playlistTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:gravity="center"
-            android:textColor="@color/swara_text_primary"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-medium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/playlistMeta"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:textColor="@color/swara_text_muted"
-            android:textSize="13sp" />
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/swara_lavender" />
 
     </LinearLayout>
 
@@ -113,15 +69,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="14dp"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp"
         android:gravity="center_vertical">
 
         <Button
             android:id="@+id/btnPlayAll"
             style="@style/Widget.Swara.Button.Primary"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/play"
             android:layout_marginEnd="8dp" />
@@ -130,19 +86,20 @@
             android:id="@+id/btnShuffle"
             style="@style/Widget.Swara.Button.Ghost"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/shuffle"
-            android:layout_marginEnd="10dp" />
+            android:layout_marginEnd="8dp" />
 
         <ImageView
             android:id="@+id/btnAddSongs"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="@dimen/btn_min_touch_target"
+            android:layout_height="@dimen/btn_min_touch_target"
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/add_songs"
             android:padding="10dp"
-            android:src="@drawable/ic_add" />
+            android:src="@drawable/ic_add"
+            app:tint="@color/swara_gold" />
 
     </LinearLayout>
 
@@ -158,7 +115,7 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:overScrollMode="never"
-            android:paddingBottom="@dimen/bottom_content_padding" />
+            android:paddingBottom="144dp" />
 
         <LinearLayout
             android:id="@+id/layoutEmpty"
@@ -174,7 +131,8 @@
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:alpha="0.3"
-                android:src="@drawable/ic_queue_music" />
+                android:src="@drawable/ic_queue_music"
+                android:tint="@color/swara_lavender" />
 
             <TextView
                 android:layout_width="wrap_content"

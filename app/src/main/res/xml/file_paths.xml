@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Only the generated share cards are exposed through the FileProvider. -->
-<paths>
-    <cache-path name="share_cards" path="share_cards/" />
-</paths>

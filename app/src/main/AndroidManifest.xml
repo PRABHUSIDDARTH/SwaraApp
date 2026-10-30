@@ -17,29 +17,6 @@
     <!-- Wake lock — Media3 handles this internally when playing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- WorkManager merges this in for network constraints; Swara never uses the network -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"
-        tools:node="remove" />
-
-    <!-- Package visibility (Android 11+): find share targets for song files and share cards -->
-    <queries>
-        <package android:name="com.whatsapp" />
-        <package android:name="com.whatsapp.w4b" />
-        <package android:name="com.instagram.android" />
-        <intent>
-            <action android:name="android.intent.action.SEND" />
-            <data android:mimeType="audio/*" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.SEND" />
-            <data android:mimeType="image/*" />
-        </intent>
-        <intent>
-            <action android:name="com.instagram.share.ADD_TO_STORY" />
-            <data android:mimeType="image/*" />
-        </intent>
-    </queries>
-
     <application
         android:name=".SwaraApplication"
         android:allowBackup="true"
@@ -63,13 +40,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Swara Wrapped story (opened from Home, the stats screen or the recap notification) -->
-        <activity
-            android:name=".wrapped.ui.WrappedStoryActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.Swara" />
-
         <!--
             SwaraPlaybackService — Media3 MediaSessionService
             - foregroundServiceType = mediaPlayback is REQUIRED on Android 14+ for media playback
@@ -86,58 +56,6 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
-
-        <!--
-            SwaraWidgetProvider — AppWidgetProvider that makes the Now Playing widget
-            appear in the system widget picker.
-
-            The two required entries:
-              1. APPWIDGET_UPDATE action intent-filter — tells Android
-                 this receiver is an AppWidget provider.
-              2. android.appwidget.provider meta-data pointing to the XML descriptor —
-                 this is what the widget picker reads for size, description, preview, etc.
-        -->
-        <receiver
-            android:name=".widget.SwaraWidgetProvider"
-            android:exported="true"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_swara_player_info" />
-        </receiver>
-
-        <!--
-            SwaraWidgetReceiver — handles play/pause/next/prev button taps and
-            widget-update broadcasts from SwaraPlaybackService.
-            exported=false: only our own app sends these broadcasts.
-        -->
-        <receiver
-            android:name=".widget.SwaraWidgetReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.psthetech.swara.ACTION_PLAY_PAUSE" />
-                <action android:name="com.psthetech.swara.ACTION_NEXT" />
-                <action android:name="com.psthetech.swara.ACTION_PREV" />
-                <action android:name="com.psthetech.swara.ACTION_WIDGET_UPDATE" />
-                <action android:name="com.psthetech.swara.ACTION_SEEK_TO" />
-                <action android:name="com.psthetech.swara.ACTION_TOGGLE_FAVORITE" />
-                <action android:name="com.psthetech.swara.ACTION_TOGGLE_KOROKAE" />
-            </intent-filter>
-        </receiver>
-
-        <!-- Shares generated "now playing" cards (cache/share_cards only) -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
     </application>
 

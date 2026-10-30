@@ -62,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     @Nullable private Song pendingDeletionSong;
     private ActivityResultLauncher<IntentSenderRequest> deleteRequestLauncher;
     private SongDeletionManager songDeletionManager;
-    private boolean hadAudioPermission;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,34 +133,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Request audio permission if needed
-        hadAudioPermission = PermissionHelper.hasAudioPermission(this);
-        if (!hadAudioPermission) {
+        if (!PermissionHelper.hasAudioPermission(this)) {
             PermissionHelper.requestAudioPermission(this);
-        }
-
-        checkIntentForNowPlaying(getIntent());
-    }
-
-    public static final String EXTRA_OPEN_NOW_PLAYING = "extra_open_now_playing";
-
-    @Override
-    protected void onNewIntent(android.content.Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        checkIntentForNowPlaying(intent);
-    }
-
-    private void checkIntentForNowPlaying(@Nullable android.content.Intent intent) {
-        if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_NOW_PLAYING, false)) {
-            openNowPlaying();
-        }
-    }
-
-    public void openNowPlaying() {
-        if (navController != null) {
-            try {
-                navController.navigate(R.id.nowPlayingFragment);
-            } catch (Exception ignored) {}
         }
     }
 
@@ -226,13 +199,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void promptEditSongInfo(Song song) {
-        if (song == null) return;
-        com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet sheet =
-                com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet.newInstance(song);
-        sheet.show(getSupportFragmentManager(), com.psthetech.swara.ui.metadata.EditSongInfoBottomSheet.TAG);
-    }
-
     private void launchImagePicker(Song song) {
         this.pendingArtworkSong = song;
         artworkPickerLauncher.launch("image/*");
@@ -263,11 +229,6 @@ public class MainActivity extends AppCompatActivity {
     private void refreshPlaybackArtwork(Song song) {
         if (playbackViewModel != null) {
             playbackViewModel.refreshCurrentSongArtwork();
-            Song current = playbackViewModel.getCurrentSong().getValue();
-            if (current != null && (song == null || current.getId() == song.getId())) {
-                boolean isPlaying = Boolean.TRUE.equals(playbackViewModel.getIsPlaying().getValue());
-                com.psthetech.swara.widget.SwaraWidgetUpdater.pushUpdate(this, current, isPlaying);
-            }
         }
         // Force refresh active fragments
         recreateNavHostChild();
@@ -312,49 +273,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode != PermissionHelper.REQUEST_CODE_AUDIO) return;
-        boolean granted = grantResults.length > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED;
-        if (granted) {
-            hadAudioPermission = true;
-            // The first library query ran before the grant and came back empty.
-            new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
-            com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
-        } else {
-            showPermissionDeniedDialog();
+        if (requestCode == PermissionHelper.REQUEST_CODE_AUDIO) {
+            // Permission result handled by the active fragment via its own observer
+            // Fragments observe permission state via the activity recreate flow or direct check
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Permission may have been granted (or revoked) from system Settings while away.
-        boolean has = PermissionHelper.hasAudioPermission(this);
-        if (has && !hadAudioPermission) {
-            new ViewModelProvider(this).get(LibraryViewModel.class).refreshAll();
-            com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
-        }
-        hadAudioPermission = has;
-    }
-
-    private void showPermissionDeniedDialog() {
-        boolean canAskAgain = PermissionHelper.shouldShowRationale(this);
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.permission_title)
-                .setMessage(canAskAgain ? R.string.permission_rationale : R.string.permission_denied_subtitle)
-                .setNegativeButton(R.string.cancel, null);
-        if (canAskAgain) {
-            builder.setPositiveButton(R.string.grant_permission,
-                    (d, w) -> PermissionHelper.requestAudioPermission(this));
-        } else {
-            builder.setPositiveButton(R.string.open_settings, (d, w) -> {
-                android.content.Intent intent = new android.content.Intent(
-                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.fromParts("package", getPackageName(), null));
-                startActivity(intent);
-            });
-        }
-        builder.show();
     }
 
     @Override

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="debug_mood_title">Mood debug</string>
-    <string name="debug_mood_analyze">Analyze now</string>
-    <string name="debug_mood_rebuild">Rebuild mixes</string>
-    <string name="debug_mood_refresh">Refresh</string>
-    <string name="debug_mood_sort_valence">By valence</string>
-    <string name="debug_mood_sort_energy">By energy</string>
-</resources>

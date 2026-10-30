@@ -1,11 +1,11 @@
 package com.psthetech.swara.ui.adapter;
 
 import android.content.Context;
-import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,24 +15,21 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.psthetech.swara.R;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.ui.theme.DesignTokens;
-import com.psthetech.swara.ui.theme.MorphismThemeManager;
 import com.psthetech.swara.util.ArtworkHelper;
-import com.psthetech.swara.util.FavoriteAnimationHelper;
 
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * SongAdapter V2.2 — Liquid Glass + Color Themes + Playback Glow + Favorite Animation.
+ * SongAdapter V2 — a ListAdapter using DiffUtil for efficient updates.
  *
  * Features:
- * - DiffUtil for efficient updates
- * - Live semantic DesignTokens consumed per bind — responds to theme changes
- * - Playback glow: subtle accent-tinted background + border for currently playing row
- * - Favorite micro-animation: scale-pulse on add, alpha-fade on remove
- * - RecyclerView safety: glow + animations fully reset in onViewRecycled
- * - Context menu: Play Next, Add to Queue, Add to Playlist, Favorite, Remove, Edit Artwork, Delete, Share
+ * - DiffUtil for O(n) diff instead of notifyDataSetChanged
+ * - Album artwork loaded via Glide (async, cached)
+ * - Favorite state driven from outside (set via setFavorites)
+ * - Context menu: Play Next, Add to Queue, Add to Playlist, Favorite, Remove
+ * - No main-thread DB access — favorites are injected via setFavorites()
+ * - View recycling cleanup via onViewRecycled
  */
 public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
 
@@ -44,38 +41,16 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         void onFavoriteToggle(Song song, boolean currentlyFavorite);
         void onRemoveFromPlaylist(Song song); // Optional — only shown in playlist context
         default void onEditArtwork(Song song) {}
-        default void onEditSongInfo(Song song) {}
         default void onDeleteSong(Song song) {}
-        default void onStartVibe(Song song) {}
-        /** "This song feels…": shows the shared mood picker; override only to customize. */
-        default void onSetMood(@NonNull android.content.Context context, @NonNull Song song) {
-            com.psthetech.swara.ui.mood.MoodPickerDialog.show(context, song);
-        }
     }
-
-    public static final int VIEW_TYPE_COMPACT  = 0;
-    public static final int VIEW_TYPE_EXPANDED = 1;
 
     private Listener listener;
     private Set<Long> favoriteSongIds = new HashSet<>();
     private boolean showRemoveFromPlaylist = false;
-    private long currentPlayingSongId = -1L;
-    private boolean isExpandedMode = false;
 
     public SongAdapter(@NonNull Listener listener) {
         super(DIFF_CALLBACK);
         this.listener = listener;
-    }
-
-    public void setExpandedMode(boolean expanded) {
-        if (this.isExpandedMode != expanded) {
-            this.isExpandedMode = expanded;
-            notifyDataSetChanged();
-        }
-    }
-
-    public boolean isExpandedMode() {
-        return isExpandedMode;
     }
 
     public void setFavorites(Set<Long> favoriteIds) {
@@ -87,42 +62,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         this.showRemoveFromPlaylist = show;
     }
 
-    /**
-     * Update the currently playing song. Only the affected rows are rebound.
-     * Call from fragment's currentSong observer.
-     */
-    public void setCurrentPlayingSongId(long songId) {
-        long previous = this.currentPlayingSongId;
-        this.currentPlayingSongId = songId;
-
-        // Rebind previous (clear glow) and new (apply glow)
-        for (int i = 0; i < getItemCount(); i++) {
-            Song item = getItem(i);
-            if (item.getId() == previous || item.getId() == songId) {
-                notifyItemChanged(i, "PLAYBACK_STATE_CHANGED"); // payload to avoid full re-bind flicker
-            }
-        }
-    }
-
-    // ===== RecyclerView.Adapter =====
-
-    @Override
-    public int getItemViewType(int position) {
-        return isExpandedMode ? VIEW_TYPE_EXPANDED : VIEW_TYPE_COMPACT;
-    }
-
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        int layoutId = (viewType == VIEW_TYPE_EXPANDED) ? R.layout.item_song_expanded : R.layout.item_song;
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(layoutId, parent, false);
-        if (viewType == VIEW_TYPE_EXPANDED) {
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
-            if (tokens != null) {
-                view.setBackground(tokens.createCardDrawable(parent.getContext()));
-            }
-        }
+                .inflate(R.layout.item_song, parent, false);
         return new ViewHolder(view);
     }
 
@@ -130,164 +74,89 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Song song = getItem(position);
         Context ctx = holder.itemView.getContext();
-        boolean isCurrentlyPlaying = song.getId() == currentPlayingSongId && currentPlayingSongId != -1L;
 
-        DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
-
-        // ===== Text =====
         holder.tvTitle.setText(song.getTitle());
-        if (holder.tvExtraInfo != null) {
-            // Expanded card mode: separate artist and album/duration
-            holder.tvSubtitle.setText(song.getArtist());
-            String album = song.getAlbum();
-            if (album != null && !album.isEmpty() && !album.equalsIgnoreCase("Unknown Album") && !album.equalsIgnoreCase("<unknown>")) {
-                holder.tvExtraInfo.setText(album + " • " + song.getFormattedDuration());
-            } else {
-                holder.tvExtraInfo.setText(song.getFormattedDuration());
-            }
-            if (tokens != null) {
-                holder.tvExtraInfo.setTextColor(tokens.getTextSecondaryColor());
-            }
-        } else {
-            // Compact list mode
-            holder.tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
-        }
+        holder.tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
 
-        if (tokens != null) {
-            // Currently playing rows: title uses readable accent color; others use primary text
-            holder.tvTitle.setTextColor(
-                    isCurrentlyPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
-            holder.tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
-            holder.ivMore.setColorFilter(tokens.getIconSecondaryColor());
-            holder.ivArtwork.setBackgroundColor(tokens.getSurfaceVariantColor());
-        }
-        holder.tvTitle.setTypeface(null, isCurrentlyPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-
-        // ===== Artwork =====
+        // Load artwork asynchronously via Glide
         ArtworkHelper.loadSongArt(ctx, song, holder.ivArtwork);
 
-        // ===== Playback Glow =====
-        applyPlaybackGlow(holder, isCurrentlyPlaying, tokens);
+        com.psthetech.swara.ui.theme.DesignTokens tokens =
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
 
-        // ===== Favorite =====
+        if (tokens != null) {
+            holder.tvTitle.setTextColor(tokens.getTextPrimaryColor());
+            holder.tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+            holder.ivMore.setColorFilter(tokens.getIconSecondaryColor());
+        }
+
+        // Favorite state (no DB query — driven by injected set)
         boolean isFav = favoriteSongIds.contains(song.getId());
         updateFavoriteIcon(holder.ivFavorite, isFav, tokens);
         holder.ivFavorite.setContentDescription(ctx.getString(
                 isFav ? R.string.cd_favorite_filled : R.string.cd_favorite_empty));
 
-        // ===== Click Listeners =====
+        // Tap: play song
         holder.itemView.setOnClickListener(v -> listener.onSongClick(song, holder.getAdapterPosition()));
 
+        // Favorite toggle
         holder.ivFavorite.setOnClickListener(v -> {
             boolean fav = favoriteSongIds.contains(song.getId());
             listener.onFavoriteToggle(song, fav);
             // Optimistic UI update
             if (fav) {
                 favoriteSongIds.remove(song.getId());
-                FavoriteAnimationHelper.animateFavoriteRemove(holder.ivFavorite);
             } else {
                 favoriteSongIds.add(song.getId());
-                FavoriteAnimationHelper.animateFavoriteAdd(
-                        holder.ivFavorite, tokens != null ? tokens.getFavoriteActiveColor() : 0xFFC9A84C);
             }
             updateFavoriteIcon(holder.ivFavorite, !fav, tokens);
         });
 
+        // Overflow / context menu
         holder.ivMore.setOnClickListener(v -> showContextMenu(v, song, ctx));
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position,
-                                  @NonNull java.util.List<Object> payloads) {
-        if (!payloads.isEmpty() && payloads.contains("PLAYBACK_STATE_CHANGED")) {
-            // Lightweight rebind: only update glow + title color + bold typeface
-            Song song = getItem(position);
-            boolean isCurrentlyPlaying = song.getId() == currentPlayingSongId && currentPlayingSongId != -1L;
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
-            if (tokens != null) {
-                holder.tvTitle.setTextColor(
-                        isCurrentlyPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
-            }
-            holder.tvTitle.setTypeface(null, isCurrentlyPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-            applyPlaybackGlow(holder, isCurrentlyPlaying, tokens);
-            return;
-        }
-        super.onBindViewHolder(holder, position, payloads);
     }
 
     @Override
     public void onViewRecycled(@NonNull ViewHolder holder) {
         super.onViewRecycled(holder);
-        // Clear Glide load to prevent image bleeding
+        // Clear Glide load to prevent image bleeding between items
         ArtworkHelper.clear(holder.itemView.getContext(), holder.ivArtwork);
-        holder.ivArtwork.setImageDrawable(null);
-        // Reset playback glow and typeface
-        DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
-        if (isExpandedMode) {
-            if (tokens != null) {
-                holder.itemView.setBackground(tokens.createCardDrawable(holder.itemView.getContext()));
-            } else {
-                holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
-            }
-        } else {
-            holder.itemView.setBackgroundResource(R.drawable.ripple_item);
-        }
-        holder.tvTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
-        // Reset scale and alpha
-        holder.itemView.setScaleX(1.0f);
-        holder.itemView.setScaleY(1.0f);
-        holder.itemView.setAlpha(1.0f);
-        holder.itemView.setTranslationX(0f);
-        holder.itemView.setTranslationY(0f);
-        // Reset favorite animation state — prevent animation leakage to recycled rows
-        FavoriteAnimationHelper.cancelFavoriteAnimation(holder.ivFavorite);
     }
 
-    // ===== Glow helpers =====
-
-    private void applyPlaybackGlow(ViewHolder holder, boolean isPlaying, DesignTokens tokens) {
-        if (isPlaying && tokens != null) {
-            // High-contrast, theme-harmonized tinted glass surface for the playing row
-            GradientDrawable glow = new GradientDrawable();
-            glow.setShape(GradientDrawable.RECTANGLE);
-            glow.setColor(tokens.getPlaybackSurfaceColor());
-            float density = holder.itemView.getContext().getResources().getDisplayMetrics().density;
-            float radiusDp = isExpandedMode ? 16f : tokens.getCornerRadiusDp();
-            glow.setCornerRadius(radiusDp * density);
-            glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
-            holder.itemView.setBackground(glow);
-        } else {
-            // Always clear glow for non-playing rows (RecyclerView safety)
-            if (isExpandedMode) {
-                if (tokens != null) {
-                    holder.itemView.setBackground(tokens.createCardDrawable(holder.itemView.getContext()));
-                } else {
-                    holder.itemView.setBackgroundResource(R.drawable.bg_glass_card);
-                }
-            } else {
-                holder.itemView.setBackgroundResource(R.drawable.ripple_item);
-            }
-        }
-    }
-
-    // ===== Favorite icon =====
-
-    private void updateFavoriteIcon(ImageView iv, boolean isFav, DesignTokens tokens) {
+    private void updateFavoriteIcon(ImageView iv, boolean isFav, com.psthetech.swara.ui.theme.DesignTokens tokens) {
         iv.setImageResource(isFav ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
-        if (tokens != null) {
-            iv.setColorFilter(isFav ? tokens.getFavoriteActiveColor() : tokens.getFavoriteInactiveColor());
-        } else {
-            iv.setColorFilter(isFav
-                    ? iv.getContext().getColor(R.color.swara_gold)
-                    : iv.getContext().getColor(R.color.swara_lavender));
-        }
+        int tintColor = isFav
+                ? (tokens != null ? tokens.getAccentColor() : iv.getContext().getColor(R.color.swara_gold))
+                : (tokens != null ? tokens.getIconSecondaryColor() : iv.getContext().getColor(R.color.swara_lavender));
+        iv.setColorFilter(tintColor);
     }
-
-    // ===== Context menu =====
 
     private void showContextMenu(View anchor, Song song, Context ctx) {
-        SongMenuHelper.show(ctx, anchor, song, favoriteSongIds.contains(song.getId()),
-                showRemoveFromPlaylist, listener);
+        PopupMenu popup = new PopupMenu(ctx, anchor);
+        popup.getMenu().add(0, 1, 0, ctx.getString(R.string.play_next));
+        popup.getMenu().add(0, 2, 1, ctx.getString(R.string.add_to_queue));
+        popup.getMenu().add(0, 3, 2, ctx.getString(R.string.add_to_playlist));
+        boolean isFav = favoriteSongIds.contains(song.getId());
+        popup.getMenu().add(0, 4, 3, ctx.getString(isFav
+                ? R.string.remove_from_favorites : R.string.add_to_favorites));
+        if (showRemoveFromPlaylist) {
+            popup.getMenu().add(0, 5, 4, ctx.getString(R.string.remove_from_playlist));
+        }
+        popup.getMenu().add(0, 6, 5, ctx.getString(R.string.edit_artwork));
+        popup.getMenu().add(0, 7, 6, ctx.getString(R.string.delete_from_device));
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 1: listener.onPlayNext(song); return true;
+                case 2: listener.onAddToQueue(song); return true;
+                case 3: listener.onAddToPlaylist(song); return true;
+                case 4: listener.onFavoriteToggle(song, isFav); return true;
+                case 5: listener.onRemoveFromPlaylist(song); return true;
+                case 6: listener.onEditArtwork(song); return true;
+                case 7: listener.onDeleteSong(song); return true;
+            }
+            return false;
+        });
+        popup.show();
     }
 
     // ===== ViewHolder =====
@@ -296,7 +165,6 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
         ImageView ivArtwork;
         TextView tvTitle;
         TextView tvSubtitle;
-        TextView tvExtraInfo;
         ImageView ivFavorite;
         ImageView ivMore;
 
@@ -305,7 +173,6 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.ViewHolder> {
             ivArtwork = view.findViewById(R.id.ivArtwork);
             tvTitle = view.findViewById(R.id.tvTitle);
             tvSubtitle = view.findViewById(R.id.tvSubtitle);
-            tvExtraInfo = view.findViewById(R.id.tvExtraInfo);
             ivFavorite = view.findViewById(R.id.ivFavorite);
             ivMore = view.findViewById(R.id.ivMore);
         }

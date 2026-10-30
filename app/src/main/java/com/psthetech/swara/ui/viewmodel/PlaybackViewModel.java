@@ -12,13 +12,17 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.psthetech.swara.R;
+import com.psthetech.swara.data.db.AppDatabase;
+import com.psthetech.swara.data.repository.ArtworkRepository;
+import com.psthetech.swara.data.repository.FavoritesRepository;
+import com.psthetech.swara.data.repository.PlayHistoryRepository;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.service.SwaraPlaybackService;
 import com.psthetech.swara.util.TimeFormatter;
@@ -42,7 +46,6 @@ import java.util.concurrent.ExecutionException;
  * This ViewModel does NOT compete with ExoPlayer as a state authority —
  * it is simply a bridge that converts Player.Listener events into LiveData.
  */
-@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public class PlaybackViewModel extends AndroidViewModel {
 
     private static final String TAG = "PlaybackViewModel";
@@ -57,19 +60,6 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Song>> currentQueue = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Integer> currentQueueIndex = new MutableLiveData<>(-1);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>(null);
-    private final MutableLiveData<com.psthetech.swara.domain.model.KorokaeState> korokaeState =
-            new MutableLiveData<>(com.psthetech.swara.domain.model.KorokaeState.off(null));
-
-    public LiveData<com.psthetech.swara.domain.model.KorokaeState> getKorokaeState() {
-        return korokaeState;
-    }
-
-    private final MutableLiveData<Boolean> vibeActive = new MutableLiveData<>(false);
-
-    /** True while the service's Vibe Mode is on (mirrored from the "vibe_active" session extra). */
-    public LiveData<Boolean> getVibeActive() {
-        return vibeActive;
-    }
 
     // ===== Internal =====
     private ListenableFuture<MediaController> controllerFuture;
@@ -78,6 +68,9 @@ public class PlaybackViewModel extends AndroidViewModel {
     private final Handler positionHandler = new Handler(Looper.getMainLooper());
     private final List<Song> queueSnapshot = new ArrayList<>(); // mirrors ExoPlayer queue
 
+    // Repositories for recording history and favorites
+    private final PlayHistoryRepository historyRepository;
+    private final FavoritesRepository favoritesRepository;
 
     private final Map<Long, Song> songCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -94,6 +87,9 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     public PlaybackViewModel(@NonNull Application application) {
         super(application);
+        AppDatabase db = AppDatabase.getInstance(application);
+        historyRepository = new PlayHistoryRepository(db);
+        favoritesRepository = new FavoritesRepository(db);
         connectToService();
     }
 
@@ -104,15 +100,7 @@ public class PlaybackViewModel extends AndroidViewModel {
                 getApplication(),
                 new ComponentName(getApplication(), SwaraPlaybackService.class)
         );
-        controllerFuture = new MediaController.Builder(getApplication(), sessionToken)
-                .setListener(new MediaController.Listener() {
-                    @Override
-                    public void onExtrasChanged(@NonNull MediaController c, @NonNull android.os.Bundle extras) {
-                        applyKorokaeExtras(extras);
-                        applyVibeExtras(extras);
-                    }
-                })
-                .buildAsync();
+        controllerFuture = new MediaController.Builder(getApplication(), sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
             try {
                 controller = controllerFuture.get();
@@ -125,8 +113,6 @@ public class PlaybackViewModel extends AndroidViewModel {
 
                 // Sync initial state in case service was already playing
                 syncStateFromController();
-                applyKorokaeExtras(controller.getSessionExtras());
-                applyVibeExtras(controller.getSessionExtras());
                 Log.d(TAG, "MediaController connected to SwaraPlaybackService");
             } catch (java.util.concurrent.ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Failed to connect MediaController", e);
@@ -169,13 +155,6 @@ public class PlaybackViewModel extends AndroidViewModel {
             durationMs.postValue(dur);
         } else if (song != null && song.getDuration() > 0) {
             durationMs.postValue(song.getDuration());
-        } else if (song != null) {
-            Song canonical = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(song.getId());
-            if (canonical != null && canonical.getDuration() > 0) {
-                durationMs.postValue(canonical.getDuration());
-            } else {
-                durationMs.postValue(0L);
-            }
         } else {
             durationMs.postValue(0L);
         }
@@ -196,8 +175,11 @@ public class PlaybackViewModel extends AndroidViewModel {
                 if (controller != null) {
                     currentPositionMs.postValue(controller.getCurrentPosition());
                 }
-                // Play history is recorded by SwaraPlaybackService, which also sees
-                // automatic track transitions and keeps running without the UI.
+                // Record meaningful play when playback stops (user paused or song ended)
+                Song song = currentSong.getValue();
+                if (song != null && controller != null) {
+                    historyRepository.maybeRecordPlay(song, controller.getCurrentPosition());
+                }
             }
         }
 
@@ -205,7 +187,7 @@ public class PlaybackViewModel extends AndroidViewModel {
         public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
             updateCurrentSongFromController();
             if (controller != null) {
-                currentPositionMs.postValue(controller.getCurrentPosition());
+                currentPositionMs.postValue(0L);
             }
         }
 
@@ -236,7 +218,11 @@ public class PlaybackViewModel extends AndroidViewModel {
         public void onPlayerError(androidx.media3.common.PlaybackException error) {
             Log.e(TAG, "Playback error: " + error.getMessage());
             errorMessage.postValue("Playback error: " + error.getMessage());
-            // Recovery (skip + re-prepare) is handled in SwaraPlaybackService.
+            // Try to advance to next track
+            if (controller != null && controller.hasNextMediaItem()) {
+                controller.seekToNextMediaItem();
+                controller.play();
+            }
         }
     };
 
@@ -269,13 +255,8 @@ public class PlaybackViewModel extends AndroidViewModel {
 
     public void seekTo(long positionMs) {
         if (queueManager != null) {
-            Long dur = durationMs.getValue();
-            long safePos = Math.max(0, positionMs);
-            if (dur != null && dur > 0) {
-                safePos = Math.min(safePos, dur);
-            }
-            queueManager.seekTo(safePos);
-            currentPositionMs.setValue(safePos);
+            queueManager.seekTo(positionMs);
+            currentPositionMs.setValue(positionMs);
         }
     }
 
@@ -369,85 +350,6 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
-    // ===== Korokae Mode (Real-time on-device vocal removal) =====
-    //
-    // Vocal removal runs inside the playback service's audio pipeline (KorokaeAudioProcessor),
-    // so the same MediaItem keeps playing and no files are generated. The ViewModel only sends
-    // the SET_KOROKAE session command and mirrors the service's session extras into LiveData.
-
-    private boolean korokaeRequested = false;
-
-    public void toggleKorokaeMode() {
-        if (controller == null) return;
-        boolean enable = !korokaeRequested;
-        korokaeRequested = enable;
-        Song song = currentSong.getValue();
-        korokaeState.setValue(enable
-                ? com.psthetech.swara.domain.model.KorokaeState.processing(song, 0L, 0)
-                : com.psthetech.swara.domain.model.KorokaeState.off(song));
-        android.os.Bundle args = new android.os.Bundle();
-        args.putBoolean(SwaraPlaybackService.EXTRA_KOROKAE_ENABLED, enable);
-        controller.sendCustomCommand(
-                new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_SET_KOROKAE,
-                        android.os.Bundle.EMPTY),
-                args);
-    }
-
-    // ===== Vibe Mode (runs in the playback service; mirrored via session extras) =====
-
-    /** Turns Vibe Mode on (starting from the current song) or off. */
-    public void setVibeMode(boolean enabled) {
-        sendVibeCommand(enabled, -1L);
-    }
-
-    /** Plays only {@code song} and starts Vibe Mode from its mood. */
-    public void startVibeFrom(@NonNull Song song) {
-        sendVibeCommand(true, song.getId());
-    }
-
-    private void sendVibeCommand(boolean enabled, long startSongId) {
-        if (controller == null) return;
-        vibeActive.setValue(enabled); // optimistic; the session extras confirm
-        android.os.Bundle args = new android.os.Bundle();
-        args.putBoolean(SwaraPlaybackService.EXTRA_VIBE_ENABLED, enabled);
-        args.putLong(SwaraPlaybackService.EXTRA_VIBE_START_SONG_ID, startSongId);
-        controller.sendCustomCommand(
-                new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_SET_VIBE,
-                        android.os.Bundle.EMPTY),
-                args);
-    }
-
-    private void applyVibeExtras(@Nullable android.os.Bundle extras) {
-        if (extras == null) return;
-        boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_VIBE_ACTIVE, false);
-        // Controller callbacks arrive on the main looper; setValue keeps ordering with the
-        // optimistic update in sendVibeCommand.
-        if (Looper.myLooper() == Looper.getMainLooper()) vibeActive.setValue(active);
-        else vibeActive.postValue(active);
-    }
-
-    /** Maps the service's session extras onto the UI-facing KorokaeState. */
-    private void applyKorokaeExtras(@Nullable android.os.Bundle extras) {
-        Song song = currentSong.getValue();
-        if (extras == null) return;
-        audioSessionId = extras.getInt(SwaraPlaybackService.SESSION_EXTRA_AUDIO_SESSION_ID, audioSessionId);
-        boolean enabled = extras.getBoolean("korokae_enabled", false);
-        boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ACTIVE, false);
-        String error = extras.getString(SwaraPlaybackService.SESSION_EXTRA_KOROKAE_ERROR);
-        korokaeRequested = enabled;
-        com.psthetech.swara.domain.model.KorokaeState next;
-        if (enabled && error != null) {
-            next = com.psthetech.swara.domain.model.KorokaeState.failed(song, error);
-        } else if (active) {
-            next = com.psthetech.swara.domain.model.KorokaeState.active(song, 0L, "realtime");
-        } else if (enabled) {
-            next = com.psthetech.swara.domain.model.KorokaeState.processing(song, 0L, 0);
-        } else {
-            next = com.psthetech.swara.domain.model.KorokaeState.off(song);
-        }
-        korokaeState.postValue(next);
-    }
-
     public void toggleRepeatMode() {
         cycleRepeatMode();
     }
@@ -483,73 +385,31 @@ public class PlaybackViewModel extends AndroidViewModel {
         }
     }
 
-    /**
-     * Updates metadata for a song in-place across current playing state, ExoPlayer timeline,
-     * MediaSession, and queue snapshot without interrupting playback or altering seek position.
-     */
-    public void updateSongMetadataInPlace(@NonNull Song updatedSong) {
-        long id = updatedSong.getId();
-        songCache.put(id, updatedSong);
-
-        // 1. Update active currentSong if matching
-        Song active = currentSong.getValue();
-        if (active != null && active.getId() == id) {
-            currentSong.setValue(updatedSong);
-
-            if (controller != null) {
-                int currentIndex = controller.getCurrentMediaItemIndex();
-                if (currentIndex >= 0 && currentIndex < controller.getMediaItemCount()) {
-                    MediaItem currentItem = controller.getMediaItemAt(currentIndex);
-                    if (currentItem != null && String.valueOf(id).equals(currentItem.mediaId)) {
-                        MediaItem newItem = songToMediaItem(updatedSong);
-                        controller.replaceMediaItem(currentIndex, newItem);
-                    }
-                }
-            }
-        }
-
-        // 2. Update queue snapshot
-        boolean queueChanged = false;
-        for (int i = 0; i < queueSnapshot.size(); i++) {
-            Song s = queueSnapshot.get(i);
-            if (s != null && s.getId() == id) {
-                queueSnapshot.set(i, updatedSong);
-                queueChanged = true;
-                if (controller != null && i < controller.getMediaItemCount()) {
-                    // Update timeline item in place if not current (current handled above)
-                    if (active == null || active.getId() != id) {
-                        MediaItem item = controller.getMediaItemAt(i);
-                        if (item != null && String.valueOf(id).equals(item.mediaId)) {
-                            controller.replaceMediaItem(i, songToMediaItem(updatedSong));
-                        }
-                    }
-                }
-            }
-        }
-
-        if (queueChanged) {
-            currentQueue.setValue(new ArrayList<>(queueSnapshot));
-        }
-    }
-
-    /**
-     * Returns ExoPlayer's audio session ID for the system equalizer.
-     * Returns AudioEffect.ERROR_BAD_VALUE (= -6) if the controller is not yet connected.
-     */
-    public int getAudioSessionId() {
-        // Published by SwaraPlaybackService in the session extras.
-        return audioSessionId;
-    }
-
-    private int audioSessionId = 0;
-
     // ===== Helpers =====
 
     private MediaItem songToMediaItem(Song song) {
-        MediaItem item = com.psthetech.swara.service.MediaItemFactory.toMediaItem(getApplication(), song);
-        Song encoded = com.psthetech.swara.service.MediaItemFactory.toSong(item);
-        if (encoded != null) songCache.put(encoded.getId(), encoded);
-        return item;
+        if (song != null) {
+            songCache.put(song.getId(), song);
+        }
+        android.os.Bundle extras = new android.os.Bundle();
+        if (song != null) {
+            extras.putLong("albumId", song.getAlbumId());
+            extras.putLong("duration", song.getDuration());
+            extras.putInt("trackNumber", song.getTrackNumber());
+            extras.putInt("year", song.getYear());
+            extras.putLong("dateAdded", song.getDateAdded());
+        }
+        return new MediaItem.Builder()
+                .setMediaId(song != null ? String.valueOf(song.getId()) : "0")
+                .setUri(song != null ? ArtworkRepository.getSongUri(song.getId()) : null)
+                .setMediaMetadata(new MediaMetadata.Builder()
+                        .setTitle(song != null ? song.getTitle() : "Unknown")
+                        .setArtist(song != null ? song.getArtist() : "Unknown")
+                        .setAlbumTitle(song != null ? song.getAlbum() : "Unknown")
+                        .setArtworkUri(song != null ? new ArtworkRepository(getApplication()).getArtworkUri(song) : null)
+                        .setExtras(extras)
+                        .build())
+                .build();
     }
 
     private List<MediaItem> songsToMediaItems(List<Song> songs) {
@@ -675,11 +535,25 @@ public class PlaybackViewModel extends AndroidViewModel {
         if (item == null) return null;
         long id = 0;
         try { id = Long.parseLong(item.mediaId); } catch (NumberFormatException ignored) {}
+
         Song cached = songCache.get(id);
-        if (cached != null && cached.getDuration() > 0) return cached;
-        Song resolved = com.psthetech.swara.service.MediaItemFactory.toSong(item);
-        if (resolved != null) songCache.put(id, resolved);
-        return resolved;
+        if (cached != null) return cached;
+
+        MediaMetadata meta = item.mediaMetadata;
+        android.os.Bundle extras = meta != null && meta.extras != null ? meta.extras : android.os.Bundle.EMPTY;
+        long albumId = extras.getLong("albumId", 0L);
+        long duration = extras.getLong("duration", 0L);
+        int trackNumber = extras.getInt("trackNumber", 0);
+        int year = extras.getInt("year", 0);
+        long dateAdded = extras.getLong("dateAdded", 0L);
+
+        return new Song(
+                id,
+                meta != null && meta.title != null ? meta.title.toString() : "Unknown",
+                meta != null && meta.artist != null ? meta.artist.toString() : "Unknown",
+                meta != null && meta.albumTitle != null ? meta.albumTitle.toString() : "Unknown",
+                albumId, duration, trackNumber, year, dateAdded
+        );
     }
 
     private void rebuildQueueSnapshot() {

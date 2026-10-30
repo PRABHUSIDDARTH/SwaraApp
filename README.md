@@ -1,145 +1,301 @@
-<div align="center">
+<img width="1918" height="952" alt="Swara App" src="https://github.com/user-attachments/assets/b6fd1711-7e4e-4621-9834-d3b6c854216a" />
 
-# Swara
+# Swara V2
 
-**An offline-first music player for Android, with on-device real-time vocal removal.**
+> A modern, offline-first Android music player built entirely in Java — no Kotlin, no compromises.
 
 [![Android CI](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml/badge.svg)](https://github.com/PRABHUSIDDARTH/SwaraApp/actions/workflows/gradle.yml)
-![Android](https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3DDC84?logo=android&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.1-informational)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![API](https://img.shields.io/badge/API-24%2B-brightgreen)](https://android-arsenal.com/api?level=24)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-</div>
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Build & Run](#build--run)
+- [Known Issues & Fixes](#known-issues--fixes)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
 ## Overview
 
-Swara plays the music already on your device. It needs no account and no network connection, and it never sends your library anywhere. The repository contains the Android app and its vocal-removal model:
+Swara V2 is a production-ready offline Android music player that reads from the device's `MediaStore`,
+plays audio through Jetpack Media3 ExoPlayer, and persists user data (playlists, favourites, play
+history) with Room. The UI is a **single-activity** architecture driven entirely by the Jetpack
+Navigation Component.
 
-| Component | Path | Stack |
-| --- | --- | --- |
-| Android app | [`app/`](app) | Java (no Kotlin), Jetpack Media3, Room, Navigation, Glide |
-| Korokae model | [`ml/korokae/`](ml/korokae) | PyTorch training and export of the on-device vocal-removal network |
+The design language is *Royal Purple & Obsidian Gold* — dark-mode first, edge-to-edge, with smooth
+Material 3 transitions.
+
+---
 
 ## Features
 
-- **Local library.** Songs, albums, and artists, indexed from MediaStore and refreshed automatically when files are added or removed. Clips under 30 seconds are hidden by default (configurable in Settings).
-- **Korokae karaoke mode.** A small streaming neural network strips vocals in real time inside the audio pipeline. It renders no files and adds about 23 ms of latency.
-- **Karaoke matching.** Swara detects when a library already contains a karaoke or instrumental version of a track.
-- **Playlists.** Create, edit, and reorder playlists. Artwork comes from a custom photo or an automatic 2x2 collage of the playlist's songs.
-- **Queue and playback.** Drag to reorder, swipe to remove, play next, shuffle, repeat, and a sleep timer with presets or an end-of-song option. The queue and position are restored after the app is closed.
-- **Favorites and history.** Favorites plus a recently played list.
-- **Search.** Results update as you type and cover songs, albums, artists, and playlists.
-- **Background playback.** Lock-screen, notification, and headset controls (Media3 `MediaSessionService`).
-- **Home-screen widgets.** Horizontal and vertical player widgets with artwork, seek, and +/-15 s skip.
-- **Themes.** Eight color themes (Swara, Midnight, Lavender, Champagne, Rose, Ocean, Forest, Off-White), each with light, dark, and system modes. Swara calls this design style "Liquid Glass".
-- **Vibe Mode.** Starts from the mood of the song you're playing and lifts it gently, song by song. Mood is estimated on the device from the audio itself.
-- **Autoplay.** When the queue runs out, Swara keeps the music going with songs from your library that fit what you're hearing.
-- **"For you" mixes.** Mixes on Home built from your own library and listening habits. They are computed on the device, and nothing leaves it.
-- **Swara Wrapped.** Monthly and yearly recaps of your listening: minutes, top songs, artists and album, mood mix, habits, discoveries, and a listening personality. The recaps play as story slides you can share as images or save as a short video. A stats screen on Home shows this month, this year, or all time whenever you like. Everything is counted on the device.
-- **Listening history backup.** Settings can save your Wrapped history to a file and restore it on a new phone. Songs are matched by title and artist.
-- **Metadata editing.** Edit song tags and artwork from inside the app.
+| Feature | Detail |
+|---|---|
+| **Audio playback** | Jetpack Media3 ExoPlayer with `MediaSessionService` — background playback survives app backgrounding and screen-off |
+| **Lock-screen & notification controls** | System media notification with play/pause/skip, artwork, and seek bar via `MediaSession` |
+| **MediaStore discovery** | Automatic indexing of all on-device audio files; album art extracted from embedded tags via `ContentResolver` |
+| **Mini-Player** | Persistent collapsible bar above the bottom navigation with live progress line and artwork |
+| **Now Playing** | Full-screen bottom-sheet dialog with seek bar, repeat/shuffle, queue access |
+| **Queue management** | Dynamic queue reorder and swipe-to-remove, backed by `PlaybackViewModel` |
+| **Favourites** | One-tap toggle, persisted in Room `FavoriteSong` table |
+| **Custom Playlists** | Full CRUD — create, rename, delete, add/remove songs via `PlaylistSong` join table |
+| **Play History** | Automatic per-song timestamp recording via `PlayHistoryDao` |
+| **Search** | Real-time multi-criteria search across songs, albums, and artists |
+| **Library tabs** | Songs · Albums · Artists with detail drill-down (album tracks, artist songs) |
+
+---
 
 ## Architecture
 
-The app uses MVVM with a repository layer. All playback state lives in one Media3 service, and the UI observes it through `LiveData`.
+Swara V2 follows the **MVVM + Repository** pattern recommended by Android Jetpack.
 
 ```
-UI (Fragments, Adapters, Widgets)
-        |  observes LiveData
-ViewModels (Playback, Library, Playlist, Favorites)
-        |                         |
-MediaController            Repositories
-        |                         |
-SwaraPlaybackService       Room AppDatabase (schema v4)
-(ExoPlayer + Korokae       MediaStore ContentResolver
- AudioProcessor)           Artwork stores
+┌─────────────────────────────────────────────────────────────────────┐
+│                          UI Layer                                   │
+│  MainActivity (NavHost) ── NavController ── Fragments               │
+│  MiniPlayerFragment │ NowPlayingFragment │ QueueFragment            │
+│  HomeFragment │ LibraryFragment │ SearchFragment                    │
+│  FavoritesFragment │ PlaylistsFragment │ PlaylistDetailFragment      │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ observes LiveData
+┌──────────────────────────────▼──────────────────────────────────────┐
+│                       ViewModel Layer                               │
+│  PlaybackViewModel │ LibraryViewModel │ FavoritesViewModel          │
+│  PlaylistViewModel                                                  │
+└──────────┬───────────────────────┬──────────────────────────────────┘
+           │ MediaController       │ Repository calls
+┌──────────▼──────────┐  ┌────────▼─────────────────────────────────┐
+│ SwaraPlaybackService│  │           Repository Layer                │
+│ (MediaSessionService│  │  MusicRepository    │ ArtworkRepository   │
+│  + ExoPlayer)       │  │  FavoritesRepository│ PlaylistRepository  │
+└─────────────────────┘  │  PlayHistoryRepository                    │
+                         └──────────────────┬──────────────────────────┘
+                                            │
+                         ┌──────────────────▼──────────────────────────┐
+                         │              Data Layer                     │
+                         │  Room AppDatabase                           │
+                         │  FavoriteDao │ PlaylistDao │ PlayHistoryDao │
+                         │  MediaStore ContentResolver                 │
+                         └─────────────────────────────────────────────┘
 ```
 
-| Package | Responsibility |
-| --- | --- |
-| `data` | Room database, DAOs, repositories, preferences, artwork storage |
-| `domain` | Models such as `Song`, `Album`, `Artist`, and `ColorTheme` |
-| `service` | `SwaraPlaybackService` (Media3 `MediaSessionService`) |
-| `korokae` | `KorokaeEngine`, model loader, and Media3 `AudioProcessor` |
-| `ui` | Fragments, adapters, view models, and the theme system |
-| `widget` | Home-screen App Widget providers |
-| `util` | Shared helpers |
+### Key Design Decisions
 
-### Korokae model
+- **Single-Activity**: `MainActivity` is the sole `Activity`. All screen transitions are
+  `FragmentTransaction`s managed by `NavController`. The back stack is owned by Navigation Component.
 
-| Item | Detail |
-| --- | --- |
-| Transform | STFT with an N_FFT of 1024, a hop of 512, and a sqrt-Hann window |
-| Network | Linear 513 to 256 with ReLU, a two-layer causal GRU(256), then Linear 256 to 513 with a sigmoid mask |
-| Asset | `app/src/main/assets/models/korokae_v1.bin`, a "KRK1" header followed by float32 LE weights |
+- **NavHostFragment retrieval**: `Navigation.findNavController(Activity, id)` is **incompatible**
+  with `FragmentContainerView` hosts (Navigation ≥ 2.3). The `NavController` is attached to the
+  `NavHostFragment`'s child view, not the container. `MainActivity` and `MiniPlayerFragment` both
+  use `getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment)` to obtain the
+  `NavController` synchronously after `setContentView()`.
 
-[`MODEL_LICENSE.md`](app/src/main/assets/models/MODEL_LICENSE.md) covers the Korokae weights, which carry non-commercial MUSDB18 terms. The recommender behind Vibe Mode ships no trained weights; it adapts to your listening on the device.
+- **No Kotlin**: The entire codebase is Java 11. No KTX extensions, no Safe Args plugin (which
+  generates Kotlin), no coroutines.
 
-A parity fixture lets the Java tests check that the engine matches PyTorch. To retrain the model, follow [ml/korokae/README.md](ml/korokae/README.md).
+- **Background playback**: `SwaraPlaybackService` extends `MediaSessionService`. The
+  `foregroundServiceType="mediaPlayback"` manifest declaration satisfies Android 14's
+  foreground-service restrictions.
 
-## Getting Started
+- **Artwork loading**: `ArtworkHelper` resolves album art URIs from `MediaStore` and loads them
+  into `ImageView`s via Glide with disk-LRU caching.
 
-### Prerequisites
+---
 
-| Target | Requirements |
-| --- | --- |
-| Android | JDK 17, Android SDK 36, and a device or emulator on API 24 or later |
-| Model training | Python 3, `torch`, `numpy`, and `ffmpeg` |
+## Tech Stack
 
-### Build
+| Component | Library | Version |
+|---|---|---|
+| Language | Java | 11 (source/target) |
+| Min SDK / Target SDK | Android | 24 / 36 |
+| Build toolchain | Android Gradle Plugin | 9.2.0 |
+| Playback engine | Jetpack Media3 ExoPlayer | 1.4.1 |
+| Media session | Jetpack Media3 MediaSession | 1.4.1 |
+| Architecture | Lifecycle ViewModel + LiveData | 2.8.7 |
+| Navigation | Navigation Component (fragment + ui) | 2.8.9 |
+| Persistence | Room Runtime + Compiler | 2.6.1 |
+| Image loading | Glide | 4.16.0 |
+| UI | Material Components | 1.12.0 |
+| UI | ConstraintLayout | 2.2.1 |
+| UI | RecyclerView | 1.4.0 |
+| UI | ViewPager2 | 1.1.0 |
+| UI | Core SplashScreen | 1.0.1 |
+| Testing | JUnit 4 | 4.13.2 |
+| Testing (Android) | AndroidX Test / Espresso | 1.2.1 / 3.6.1 |
+| CI | GitHub Actions | — |
 
-```bash
-git clone https://github.com/PRABHUSIDDARTH/SwaraApp.git
-cd SwaraApp
-
-./gradlew testDebugUnitTest      # run the JVM unit tests
-./gradlew assembleDebug          # build the debug APK
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Testing and CI
-
-| Workflow | Runner | Steps |
-| --- | --- | --- |
-| [`gradle.yml`](.github/workflows/gradle.yml) | Ubuntu, JDK 17 | Unit tests, debug APK, Android lint |
-
-The tests cover queue and shuffle logic, search, playlists and artwork resolution, theme contrast, widgets, seek math, and Korokae engine parity.
+---
 
 ## Project Structure
 
 ```
 SwaraApp/
-|-- app/src/
-|   |-- main/             Java sources, resources, Korokae model asset
-|   `-- test/             JVM unit tests and Korokae parity fixture
-|-- gradle/               Gradle wrapper and version catalog
-|-- ml/korokae/           Model training, data preparation, and export
-|-- docs/                 Documentation assets
-`-- .github/workflows/    Android CI
+├── app/src/main/
+│   ├── AndroidManifest.xml
+│   └── java/com/psthetech/swara/
+│       ├── SwaraApplication.java           # Application entry point
+│       ├── service/
+│       │   └── SwaraPlaybackService.java   # Media3 MediaSessionService + ExoPlayer
+│       ├── data/
+│       │   ├── db/
+│       │   │   ├── AppDatabase.java        # Room database singleton
+│       │   │   ├── dao/                    # FavoriteDao, PlaylistDao, PlayHistoryDao
+│       │   │   └── entity/                # FavoriteSong, Playlist, PlaylistSong, PlayHistory
+│       │   └── repository/                # MusicRepository, FavoritesRepository,
+│       │                                  # PlaylistRepository, PlayHistoryRepository,
+│       │                                  # ArtworkRepository
+│       ├── domain/model/                  # Song, Album, Artist (pure Java POJOs)
+│       ├── ui/
+│       │   ├── MainActivity.java          # Single Activity — NavHost, BottomNav, MiniPlayer
+│       │   ├── adapter/                   # SongAdapter, AlbumAdapter, ArtistAdapter,
+│       │   │                              # PlaylistAdapter, QueueAdapter, LibraryPagerAdapter
+│       │   ├── home/HomeFragment.java
+│       │   ├── library/                   # LibraryFragment, SongsFragment, AlbumsFragment,
+│       │   │                              # ArtistsFragment, AlbumDetailFragment, ArtistDetailFragment
+│       │   ├── search/SearchFragment.java
+│       │   ├── favorites/FavoritesFragment.java
+│       │   ├── playlists/                 # PlaylistsFragment, PlaylistDetailFragment
+│       │   ├── queue/QueueFragment.java
+│       │   ├── nowplaying/NowPlayingFragment.java
+│       │   ├── miniplayer/MiniPlayerFragment.java
+│       │   └── viewmodel/                 # PlaybackViewModel, LibraryViewModel,
+│       │                                  # FavoritesViewModel, PlaylistViewModel
+│       └── util/
+│           ├── ArtworkHelper.java         # Glide-backed artwork loading
+│           ├── PermissionHelper.java      # READ_MEDIA_AUDIO / READ_EXTERNAL_STORAGE
+│           └── TimeFormatter.java         # ms → mm:ss formatting
+├── app/src/main/res/
+│   ├── layout/                           # activity_main, fragment_*, item_*
+│   ├── navigation/nav_graph.xml          # Single nav graph — all destinations
+│   ├── menu/menu_bottom_nav.xml          # Bottom nav items (IDs match nav graph)
+│   └── values/                           # colors, strings, themes, dimens
+├── gradle/libs.versions.toml             # Version catalog
+├── gradle.properties                     # org.gradle.java.home, JVM args
+└── .github/workflows/gradle.yml          # CI: test + assembleDebug on every push/PR
 ```
 
-## Permissions
+---
 
-| Permission | Purpose |
-| --- | --- |
-| `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Read the local music library. Which one is used depends on the API level. |
-| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Keep playback running in the background |
-| `POST_NOTIFICATIONS` | Show the media notification, and one notice when a new Wrapped recap is ready, on Android 13 and later |
-| `WAKE_LOCK` | Keep playback going while the screen is off |
+## Build & Run
 
-Swara does not request network access for playback.
+### Prerequisites
+
+| Requirement | Minimum version |
+|---|---|
+| Android Studio | Ladybug (2024.2) or later |
+| JDK | 17+ with full JDK tools (not just JRE) |
+| Android SDK | compileSdk 36, minSdk 24 |
+| Android device / emulator | API 24+ |
+
+> **`jlink` requirement:** AGP 9.x + compileSdk 36 generates a JDK image during compilation and
+> requires the `jlink` tool, which ships with a **full JDK** but not with a standalone JRE.
+> If `./gradlew` fails with:
+> ```
+> jlink executable … does not exist
+> ```
+> set `org.gradle.java.home` in `gradle.properties` to point at your full JDK installation, e.g.:
+> ```properties
+> org.gradle.java.home=/usr/lib/jvm/java-17-openjdk
+> ```
+> The project already ships this property configured for the build environment.
+
+### Clone
+
+```bash
+git clone git@github.com:PRABHUSIDDARTH/SwaraApp.git
+cd SwaraApp
+```
+
+### Command-line build
+
+```bash
+# Run unit tests
+./gradlew test
+
+# Build debug APK
+# Output: app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug
+
+# Build release APK
+./gradlew assembleRelease
+```
+
+### Install on a connected device or emulator
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Open in Android Studio
+
+1. **File → Open** → select the `SwaraApp/` directory.
+2. Wait for the Gradle sync to complete.
+3. Select the `app` run configuration and press **Run ▶**.
+
+### Runtime permissions
+
+On first launch Swara requests **`READ_MEDIA_AUDIO`** (API 33+) or **`READ_EXTERNAL_STORAGE`**
+(API ≤ 32). The permission must be granted to allow `MediaStore` to discover on-device audio files.
+
+---
+
+## Known Issues & Fixes
+
+### `IllegalStateException: Activity does not have a NavController set on nav_host_fragment`
+
+**Observed on:** Samsung Galaxy S21+ (Android 13/14), Navigation Component 2.8.9
+
+**Root cause:** `Navigation.findNavController(Activity, @IdRes int)` is incompatible with
+`FragmentContainerView` hosts when using Navigation Component ≥ 2.3. The `NavController` is
+attached to the `NavHostFragment`'s child view, not to the container view itself. Calling the
+Activity-scoped lookup immediately after `setContentView()` finds no controller and throws.
+
+**Fix applied** — retrieve the `NavController` via `FragmentManager` instead:
+
+```java
+// MainActivity.java — correct pattern for FragmentContainerView hosts (Navigation ≥ 2.3)
+NavHostFragment navHostFragment = (NavHostFragment)
+        getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+navController = navHostFragment.getNavController();
+```
+
+The same pattern was corrected in `MiniPlayerFragment.java`, which also navigated using the
+incompatible `Navigation.findNavController(requireActivity(), id)` overload.
+
+---
 
 ## Contributing
 
-1. Fork the repository and create a feature branch.
-2. Keep the code in Java.
-3. Before opening a pull request, run `./gradlew testDebugUnitTest`.
-4. Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) format, for example `fix(player): ...` or `feat(widget): ...`.
+1. Fork the repository and create a feature branch from `main`.
+2. Follow the existing code style: Java 11, no Kotlin, `@NonNull`/`@Nullable` annotations,
+   Javadoc on public API.
+3. Keep `MainActivity` and `SwaraPlaybackService` decoupled — all playback state flows through
+   `PlaybackViewModel → MediaController`.
+4. Run `./gradlew test` before opening a PR. All unit tests must pass.
+5. Open a pull request with a clear description of what changed and why.
+
+### Commit message convention
+
+```
+<type>(<scope>): <short summary>
+
+type  = fix | feat | refactor | test | docs | ci | chore
+scope = ui | nav | playback | db | repo | util | build | readme
+```
+
+---
 
 ## License
 
-Swara is licensed under the [Apache License 2.0](LICENSE).
+Copyright 2024 PRABHUSIDDARTH
 
-The Korokae model is trained on MUSDB18, which is licensed for research use only. Check its terms before you distribute a model trained on it for commercial use.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.

@@ -16,11 +16,7 @@ import com.psthetech.swara.domain.model.Album;
 import com.psthetech.swara.domain.model.Artist;
 import com.psthetech.swara.domain.model.SearchResults;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.data.repository.PlaylistArtworkStore;
-import com.psthetech.swara.ui.theme.DesignTokens;
-import com.psthetech.swara.ui.theme.MorphismThemeManager;
 import com.psthetech.swara.util.ArtworkHelper;
-import com.psthetech.swara.util.PlaylistArtworkHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,44 +41,19 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
     public static final int TYPE_ARTIST  = 3;
     public static final int TYPE_PLAYLIST = 4;
 
-    /** Song rows reuse {@link SongAdapter.Listener} so the overflow menu matches the Songs tab. */
-    public interface Listener extends SongAdapter.Listener {
+    public interface Listener {
         void onSongClick(Song song);
         void onAlbumClick(Album album);
         void onArtistClick(Artist artist);
         void onPlaylistClick(Playlist playlist);
-
-        @Override
-        default void onSongClick(Song song, int position) { onSongClick(song); }
-
-        @Override
-        default void onRemoveFromPlaylist(Song song) { /* not shown in search */ }
+        void onSongAddToPlaylist(Song song);
     }
 
     private final Listener listener;
     private final List<Object> items = new ArrayList<>(); // String (header) or domain obj
-    private long currentPlayingSongId = -1;
-    private java.util.Set<Long> favoriteSongIds = new java.util.HashSet<>();
-    private PlaylistArtworkStore playlistArtworkStore;
 
     public SearchResultsAdapter(@NonNull Listener listener) {
         this.listener = listener;
-    }
-
-    public void setPlaylistArtworkStore(PlaylistArtworkStore playlistArtworkStore) {
-        this.playlistArtworkStore = playlistArtworkStore;
-    }
-
-    public void setCurrentPlayingSongId(long songId) {
-        if (this.currentPlayingSongId != songId) {
-            this.currentPlayingSongId = songId;
-            notifyDataSetChanged();
-        }
-    }
-
-    public void setFavorites(java.util.Set<Long> favoriteIds) {
-        this.favoriteSongIds = favoriteIds != null ? favoriteIds : new java.util.HashSet<>();
-        notifyDataSetChanged();
     }
 
     /** Replace the entire dataset with a new SearchResults object. */
@@ -154,44 +125,25 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
         if (holder instanceof HeaderHolder && item instanceof Header) {
             ((HeaderHolder) holder).bind((Header) item, ctx);
         } else if (holder instanceof SongHolder && item instanceof Song) {
-            Song song = (Song) item;
-            boolean isPlaying = (currentPlayingSongId != -1 && song.getId() == currentPlayingSongId);
-            ((SongHolder) holder).bind(song, isPlaying, favoriteSongIds.contains(song.getId()), listener, ctx);
+            ((SongHolder) holder).bind((Song) item, listener, ctx);
         } else if (holder instanceof AlbumHolder && item instanceof Album) {
             ((AlbumHolder) holder).bind((Album) item, listener, ctx);
         } else if (holder instanceof ArtistHolder && item instanceof Artist) {
             ((ArtistHolder) holder).bind((Artist) item, listener, ctx);
         } else if (holder instanceof PlaylistHolder && item instanceof Playlist) {
-            ((PlaylistHolder) holder).bind((Playlist) item, playlistArtworkStore, listener);
+            ((PlaylistHolder) holder).bind((Playlist) item, listener);
         }
     }
 
     @Override
     public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewRecycled(holder);
-        holder.itemView.setScaleX(1.0f);
-        holder.itemView.setScaleY(1.0f);
-        holder.itemView.setAlpha(1.0f);
-        holder.itemView.setTranslationX(0f);
-        holder.itemView.setTranslationY(0f);
         if (holder instanceof SongHolder) {
-            holder.itemView.setBackgroundResource(R.drawable.ripple_item);
-            SongHolder sh = (SongHolder) holder;
-            ArtworkHelper.clear(holder.itemView.getContext(), sh.ivArtwork);
-            sh.ivArtwork.setImageDrawable(null);
-            sh.tvTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
+            ArtworkHelper.clear(holder.itemView.getContext(), ((SongHolder) holder).ivArtwork);
         } else if (holder instanceof AlbumHolder) {
-            AlbumHolder ah = (AlbumHolder) holder;
-            ArtworkHelper.clear(holder.itemView.getContext(), ah.ivArtwork);
-            ah.ivArtwork.setImageDrawable(null);
+            ArtworkHelper.clear(holder.itemView.getContext(), ((AlbumHolder) holder).ivArtwork);
         } else if (holder instanceof ArtistHolder) {
-            ArtistHolder arh = (ArtistHolder) holder;
-            ArtworkHelper.clear(holder.itemView.getContext(), arh.ivArtwork);
-            arh.ivArtwork.setImageDrawable(null);
-        } else if (holder instanceof PlaylistHolder) {
-            PlaylistHolder ph = (PlaylistHolder) holder;
-            PlaylistArtworkHelper.clear(holder.itemView.getContext(), ph.ivArtwork);
-            ph.ivArtwork.setImageDrawable(null);
+            ArtworkHelper.clear(holder.itemView.getContext(), ((ArtistHolder) holder).ivArtwork);
         }
     }
 
@@ -234,42 +186,24 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             ivMore     = v.findViewById(R.id.ivMore);
         }
 
-        void bind(Song song, boolean isPlaying, boolean isFavorite, Listener listener, Context ctx) {
+        void bind(Song song, Listener listener, Context ctx) {
             tvTitle.setText(song.getTitle());
             tvSubtitle.setText(song.getArtist() + " • " + song.getFormattedDuration());
-            tvTitle.setTypeface(null, isPlaying ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
             ArtworkHelper.loadSongArt(ctx, song, ivArtwork);
 
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
             if (tokens != null) {
-                tvTitle.setTextColor(isPlaying ? tokens.getReadableAccentColor() : tokens.getTextPrimaryColor());
+                tvTitle.setTextColor(tokens.getTextPrimaryColor());
                 tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
                 if (ivMore != null) ivMore.setColorFilter(tokens.getIconSecondaryColor());
-                ivArtwork.setBackgroundColor(tokens.getSurfaceVariantColor());
             }
-
-            applyPlaybackGlow(isPlaying, tokens);
 
             // Hide favorite in search results (not tracking favorites state here)
             if (ivFavorite != null) ivFavorite.setVisibility(View.GONE);
             itemView.setOnClickListener(v -> listener.onSongClick(song));
             if (ivMore != null) {
-                ivMore.setOnClickListener(v -> SongMenuHelper.show(ctx, ivMore, song, isFavorite,
-                        /* showRemoveFromPlaylist */ false, listener));
-            }
-        }
-
-        private void applyPlaybackGlow(boolean isPlaying, DesignTokens tokens) {
-            if (isPlaying && tokens != null) {
-                android.graphics.drawable.GradientDrawable glow = new android.graphics.drawable.GradientDrawable();
-                glow.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                glow.setColor(tokens.getPlaybackSurfaceColor());
-                float density = itemView.getContext().getResources().getDisplayMetrics().density;
-                glow.setCornerRadius(tokens.getCornerRadiusDp() * density);
-                glow.setStroke(Math.max(1, Math.round(1.5f * density)), tokens.getPlaybackStrokeColor());
-                itemView.setBackground(glow);
-            } else {
-                itemView.setBackgroundResource(R.drawable.ripple_item);
+                ivMore.setOnClickListener(v -> listener.onSongAddToPlaylist(song));
             }
         }
     }
@@ -292,10 +226,13 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (tvSubtitle != null) tvSubtitle.setText(album.getArtist());
             if (ivArtwork != null) ArtworkHelper.loadAlbumArt(ctx, album.getId(), ivArtwork);
 
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
             if (tokens != null) {
                 if (tvTitle != null) tvTitle.setTextColor(tokens.getTextPrimaryColor());
                 if (tvSubtitle != null) tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
             }
 
             itemView.setOnClickListener(v -> listener.onAlbumClick(album));
@@ -322,10 +259,13 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             }
             if (ivArtwork != null) ArtworkHelper.loadAlbumArt(ctx, artist.getRepresentativeAlbumId(), ivArtwork);
 
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
             if (tokens != null) {
                 if (tvName != null) tvName.setTextColor(tokens.getTextPrimaryColor());
                 if (tvSubtitle != null) tvSubtitle.setTextColor(tokens.getTextSecondaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
             }
 
             itemView.setOnClickListener(v -> listener.onArtistClick(artist));
@@ -335,12 +275,10 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
     // ===== Playlist =====
 
     static class PlaylistHolder extends RecyclerView.ViewHolder {
-        final ImageView ivArtwork;
-        final TextView tvName, tvCount;
+        TextView tvName, tvCount;
 
         PlaylistHolder(@NonNull View v) {
             super(v);
-            ivArtwork = v.findViewById(R.id.ivPlaylistArtwork);
             tvName  = v.findViewById(R.id.playlistName);
             tvCount = v.findViewById(R.id.playlistSongCount);
             // Hide the menu button in search context
@@ -348,17 +286,16 @@ public class SearchResultsAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (menuBtn != null) menuBtn.setVisibility(View.GONE);
         }
 
-        void bind(Playlist playlist, PlaylistArtworkStore artworkStore, Listener listener) {
+        void bind(Playlist playlist, Listener listener) {
             if (tvName != null) tvName.setText(playlist.name);
             if (tvCount != null) tvCount.setVisibility(View.GONE);
 
-            if (ivArtwork != null) {
-                PlaylistArtworkHelper.loadPlaylistArt(ivArtwork.getContext(), playlist, artworkStore, ivArtwork);
-            }
-
-            DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
+            com.psthetech.swara.ui.theme.DesignTokens tokens =
+                    com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
             if (tokens != null) {
                 if (tvName != null) tvName.setTextColor(tokens.getTextPrimaryColor());
+                com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
+                        .applyToView(itemView, false, tokens);
             }
 
             itemView.setOnClickListener(v -> listener.onPlaylistClick(playlist));

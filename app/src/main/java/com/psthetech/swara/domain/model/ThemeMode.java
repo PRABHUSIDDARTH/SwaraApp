@@ -29,7 +29,6 @@ public enum ThemeMode {
         return titleResId;
     }
 
-    @AppCompatDelegate.NightMode
     public int getNightMode() {
         return nightMode;
     }

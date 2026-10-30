@@ -38,7 +38,6 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     private SongAdapter songAdapter;
 
     private String artistName = "";
-    private String canonicalKey = "";
 
     @Nullable
     @Override
@@ -52,10 +51,6 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
 
         if (getArguments() != null) {
             artistName = getArguments().getString("artistName", "Artist");
-            canonicalKey = getArguments().getString("canonicalKey", "");
-        }
-        if (canonicalKey == null || canonicalKey.trim().isEmpty()) {
-            canonicalKey = com.psthetech.swara.domain.model.Artist.getCanonicalKey(artistName);
         }
 
         libraryViewModel = new ViewModelProvider(requireActivity()).get(LibraryViewModel.class);
@@ -74,51 +69,13 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
-        View btnPlayAll = view.findViewById(R.id.btnPlayAll);
-        if (btnPlayAll != null) {
-            btnPlayAll.setOnClickListener(v -> {
-                List<Song> songs = songAdapter.getCurrentList();
-                if (!songs.isEmpty()) playbackViewModel.playSongs(songs, 0);
-            });
-        }
-
-        View btnShuffle = view.findViewById(R.id.btnShuffle);
-        if (btnShuffle != null) {
-            btnShuffle.setOnClickListener(v -> {
-                List<Song> songs = songAdapter.getCurrentList();
-                if (!songs.isEmpty()) {
-                    if (!Boolean.TRUE.equals(playbackViewModel.getShuffleEnabled().getValue())) {
-                        playbackViewModel.toggleShuffle();
-                    }
-                    playbackViewModel.playSongs(songs, 0);
-                }
-            });
-        }
-
-        com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
-                .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
-                    if (tokens == null || getView() == null) return;
-                    getView().setBackground(tokens.createAmbientDrawable());
-                    if (artistTitle != null) artistTitle.setTextColor(tokens.getTextPrimaryColor());
-                    if (artistMeta != null) artistMeta.setTextColor(tokens.getTextSecondaryColor());
-                    android.widget.ImageView backButton = getView().findViewById(R.id.backButton);
-                    if (backButton != null) backButton.setColorFilter(tokens.getTextPrimaryColor());
-                    if (songAdapter != null) songAdapter.notifyDataSetChanged();
-                });
-
         favoritesViewModel.getFavoriteSongIds().observe(getViewLifecycleOwner(), ids -> {
             if (ids != null) {
                 songAdapter.setFavorites(new HashSet<>(ids));
             }
         });
 
-        playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
-            if (songAdapter != null) {
-                songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
-            }
-        });
-
-        libraryViewModel.getSongsForArtist(canonicalKey).observe(getViewLifecycleOwner(), songs -> {
+        libraryViewModel.getSongsForArtist(artistName).observe(getViewLifecycleOwner(), songs -> {
             if (songs != null) {
                 songAdapter.submitList(songs);
                 if (artistMeta != null) {
@@ -131,22 +88,7 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     @Override
     public void onSongClick(Song song, int position) {
         List<Song> songs = songAdapter.getCurrentList();
-        if (songs == null || songs.isEmpty()) return;
-        int targetIndex = position;
-        if (targetIndex < 0 || targetIndex >= songs.size() || songs.get(targetIndex).getId() != song.getId()) {
-            targetIndex = -1;
-            for (int i = 0; i < songs.size(); i++) {
-                if (songs.get(i).getId() == song.getId()) {
-                    targetIndex = i;
-                    break;
-                }
-            }
-        }
-        if (targetIndex >= 0) {
-            playbackViewModel.playSongs(songs, targetIndex);
-        } else {
-            playbackViewModel.playSong(song);
-        }
+        playbackViewModel.playSongs(songs, position);
     }
 
     @Override
@@ -157,11 +99,6 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     @Override
     public void onPlayNext(Song song) {
         playbackViewModel.playNext(song);
-    }
-
-    @Override
-    public void onStartVibe(Song song) {
-        playbackViewModel.startVibeFrom(song);
     }
 
     @Override
@@ -183,13 +120,6 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
     public void onEditArtwork(Song song) {
         if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
             ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(song);
-        }
-    }
-
-    @Override
-    public void onEditSongInfo(Song song) {
-        if (getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditSongInfo(song);
         }
     }
 

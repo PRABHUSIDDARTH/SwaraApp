@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:layout_marginEnd="12dp"
     android:layout_marginVertical="4dp"
-    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardBackgroundColor="@color/swara_card"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
@@ -16,15 +16,15 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Playlist artwork (custom or collage fallback) -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivPlaylistArtwork"
-            android:layout_width="116dp"
-            android:layout_height="116dp"
+        <ImageView
+            android:id="@+id/ivPlaylistIcon"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:layout_gravity="center_horizontal"
-            android:scaleType="centerCrop"
+            android:background="@drawable/bg_rounded_gold_alpha"
+            android:padding="14dp"
             android:src="@drawable/ic_playlist"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
+            app:tint="@color/swara_gold" />
 
         <TextView
             android:id="@+id/tvPlaylistName"
@@ -34,7 +34,7 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="2"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="@color/swara_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:gravity="center"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textColor="@color/swara_text_muted"
             android:textSize="11sp" />
 
     </LinearLayout>

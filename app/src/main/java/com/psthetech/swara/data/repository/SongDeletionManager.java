@@ -11,7 +11,6 @@ import android.util.Log;
 
 import androidx.activity.result.IntentSenderRequest;
 
-import com.psthetech.swara.SwaraApplication;
 import com.psthetech.swara.data.db.AppDatabase;
 import com.psthetech.swara.domain.model.Song;
 
@@ -137,12 +136,5 @@ public class SongDeletionManager {
 
         // 4. Custom artwork file cleanup
         customArtworkStore.removeCustomArtwork(songId);
-
-        // 5. Recommender data (mood analysis, mood override and listen events)
-        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
-            db.moodDao().deleteForSong(songId);
-            db.moodOverrideDao().deleteForSong(songId);
-            db.listenEventDao().deleteForSong(songId);
-        });
     }
 }

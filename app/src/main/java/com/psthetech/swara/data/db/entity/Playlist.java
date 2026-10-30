@@ -18,12 +18,6 @@ public class Playlist {
     /** Timestamp when the playlist was last modified (ms epoch) */
     public long modifiedAt;
 
-    /**
-     * Path to the custom artwork file in internal storage, or null if using collage/default.
-     * Added in schema version 3.
-     */
-    public String artworkPath;
-
     public Playlist(String name, long createdAt, long modifiedAt) {
         this.name = name;
         this.createdAt = createdAt;

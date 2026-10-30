@@ -12,17 +12,17 @@ import com.psthetech.swara.data.db.entity.PlaylistSong;
 
 import java.util.List;
 
+/**
+ * Lightweight projection used to efficiently retrieve song counts per playlist
+ * without loading all PlaylistSong rows.
+ */
+class PlaylistSongCount {
+    public long playlistId;
+    public int count;
+}
+
 @Dao
 public interface PlaylistDao {
-
-    /**
-     * Lightweight projection used to efficiently retrieve song counts per playlist
-     * without loading all PlaylistSong rows.
-     */
-    class PlaylistSongCount {
-        public long playlistId;
-        public int count;
-    }
 
     // ===== Playlist operations =====
 
@@ -47,14 +47,6 @@ public interface PlaylistDao {
 
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
     Playlist getPlaylistById(long playlistId);
-
-    /** Updates the artworkPath for a playlist (called after saving custom artwork). */
-    @Query("UPDATE playlists SET artworkPath = :path WHERE id = :playlistId")
-    void updateArtworkPath(long playlistId, String path);
-
-    /** Clears the artworkPath (user removed custom artwork). */
-    @Query("UPDATE playlists SET artworkPath = NULL WHERE id = :playlistId")
-    void clearArtworkPath(long playlistId);
 
     // ===== PlaylistSong operations =====
 
@@ -93,9 +85,9 @@ public interface PlaylistDao {
     @Query("SELECT playlistId, COUNT(*) AS count FROM playlist_songs GROUP BY playlistId")
     LiveData<List<PlaylistSongCount>> getSongCountsLive();
 
+    @Query("SELECT MAX(position) FROM playlist_songs WHERE playlistId = :playlistId")
+    int getMaxPosition(long playlistId);
+
     @Query("SELECT EXISTS(SELECT 1 FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId)")
     boolean isSongInPlaylist(long playlistId, long songId);
-
-    @Query("UPDATE playlist_songs SET title = :title, artist = :artist, album = :album WHERE songId = :songId")
-    void updateSongMetadata(long songId, String title, String artist, String album);
 }
