@@ -21,7 +21,8 @@ def _params(m):
 def test_output_shape():
     for cfg in (STANDARD, HIGH):
         mid, side = _inputs()
-        out = _net(cfg)(mid, side)
+        with torch.no_grad():
+            out = _net(cfg)(mid, side)
         assert out.shape == (2, 2, BINS, 40)
         assert float(out.min()) > 0 and float(out.max()) < 1
 
