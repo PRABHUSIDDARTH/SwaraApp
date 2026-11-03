@@ -1,7 +1,7 @@
 """Training-time augmentation for Korokae v2 (EQ and reverb on a stem)."""
-import math
 from typing import Optional
 
+import numpy as np
 import torch
 
 from model import SR
@@ -21,18 +21,9 @@ def random_eq(x: torch.Tensor, rng: torch.Generator,
     """Random 3-band EQ in the STFT domain. x: [C, T]. gains_db overrides the random draw."""
     if gains_db is None:
         gains_db = (torch.rand(3, generator=rng) * 2 - 1) * EQ_RANGE_DB
-    freqs = torch.fft.rfftfreq(EQ_NFFT, 1.0 / SR).clamp(min=1.0).log()
-    anchors = torch.tensor(EQ_ANCHORS_HZ).log()
-    curve = torch.empty_like(freqs)
-    for i, f in enumerate(freqs):  # piecewise-linear in log frequency, flat beyond the anchors
-        if f <= anchors[0]:
-            curve[i] = gains_db[0]
-        elif f >= anchors[-1]:
-            curve[i] = gains_db[-1]
-        else:
-            k = int((f > anchors).sum()) - 1
-            t = (f - anchors[k]) / (anchors[k + 1] - anchors[k])
-            curve[i] = gains_db[k] * (1 - t) + gains_db[k + 1] * t
+    logf = np.log(np.maximum(np.fft.rfftfreq(EQ_NFFT, 1.0 / SR), 1.0))
+    # piecewise-linear in log frequency; np.interp holds the end gains flat beyond the anchors
+    curve = torch.from_numpy(np.interp(logf, np.log(EQ_ANCHORS_HZ), gains_db.double().numpy())).float()
     gain = 10 ** (curve / 20)
     win = torch.hann_window(EQ_NFFT)
     X = torch.stft(x, EQ_NFFT, EQ_HOP, window=win, return_complex=True)

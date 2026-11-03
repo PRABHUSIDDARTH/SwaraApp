@@ -16,10 +16,10 @@ from model import BINS, HOP, N_FFT, KorokaeNet, istft, stft
 ROOT = pathlib.Path(__file__).resolve().parent
 
 
-def load_tracks(split="test", data_root=None):
+def load_tracks(split="test", data_root=None, subdir="npy"):
     base = pathlib.Path(data_root) if data_root else ROOT / "data"
     tracks = []
-    for p in sorted((base / "npy" / split).glob("*.npz")):
+    for p in sorted((base / subdir / split).glob("*.npz")):
         d = np.load(p)
         tracks.append((torch.from_numpy(d["acc"]), torch.from_numpy(d["voc"])))
     return tracks
