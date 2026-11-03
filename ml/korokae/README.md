@@ -31,3 +31,17 @@ python3 export.py                # writes the app asset + Java parity fixture
 
 Datasets, decoded audio, and checkpoints are git-ignored (see the root `.gitignore`).
 MUSDB18 is licensed for research use; check its terms before distributing a model trained on it commercially.
+
+## v2 experiment results (2026-11-03)
+
+Median over the 50 MUSDB18 test tracks (`evaluate.py`; one 12,000-step run per config, seed 0).
+
+| Model | Accompaniment SDR | Vocal attenuation | Passthrough SDR |
+| --- | --- | --- | --- |
+| v1 (shipped) | 8.95 dB | 5.73 dB | 16.37 dB |
+| v2 Standard | 9.08 dB | 7.18 dB | 16.61 dB |
+| v2 High | 8.51 dB | 7.26 dB | 16.58 dB |
+
+`gate.py` **fails**: Standard gains 0.13 dB SDR over v1 where the spec requires at least 1.5 dB, and High does not beat Standard on SDR.
+v2 Standard is better than v1 on all three metrics, but modestly. v1 stays the shipped model and `KRK2` export (plan Task 7) has not been done.
+A/B excerpts for listening: `python3 render_ab.py` writes `results/ab/` (git-ignored).
