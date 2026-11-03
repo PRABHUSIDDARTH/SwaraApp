@@ -45,3 +45,8 @@ Median over the 50 MUSDB18 test tracks (`evaluate.py`; one 12,000-step run per c
 `gate.py` **fails**: Standard gains 0.13 dB SDR over v1 where the spec requires at least 1.5 dB, and High does not beat Standard on SDR.
 v2 Standard is better than v1 on all three metrics, but modestly. v1 stays the shipped model and `KRK2` export (plan Task 7) has not been done.
 A/B excerpts for listening: `python3 render_ab.py` writes `results/ab/` (git-ignored).
+
+Train vs test (25 evenly spaced tracks each, median accompaniment SDR): v1 11.32 vs 8.07 dB, v2 Standard 11.58 vs 8.71 dB, v2 High 11.22 vs 8.45 dB.
+All three models show a gap of about 3 dB, so the 94 training tracks look like the shared limit. High is below Standard even on training tracks,
+so it is not overfitting more; at this step count it is under-trained or optimisation-limited rather than capacity-limited.
+Untested levers: more data (licence check first), longer or differently scheduled training for High, and the vocal-residual loss weight.
