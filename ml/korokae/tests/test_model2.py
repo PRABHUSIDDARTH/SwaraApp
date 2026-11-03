@@ -1,7 +1,14 @@
+import pytest
 import torch
 
 from model import BINS, KorokaeNet
 from model2 import HIGH, STANDARD, KorokaeNet2
+
+
+@pytest.fixture(autouse=True)
+def _no_grad():
+    with torch.no_grad():
+        yield
 
 
 def _inputs(F=40, seed=0):
@@ -21,8 +28,7 @@ def _params(m):
 def test_output_shape():
     for cfg in (STANDARD, HIGH):
         mid, side = _inputs()
-        with torch.no_grad():
-            out = _net(cfg)(mid, side)
+        out = _net(cfg)(mid, side)
         assert out.shape == (2, 2, BINS, 40)
         assert float(out.min()) > 0 and float(out.max()) < 1
 
