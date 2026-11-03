@@ -93,7 +93,7 @@ Korokae v1 reaches 8.95 dB median accompaniment SDR on the MUSDB18 test set, aga
 - **Input.** Log-magnitudes of mid and side. The network predicts a separate mask per output channel.
 - **Two sizes, one training script.**
   - **Standard:** the phone model, with a similar compute budget to v1.
-  - **High:** a bigger GRU with 2 frames of lookahead (about 12 ms extra delay), for the laptop.
+  - **High:** a bigger GRU with 2 frames of lookahead (about 23 ms extra delay at a 512-sample hop), for the laptop.
 - **Loss.** Keep the compressed-magnitude loss. Add a vocal-residual term and a multi-resolution STFT loss on the waveform.
 - **Data.** Add MP3/AAC round-trips, vocal reverb and EQ, and more all-instrumental clips so instrumentals pass through untouched. Any extra dataset needs a licence check against `MODEL_LICENSE.md`.
 - **Evaluation.** Report accompaniment SDR, vocal attenuation in dB, and an instrumental-passthrough check. Keep a fixed A/B listening set.
@@ -114,10 +114,10 @@ Korokae v1 reaches 8.95 dB median accompaniment SDR on the MUSDB18 test set, aga
 ### 5.6 Vocal-reduction strength slider
 
 - A "Vocal reduction" control from 0 to 100 percent, default 100, stored in preferences and shown with the Korokae controls.
-- It is applied in the mask domain: `mask' = (1 - s) + s * mask`, where `s` is the strength. This needs no delay alignment between the original and processed audio, so it adds no latency.
+- It reuses the engine's existing dry/wet control, `KorokaeEngine.setMix`. The engine already time-aligns the dry signal and ramps changes per hop, so the slider adds no latency and no clicks. The processor sets the target mix to `enabled ? strength : 0`.
 - At 0 percent the audio passes through unchanged. At 100 percent it behaves exactly as the model outputs.
 - It is a pure engine change on the Java side and the Rust side, and it does not depend on retraining. It can ship before v2.
-- Tests: s=0 is identity, s=1 matches the unmodified mask, and values between are monotonic.
+- Tests: strength 0 is a delayed passthrough, strength 1 matches the parity fixture, and values between lie between the two.
 
 ## 6. Out of scope
 
