@@ -12,6 +12,7 @@ import torch
 
 from metrics import passthrough_sdr, sdr, vocal_attenuation_db
 from model import BINS, HOP, N_FFT, KorokaeNet, istft, stft
+from model2 import HIGH, STANDARD, KorokaeNet2, make_mask_fn
 
 ROOT = pathlib.Path(__file__).resolve().parent
 
@@ -73,6 +74,13 @@ def load_v1(device):
     return v1_mask_fn(net)
 
 
+def load_v2(name, device):
+    net = KorokaeNet2({"standard": STANDARD, "high": HIGH}[name]).to(device)
+    net.load_state_dict(torch.load(ROOT / "checkpoints" / f"korokae2_{name}.pt", map_location=device))
+    net.eval()
+    return make_mask_fn(net)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
@@ -81,6 +89,8 @@ def main(argv=None):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if args.model == "v1":
         mask_fn = load_v1(device)
+    elif args.model in ("v2_standard", "v2_high"):
+        mask_fn = load_v2(args.model.split("_")[1], device)
     else:
         raise SystemExit(f"unknown model {args.model!r}")
     result = evaluate(mask_fn, load_tracks("test"), device)

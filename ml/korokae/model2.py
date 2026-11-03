@@ -55,3 +55,11 @@ class KorokaeNet2(nn.Module):
         h, _ = self.gru(h)
         m = torch.sigmoid(self.out(h))  # [B, F, 2 * BINS]
         return m.reshape(m.shape[0], m.shape[1], 2, BINS).permute(0, 2, 3, 1)  # [B, 2, BINS, F]
+
+
+def make_mask_fn(net):
+    def fn(x):  # x [2, n] -> mask [2, BINS, F]
+        mid = stft(x.mean(0, keepdim=True)).abs()
+        side = stft(0.5 * (x[0:1] - x[1:2])).abs()
+        return net(mid, side)[0]
+    return fn

@@ -17,7 +17,7 @@ from augment import random_eq, random_reverb
 from evaluate import evaluate, load_tracks
 from losses import loss_v2
 from model import HOP, N_FFT, SR, istft, stft
-from model2 import HIGH, STANDARD, KorokaeNet2
+from model2 import HIGH, STANDARD, KorokaeNet2, make_mask_fn
 from train import crop
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -98,14 +98,6 @@ def compute_norm(net, tracks, device):
     f = torch.stack([torch.cat(mids), torch.cat(sides)])  # [2, N, BINS]
     net.mean.copy_(f.mean(1))
     net.std.copy_(f.std(1).clamp(min=1e-3))
-
-
-def make_mask_fn(net):
-    def fn(x):  # x [2, n] -> mask [2, BINS, F]
-        mid = stft(x.mean(0, keepdim=True)).abs()
-        side = stft(0.5 * (x[0:1] - x[1:2])).abs()
-        return net(mid, side)[0]
-    return fn
 
 
 def main(argv=None) -> int:
