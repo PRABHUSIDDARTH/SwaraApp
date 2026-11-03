@@ -393,6 +393,18 @@ public class PlaybackViewModel extends AndroidViewModel {
                 args);
     }
 
+    /** Sets how strongly vocals are reduced, 0..1 (the service persists it). */
+    public void setKorokaeStrength(float strength) {
+        if (controller == null) return;
+        android.os.Bundle args = new android.os.Bundle();
+        args.putFloat(SwaraPlaybackService.EXTRA_KOROKAE_STRENGTH,
+                com.psthetech.swara.data.preference.KorokaePreferences.clampStrength(strength));
+        controller.sendCustomCommand(
+                new androidx.media3.session.SessionCommand(
+                        SwaraPlaybackService.COMMAND_SET_KOROKAE_STRENGTH, android.os.Bundle.EMPTY),
+                args);
+    }
+
     // ===== Vibe Mode (runs in the playback service; mirrored via session extras) =====
 
     /** Turns Vibe Mode on (starting from the current song) or off. */

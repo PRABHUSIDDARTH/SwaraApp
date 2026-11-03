@@ -90,6 +90,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView ivKorokaeIcon;
     private TextView tvKorokaeLabel;
     @Nullable private android.animation.ValueAnimator korokaeAnimator;
+    private View korokaeStrengthRow;
 
     // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
@@ -180,6 +181,17 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnKorokae    = view.findViewById(R.id.btnKorokae);
         ivKorokaeIcon = view.findViewById(R.id.ivKorokaeIcon);
         tvKorokaeLabel = view.findViewById(R.id.tvKorokaeLabel);
+        korokaeStrengthRow = view.findViewById(R.id.korokaeStrengthRow);
+        com.google.android.material.slider.Slider strengthSlider =
+                view.findViewById(R.id.sliderKorokaeStrength);
+        if (strengthSlider != null) {
+            strengthSlider.setValue(Math.round(
+                    com.psthetech.swara.data.preference.KorokaePreferences
+                            .getStrength(requireContext()) * 100f));
+            strengthSlider.addOnChangeListener((slider, value, fromUser) -> {
+                if (fromUser) playbackViewModel.setKorokaeStrength(value / 100f);
+            });
+        }
 
         if (btnKorokae != null) {
             com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnKorokae);
@@ -503,6 +515,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private void updateKorokaeUi(@Nullable com.psthetech.swara.domain.model.KorokaeState state) {
         if (btnKorokae == null || ivKorokaeIcon == null || tvKorokaeLabel == null || getContext() == null) return;
+        if (korokaeStrengthRow != null) {
+            boolean on = state != null
+                    && state.getStatus() != com.psthetech.swara.domain.model.KorokaeState.Status.OFF;
+            korokaeStrengthRow.setVisibility(on ? View.VISIBLE : View.GONE);
+        }
         com.psthetech.swara.ui.theme.DesignTokens tokens =
                 com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
 

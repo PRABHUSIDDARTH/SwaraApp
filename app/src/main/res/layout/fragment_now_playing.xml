@@ -385,6 +385,36 @@
 
         </LinearLayout>
 
+        <!-- Vocal reduction strength (visible only while Korokae is on) -->
+        <LinearLayout
+            android:id="@+id/korokaeStrengthRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvKorokaeStrength"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/vocal_reduction"
+                android:textColor="#C8FFFFFF"
+                android:textSize="13sp" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderKorokaeStrength"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:valueFrom="0"
+                android:valueTo="100"
+                android:stepSize="1"
+                android:value="100"
+                android:contentDescription="@string/vocal_reduction" />
+
+        </LinearLayout>
+
     </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </FrameLayout>

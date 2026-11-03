@@ -68,6 +68,8 @@ public class SwaraPlaybackService extends MediaSessionService {
     /** Custom session command toggling real-time Korokae vocal removal. */
     public static final String COMMAND_SET_KOROKAE = "com.psthetech.swara.SET_KOROKAE";
     public static final String EXTRA_KOROKAE_ENABLED = "enabled";
+    public static final String COMMAND_SET_KOROKAE_STRENGTH = "com.psthetech.swara.SET_KOROKAE_STRENGTH";
+    public static final String EXTRA_KOROKAE_STRENGTH = "strength";
     /** Session extras key: true while Korokae is engaged (model loaded + enabled). */
     public static final String SESSION_EXTRA_KOROKAE_ACTIVE = "korokae_active";
     /** Session extras key: non-null when the model failed to load. */
@@ -154,6 +156,7 @@ public class SwaraPlaybackService extends MediaSessionService {
 
         korokaeModelProvider = new KorokaeModelProvider(this);
         korokaeProcessor = new KorokaeAudioProcessor(korokaeModelProvider);
+        korokaeProcessor.setStrength(com.psthetech.swara.data.preference.KorokaePreferences.getStrength(this));
         korokaeModelProvider.setListener((available, error) ->
                 mainHandler.post(this::publishKorokaeState));
 
@@ -584,6 +587,7 @@ public class SwaraPlaybackService extends MediaSessionService {
             SessionCommands commands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
                     .buildUpon()
                     .add(new SessionCommand(COMMAND_SET_KOROKAE, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_SET_KOROKAE_STRENGTH, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_KOROKAE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_SET_VIBE, Bundle.EMPTY))
@@ -608,6 +612,14 @@ public class SwaraPlaybackService extends MediaSessionService {
                 if (enable) korokaeModelProvider.loadAsync();
                 publishKorokaeState();
                 pushWidgetUpdateNow();
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_SET_KOROKAE_STRENGTH.equals(customCommand.customAction)) {
+                float strength = com.psthetech.swara.data.preference.KorokaePreferences
+                        .clampStrength(args.getFloat(EXTRA_KOROKAE_STRENGTH, 1f));
+                korokaeProcessor.setStrength(strength);
+                com.psthetech.swara.data.preference.KorokaePreferences
+                        .setStrength(SwaraPlaybackService.this, strength);
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }
             if (COMMAND_TOGGLE_KOROKAE.equals(customCommand.customAction)) {

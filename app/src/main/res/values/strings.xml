@@ -46,6 +46,7 @@
     <string name="previous">Previous</string>
     <string name="korokae_mode">Korokae</string>
     <string name="karaoke_mode">Korokae</string>
+    <string name="vocal_reduction">Vocal reduction</string>
     <string name="karaoke_loading">Loading…</string>
     <string name="karaoke_unavailable">Unavailable</string>
     <string name="korokae_on">Korokae Mode ON</string>

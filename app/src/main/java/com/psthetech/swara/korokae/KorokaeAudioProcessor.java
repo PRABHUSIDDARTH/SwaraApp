@@ -7,6 +7,8 @@ import androidx.media3.common.audio.AudioProcessor;
 import androidx.media3.common.audio.BaseAudioProcessor;
 import androidx.media3.common.util.UnstableApi;
 
+import com.psthetech.swara.data.preference.KorokaePreferences;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -27,6 +29,7 @@ public final class KorokaeAudioProcessor extends BaseAudioProcessor {
     private final KorokaeModelProvider modelProvider;
 
     private volatile boolean enabled;
+    private volatile float strength = KorokaePreferences.DEFAULT_STRENGTH;
     @Nullable private KorokaeEngine engine;
     private float[] scratch = new float[0];
     private boolean supportedFormat;
@@ -42,6 +45,20 @@ public final class KorokaeAudioProcessor extends BaseAudioProcessor {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    /** Vocal-reduction strength 0..1; applied through the engine's per-hop mix ramp (no clicks). */
+    public void setStrength(float value) {
+        this.strength = KorokaePreferences.clampStrength(value);
+    }
+
+    public float getStrength() {
+        return strength;
+    }
+
+    /** Wet amount the engine should ramp to: the strength while enabled, otherwise dry. */
+    public static float targetMix(boolean enabled, float strength) {
+        return enabled ? KorokaePreferences.clampStrength(strength) : 0f;
     }
 
     @Override
@@ -66,7 +83,7 @@ public final class KorokaeAudioProcessor extends BaseAudioProcessor {
             out.flip();
             return;
         }
-        e.setMix(enabled ? 1f : 0f);
+        e.setMix(targetMix(enabled, strength));
 
         int frames = bytes / 4;
         if (scratch.length < 2 * frames) scratch = new float[2 * frames];
@@ -103,7 +120,7 @@ public final class KorokaeAudioProcessor extends BaseAudioProcessor {
     @Override
     protected void onFlush() {
         if (engine != null) {
-            engine.setMix(enabled ? 1f : 0f);
+            engine.setMix(targetMix(enabled, strength));
             engine.reset(); // seek/track change: drop stale overlap + recurrent state
         }
     }
