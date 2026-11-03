@@ -39,7 +39,8 @@ def main() -> int:
             models[f"v2_{n}"] = load_v2(n, device)
     for i in pick:
         acc, voc = tracks[i]
-        mix = (acc + voc)[:, START_S * SR:(START_S + LEN_S) * SR].to(device)
+        start = min(START_S * SR, max(0, acc.shape[1] - LEN_S * SR))  # short tracks start earlier
+        mix = (acc + voc)[:, start:start + LEN_S * SR].to(device)
         n = mix.shape[1] - ((mix.shape[1] - N_FFT) % HOP)
         mix = mix[:, :n]
         stem = names[i].replace(" ", "_")
