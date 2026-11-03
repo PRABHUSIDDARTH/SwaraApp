@@ -25,7 +25,8 @@ def random_eq(x: torch.Tensor, rng: torch.Generator,
     # piecewise-linear in log frequency; np.interp holds the end gains flat beyond the anchors
     curve = torch.from_numpy(np.interp(logf, np.log(EQ_ANCHORS_HZ), gains_db.double().numpy())).float()
     gain = 10 ** (curve / 20)
-    win = torch.hann_window(EQ_NFFT)
+    win = torch.hann_window(EQ_NFFT, device=x.device)
+    gain = gain.to(x.device)
     X = torch.stft(x, EQ_NFFT, EQ_HOP, window=win, return_complex=True)
     return torch.istft(X * gain[None, :, None], EQ_NFFT, EQ_HOP, window=win, length=x.shape[-1])
 
@@ -36,9 +37,10 @@ def random_reverb(x: torch.Tensor, rng: torch.Generator) -> torch.Tensor:
     wet = _uniform(rng, 0.1, 0.5)
     C, T = x.shape
     L = int(rt60 * SR)
-    t = torch.arange(L) / SR
-    ir = torch.randn(C, L, generator=rng) * torch.exp(-6.908 * t / rt60)
-    n = T + L - 1
+    t = torch.arange(L, device=x.device) / SR
+    # noise comes from the global RNG on x's device (seeded by the caller); rng drives the draws above
+    ir = torch.randn(C, L, device=x.device) * torch.exp(-6.908 * t / rt60)
+    n = 1 << (T + L - 2).bit_length()  # power-of-two FFT length (fast on GPU), no wrap-around
     rev = torch.fft.irfft(torch.fft.rfft(x, n) * torch.fft.rfft(ir, n), n)[:, :T]
     scale = (x.pow(2).mean().sqrt() / rev.pow(2).mean().sqrt().clamp(min=1e-8))
     return (1 - wet) * x + wet * rev * scale

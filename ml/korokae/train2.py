@@ -6,8 +6,10 @@ checkpoints/train2_<config>.log.
 """
 import argparse
 import pathlib
+import queue
 import random
 import sys
+import threading
 import time
 
 import numpy as np
@@ -59,7 +61,7 @@ def make_batch(sets, bs, seg, device, rng):
             s = random.randint(0, max(0, ta[0].shape[1] - seg))
             a, v = crop(ta[0], seg, s), crop(ta[1], seg, s)
         a = a * 10 ** (random.uniform(-6, 3) / 20)
-        v = v * 10 ** (random.uniform(-6, 6) / 20)
+        v = v.to(device) * 10 ** (random.uniform(-6, 6) / 20)  # augment on the training device
         if random.random() < 0.5:
             a = a.flip(0)
         if random.random() < 0.5:
@@ -78,6 +80,18 @@ def make_batch(sets, bs, seg, device, rng):
     mix = acc + voc
     peak = mix.abs().amax(dim=(1, 2), keepdim=True).clamp(min=1.0)
     return mix / peak, acc / peak, voc / peak
+
+
+def prefetch(sets, bs, seg, device, rng, steps, depth=6):
+    """Builds batches on a background thread so CPU data work overlaps the GPU step."""
+    q = queue.Queue(maxsize=depth)
+
+    def work():
+        for _ in range(steps):
+            q.put(make_batch(sets, bs, seg, device, rng))
+
+    threading.Thread(target=work, daemon=True).start()
+    return q
 
 
 def step_loss(net, mix, acc, voc):
@@ -144,8 +158,9 @@ def main(argv=None) -> int:
 
     best = -float("inf")
     t0 = time.time()
+    batches = prefetch(sets, args.bs, seg, device, rng, args.steps)
     for step in range(1, args.steps + 1):
-        mix, acc, voc = make_batch(sets, args.bs, seg, device, rng)
+        mix, acc, voc = batches.get()
         loss = step_loss(net, mix, acc, voc)
         opt.zero_grad(set_to_none=True)
         loss.backward()
