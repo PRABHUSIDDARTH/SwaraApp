@@ -8,3 +8,6 @@
 
 # Room entities are read/written by generated code; keep their fields stable.
 -keep class com.psthetech.swara.data.db.entity.** { *; }
+
+# ONNX Runtime (Korokae v2): JNI looks up these classes and members by name
+-keep class ai.onnxruntime.** { *; }
