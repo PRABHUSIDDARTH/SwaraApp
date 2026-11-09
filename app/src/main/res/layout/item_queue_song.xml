@@ -54,7 +54,7 @@
     </LinearLayout>
 
     <ImageView
-        android:id="@+id/queueDragHandle"
+        android:id="@+id/ivDragHandle"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:contentDescription="@string/reorder"

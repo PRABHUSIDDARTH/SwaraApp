@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rhythm Pop gradient for the "Your Wrapped is ready" banner -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#FF3D7F" android:endColor="#FF8A00" />
+    <corners android:radius="24dp" />
+</shape>

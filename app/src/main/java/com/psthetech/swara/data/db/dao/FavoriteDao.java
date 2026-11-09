@@ -40,4 +40,7 @@ public interface FavoriteDao {
 
     @Query("SELECT COUNT(*) FROM favorites")
     int getFavoriteCount();
+
+    @Query("UPDATE favorites SET title = :title, artist = :artist, album = :album WHERE id = :songId")
+    void updateSongMetadata(long songId, String title, String artist, String album);
 }

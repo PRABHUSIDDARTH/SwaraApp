@@ -15,6 +15,7 @@ import com.psthetech.swara.domain.model.Song;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,7 +38,6 @@ import java.util.Map;
 public class MusicRepository {
 
     private static final String TAG = "MusicRepository";
-    private static final long MIN_DURATION_MS = 30_000; // skip clips < 30 seconds
 
     private final Context context;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -47,8 +47,58 @@ public class MusicRepository {
         void onError(String message);
     }
 
+    private static final Map<Long, Song> canonicalSongMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, List<Song>> canonicalArtistIndex = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** True once a full-library MediaStore query has populated the cache in this process. */
+    private static volatile boolean fullLibraryCached = false;
+
+    public static Song getCanonicalSong(long songId) {
+        return canonicalSongMap.get(songId);
+    }
+
+    /**
+     * Snapshot of the full library cache, or an empty list when no full-library query has run
+     * in this process yet (the cache may then hold only a few individually looked-up songs).
+     */
+    public static List<Song> getCachedLibrarySongs() {
+        if (!fullLibraryCached) return Collections.emptyList();
+        return new ArrayList<>(canonicalSongMap.values());
+    }
+
+    public static List<Song> getSongsForArtistFromCache(String artistName) {
+        if (artistName == null) return Collections.emptyList();
+        String canonicalKey = Artist.getCanonicalKey(artistName);
+        List<Song> cached = canonicalArtistIndex.get(canonicalKey);
+        if (cached != null) {
+            return cached;
+        }
+        return com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, new ArrayList<>(canonicalSongMap.values()));
+    }
+
+    public Song getSongById(long songId) {
+        Song cached = canonicalSongMap.get(songId);
+        if (cached != null) return cached;
+        List<Song> single = querySongs(
+                MediaStore.Audio.Media._ID + " = ?",
+                new String[]{String.valueOf(songId)},
+                null
+        );
+        if (!single.isEmpty()) {
+            Song s = single.get(0);
+            canonicalSongMap.put(songId, s);
+            return s;
+        }
+        return null;
+    }
+
     public MusicRepository(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    /** Short clips are hidden unless the user turned that off in Settings. */
+    private long minDurationMs() {
+        return com.psthetech.swara.data.preference.LibraryPreferences.minDurationMs(context);
     }
 
     // ===== Songs =====
@@ -66,16 +116,26 @@ public class MusicRepository {
         });
     }
 
+    /** Blocking full-library query; call from a worker thread only. */
+    public List<Song> loadAllSongsBlocking() {
+        return querySongs(null, null, null);
+    }
+
+    private static List<Song> capResults(List<Song> songs, int max) {
+        return songs.size() > max ? new ArrayList<>(songs.subList(0, max)) : songs;
+    }
+
     /** Loads recently added songs (last 30 days) asynchronously. */
     public void loadRecentlyAdded(Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
                 long thirtyDaysAgoSec = (System.currentTimeMillis() / 1000) - (30L * 24 * 60 * 60);
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND "
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND "
                         + MediaStore.Audio.Media.DATE_ADDED + " >= " + thirtyDaysAgoSec;
-                List<Song> songs = querySongs(selection, null,
-                        MediaStore.Audio.Media.DATE_ADDED + " DESC LIMIT 50");
+                // MediaProvider rejects "LIMIT" inside sortOrder on Android 11+; cap in Java.
+                List<Song> songs = capResults(querySongs(selection, null,
+                        MediaStore.Audio.Media.DATE_ADDED + " DESC"), 50);
                 mainHandler.post(() -> callback.onResult(songs));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load recently added", e);
@@ -116,11 +176,20 @@ public class MusicRepository {
     public void loadSongsForArtist(String artistName, Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
-                String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.ARTIST + " = ?";
-                String[] args = new String[]{artistName};
-                List<Song> songs = querySongs(selection, args, MediaStore.Audio.Media.TITLE + " ASC");
-                mainHandler.post(() -> callback.onResult(songs));
+                String canonicalKey = Artist.getCanonicalKey(artistName);
+                List<Song> cached = canonicalArtistIndex.get(canonicalKey);
+                if (cached != null && !cached.isEmpty()) {
+                    mainHandler.post(() -> callback.onResult(new ArrayList<>(cached)));
+                    return;
+                }
+                List<Song> allSongs = querySongs(null, null, null);
+                buildArtists(allSongs);
+                List<Song> songs = canonicalArtistIndex.get(canonicalKey);
+                if (songs == null) {
+                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs);
+                }
+                final List<Song> result = songs != null ? songs : Collections.emptyList();
+                mainHandler.post(() -> callback.onResult(result));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load songs for artist", e);
                 mainHandler.post(() -> callback.onError("Failed to load artist songs"));
@@ -152,13 +221,14 @@ public class MusicRepository {
             try {
                 String lower = query.toLowerCase(Locale.getDefault()).trim();
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND ("
-                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
-                String[] args = new String[]{"%" + lower + "%", "%" + lower + "%", "%" + lower + "%"};
-                List<Song> results = querySongs(selection, args,
-                        MediaStore.Audio.Media.TITLE + " ASC LIMIT 100");
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND ("
+                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ? ESCAPE '\\')";
+                String like = "%" + escapeLike(lower) + "%";
+                String[] args = new String[]{like, like, like};
+                List<Song> results = capResults(querySongs(selection, args,
+                        MediaStore.Audio.Media.TITLE + " ASC"), 100);
                 mainHandler.post(() -> callback.onResult(results));
             } catch (Exception e) {
                 Log.e(TAG, "Search failed", e);
@@ -198,11 +268,12 @@ public class MusicRepository {
                 String q = lowerQuery.trim();
                 // Broad query: songs where title, artist, or album matches
                 String selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                        + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS + " AND ("
-                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? OR "
-                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ?)";
-                String[] args = new String[]{"%" + q + "%", "%" + q + "%", "%" + q + "%"};
+                        + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs() + " AND ("
+                        + "LOWER(" + MediaStore.Audio.Media.TITLE + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ARTIST + ") LIKE ? ESCAPE '\\' OR "
+                        + "LOWER(" + MediaStore.Audio.Media.ALBUM + ") LIKE ? ESCAPE '\\')";
+                String like = "%" + escapeLike(q) + "%";
+                String[] args = new String[]{like, like, like};
                 List<Song> allMatching = querySongs(selection, args,
                         MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC");
 
@@ -229,18 +300,28 @@ public class MusicRepository {
                             1, rep.getYear(), Collections.singletonList(rep)));
                 }
 
-                // Artists: distinct artists whose name matches query
-                Map<String, Song> artistReps = new LinkedHashMap<>();
-                for (Song s : allMatching) {
-                    if (s.getArtist().toLowerCase(Locale.getDefault()).contains(q)) {
-                        artistReps.putIfAbsent(s.getArtist(), s);
-                    }
+                // Artist results show each artist's full song list, which needs the library-wide
+                // index. Build it now if the Artists tab hasn't been opened yet this session.
+                if (canonicalArtistIndex.isEmpty()) {
+                    buildArtists(querySongs(null, null, null));
                 }
+
+                // Artists: distinct canonical artists whose name matches query, containing all their songs
+                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching);
                 List<Artist> artistResults = new ArrayList<>();
-                for (Map.Entry<String, Song> e : artistReps.entrySet()) {
-                    Song rep = e.getValue();
-                    artistResults.add(new Artist(rep.getArtist(), 1, 1,
-                            rep.getAlbumId(), Collections.singletonList(rep)));
+                String canonicalQuery = com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(q);
+                for (Artist a : allArtistsFromMatching) {
+                    if (a.getName().toLowerCase(Locale.getDefault()).contains(q)
+                            || com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(a.getName()).contains(canonicalQuery)) {
+                        List<Song> fullSongs = canonicalArtistIndex.get(a.getCanonicalKey());
+                        if (fullSongs != null && !fullSongs.isEmpty()) {
+                            long distinctAlbums = fullSongs.stream().map(Song::getAlbumId).distinct().count();
+                            long repAlbumId = fullSongs.get(0).getAlbumId();
+                            artistResults.add(new Artist(a.getName(), a.getCanonicalKey(), fullSongs.size(), (int) distinctAlbums, repAlbumId, fullSongs));
+                        } else {
+                            artistResults.add(a);
+                        }
+                    }
                 }
 
                 final List<Song>   finalSongs   = songResults;
@@ -252,6 +333,11 @@ public class MusicRepository {
                 mainHandler.post(callback::onError);
             }
         });
+    }
+
+    /** Escapes LIKE wildcards so "100%" or "a_b" match literally (paired with ESCAPE '\\'). */
+    public static String escapeLike(String s) {
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     // ===== Internal query =====
@@ -272,19 +358,20 @@ public class MusicRepository {
                 MediaStore.Audio.Media.DATE_ADDED,
         };
 
+        // A full-library query lets us drop cached songs that no longer exist.
+        final boolean fullLibrary = selection == null;
+
         // Default selection: music files longer than threshold
         if (selection == null) {
             selection = MediaStore.Audio.Media.IS_MUSIC + " = 1 AND "
-                    + MediaStore.Audio.Media.DURATION + " >= " + MIN_DURATION_MS;
+                    + MediaStore.Audio.Media.DURATION + " >= " + minDurationMs();
         }
 
         if (sortOrder == null) {
             sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
         }
 
-        Cursor cursor = null;
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, sortOrder);
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, sortOrder)) {
             if (cursor == null) {
                 Log.w(TAG, "MediaStore query returned null cursor");
                 return songs;
@@ -315,13 +402,20 @@ public class MusicRepository {
                     // Skip songs with id 0 (malformed entries)
                     if (id <= 0) continue;
 
-                    songs.add(new Song(id, title, artist, album, albumId, duration, track, year, dateAdded));
+                    Song song = new Song(id, title, artist, album, albumId, duration, track, year, dateAdded);
+                    canonicalSongMap.put(id, song);
+                    songs.add(song);
                 } catch (Exception rowEx) {
                     Log.w(TAG, "Skipping malformed MediaStore row", rowEx);
                 }
             }
-        } finally {
-            if (cursor != null) cursor.close();
+        }
+
+        if (fullLibrary) {
+            java.util.Set<Long> present = new java.util.HashSet<>();
+            for (Song s : songs) present.add(s.getId());
+            canonicalSongMap.keySet().retainAll(present);
+            fullLibraryCached = true;
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");
@@ -354,24 +448,12 @@ public class MusicRepository {
         return albums;
     }
 
-    private List<Artist> buildArtists(List<Song> songs) {
-        Map<String, List<Song>> artistMap = new LinkedHashMap<>();
-        for (Song song : songs) {
-            artistMap.computeIfAbsent(song.getArtist(), k -> new ArrayList<>()).add(song);
+    public static List<Artist> buildArtists(List<Song> songs) {
+        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
+        canonicalArtistIndex.clear();
+        for (Artist a : artists) {
+            canonicalArtistIndex.put(a.getCanonicalKey(), a.getSongs());
         }
-
-        List<Artist> artists = new ArrayList<>();
-        for (Map.Entry<String, List<Song>> entry : artistMap.entrySet()) {
-            List<Song> artistSongs = entry.getValue();
-            // Count distinct albums
-            long distinctAlbums = artistSongs.stream()
-                    .map(Song::getAlbumId).distinct().count();
-            long repAlbumId = artistSongs.get(0).getAlbumId();
-            artists.add(new Artist(entry.getKey(), artistSongs.size(), (int) distinctAlbums,
-                    repAlbumId, artistSongs));
-        }
-
-        Collections.sort(artists, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         return artists;
     }
 }

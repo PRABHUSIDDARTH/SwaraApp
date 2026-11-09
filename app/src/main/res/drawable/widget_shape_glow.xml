@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Soft diagonal light wash. Hue is replaced by the theme accent at runtime; the
+     alpha ramp below is preserved and scaled with setImageAlpha. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:startColor="#59D4AF5A"
+        android:centerColor="#14D4AF5A"
+        android:endColor="#00D4AF5A"
+        android:type="linear" />
+    <corners android:radius="@dimen/widget_corner_radius" />
+</shape>

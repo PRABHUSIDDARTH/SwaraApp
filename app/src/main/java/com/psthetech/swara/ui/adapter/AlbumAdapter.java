@@ -94,6 +94,12 @@ public class AlbumAdapter extends ListAdapter<Album, AlbumAdapter.AlbumViewHolde
                     .transition(DrawableTransitionOptions.withCrossFade())
                     .into(albumArt);
 
+            itemView.setScaleX(1.0f);
+            itemView.setScaleY(1.0f);
+            itemView.setAlpha(1.0f);
+            itemView.setTranslationX(0f);
+            itemView.setTranslationY(0f);
+
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onAlbumClick(album);
@@ -106,5 +112,11 @@ public class AlbumAdapter extends ListAdapter<Album, AlbumAdapter.AlbumViewHolde
     public void onViewRecycled(@NonNull AlbumViewHolder holder) {
         super.onViewRecycled(holder);
         ArtworkHelper.clear(holder.itemView.getContext(), holder.albumArt);
+        holder.albumArt.setImageDrawable(null);
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        holder.itemView.setAlpha(1.0f);
+        holder.itemView.setTranslationX(0f);
+        holder.itemView.setTranslationY(0f);
     }
 }

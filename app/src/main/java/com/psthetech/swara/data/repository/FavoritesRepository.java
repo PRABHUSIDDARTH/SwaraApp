@@ -39,9 +39,12 @@ public class FavoritesRepository {
 
     public void addFavorite(Song song) {
         SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            Song canonical = MusicRepository.getCanonicalSong(song.getId());
+            long duration = song.getDuration() > 0 ? song.getDuration() : (canonical != null ? canonical.getDuration() : 0);
+            long albumId = song.getAlbumId() != 0 ? song.getAlbumId() : (canonical != null ? canonical.getAlbumId() : 0);
             FavoriteSong fav = new FavoriteSong(
                     song.getId(), song.getTitle(), song.getArtist(),
-                    song.getAlbum(), song.getAlbumId(), song.getDuration(),
+                    song.getAlbum(), albumId, duration,
                     System.currentTimeMillis()
             );
             dao.addFavorite(fav);
@@ -57,9 +60,12 @@ public class FavoritesRepository {
             if (dao.isFavorite(song.getId())) {
                 dao.removeFavoriteById(song.getId());
             } else {
+                Song canonical = MusicRepository.getCanonicalSong(song.getId());
+                long duration = song.getDuration() > 0 ? song.getDuration() : (canonical != null ? canonical.getDuration() : 0);
+                long albumId = song.getAlbumId() != 0 ? song.getAlbumId() : (canonical != null ? canonical.getAlbumId() : 0);
                 FavoriteSong fav = new FavoriteSong(
                         song.getId(), song.getTitle(), song.getArtist(),
-                        song.getAlbum(), song.getAlbumId(), song.getDuration(),
+                        song.getAlbum(), albumId, duration,
                         System.currentTimeMillis()
                 );
                 dao.addFavorite(fav);

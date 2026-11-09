@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Auto Backup rules for Android 11 and lower (API 31+ uses data_extraction_rules.xml).
+
+    Favorites, playlists, history and custom artwork are keyed by MediaStore song IDs, which
+    are assigned per device. Restoring them elsewhere would point at the wrong songs, so only
+    preferences (theme, sort order, settings) are backed up. The saved playback queue is
+    excluded for the same reason.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <include domain="sharedpref" path="." />
+    <exclude domain="sharedpref" path="swara_playback_state.xml" />
 </full-backup-content>
