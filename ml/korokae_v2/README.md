@@ -16,3 +16,4 @@ python3 -m venv .venv
 ## Layout
 
 - `korokae_v2/dsp.py` — band layout, STFT/iSTFT and chunked separation (the Java engine mirrors it)
+- `korokae_v2/model.py` — KorokaeNet v2 band-split RNN (default 8 blocks x 256 hidden, ~21.0M params)
