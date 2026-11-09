@@ -1,0 +1,8 @@
+# Install torch from the CPU index: pip install --index-url https://download.pytorch.org/whl/cpu torch
+torch>=2.15
+numpy>=2.5
+onnx>=1.23
+onnxscript>=0.5
+onnxruntime==1.31.*
+pytest>=8
+pyyaml>=6
