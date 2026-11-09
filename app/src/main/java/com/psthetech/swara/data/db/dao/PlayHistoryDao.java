@@ -23,6 +23,10 @@ public interface PlayHistoryDao {
     @Query("SELECT * FROM play_history ORDER BY playedAt DESC LIMIT 50")
     List<PlayHistory> getRecentlyPlayed();
 
+    /** Every stored play, oldest first (Swara Wrapped backfill). */
+    @Query("SELECT * FROM play_history ORDER BY playedAt ASC")
+    List<PlayHistory> getAllForBackfill();
+
     /**
      * Check if this song was recorded within the last 30 seconds (debounce).
      * Returns count > 0 if a recent entry exists.
@@ -40,6 +44,9 @@ public interface PlayHistoryDao {
 
     @Query("DELETE FROM play_history WHERE songId = :songId")
     void deleteHistoryForSong(long songId);
+
+    @Query("UPDATE play_history SET title = :title, artist = :artist, album = :album WHERE songId = :songId")
+    void updateSongMetadata(long songId, String title, String artist, String album);
 
     @Query("DELETE FROM play_history")
     void clearHistory();

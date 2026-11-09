@@ -12,7 +12,8 @@ public enum ColorTheme {
     CHAMPAGNE("CHAMPAGNE", R.string.color_theme_champagne_title, R.string.color_theme_champagne_desc),
     ROSE("ROSE", R.string.color_theme_rose_title, R.string.color_theme_rose_desc),
     OCEAN("OCEAN", R.string.color_theme_ocean_title, R.string.color_theme_ocean_desc),
-    FOREST("FOREST", R.string.color_theme_forest_title, R.string.color_theme_forest_desc);
+    FOREST("FOREST", R.string.color_theme_forest_title, R.string.color_theme_forest_desc),
+    OFF_WHITE("OFF_WHITE", R.string.color_theme_off_white_title, R.string.color_theme_off_white_desc);
 
     private final String key;
     private final int titleResId;

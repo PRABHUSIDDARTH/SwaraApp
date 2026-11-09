@@ -70,4 +70,43 @@ public class TimeFormatterTest {
         float fraction = duration > 0 ? (float) position / duration : 0f;
         assertEquals(0f, fraction, 0.001f);
     }
+
+    //
+    // Tests for formatAccessible
+    //
+
+    @Test
+    public void testFormatAccessibleZeroMs() {
+        assertEquals("0 seconds", TimeFormatter.formatAccessible(0L));
+    }
+
+    @Test
+    public void testFormatAccessibleNegativeMs() {
+        assertEquals("0 seconds", TimeFormatter.formatAccessible(-1000L));
+    }
+
+    @Test
+    public void testFormatAccessibleOnlySeconds() {
+        assertEquals("42 seconds", TimeFormatter.formatAccessible(42000L));
+    }
+
+    @Test
+    public void testFormatAccessibleOneMinuteExactly() {
+        assertEquals("1 minute", TimeFormatter.formatAccessible(60000L));
+    }
+
+    @Test
+    public void testFormatAccessibleOneMinuteWithSeconds() {
+        assertEquals("1 minute 5 seconds", TimeFormatter.formatAccessible(65000L));
+    }
+
+    @Test
+    public void testFormatAccessibleMultipleMinutesExactly() {
+        assertEquals("2 minutes", TimeFormatter.formatAccessible(120000L));
+    }
+
+    @Test
+    public void testFormatAccessibleMultipleMinutesWithSeconds() {
+        assertEquals("3 minutes 5 seconds", TimeFormatter.formatAccessible(185000L));
+    }
 }
