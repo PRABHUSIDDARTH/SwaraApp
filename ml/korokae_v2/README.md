@@ -17,3 +17,4 @@ python3 -m venv .venv
 
 - `korokae_v2/dsp.py` — band layout, STFT/iSTFT and chunked separation (the Java engine mirrors it)
 - `korokae_v2/model.py` — KorokaeNet v2 band-split RNN (default 8 blocks x 256 hidden, ~21.0M params)
+- `korokae_v2/export.py` — ONNX export (opset 17, input `spec`, output `mask`) and KRP2 parity fixture; `python -m korokae_v2.export --untrained --blocks 8 --hidden 256 --out-dir ../../app/src/androidTest/assets`
