@@ -54,6 +54,10 @@ import com.psthetech.swara.data.repository.ShuffleEngine;
  *  - Rename playlist (overflow)
  *  - Delete playlist (overflow → confirmation → navigate up)
  *  - Add a song to another playlist (context menu → AddToPlaylistDialog)
+ *
+ * Mix mode (nav arg {@code mixKey} set): shows a "For you" mix read-only — play, shuffle and
+ * per-song actions only — plus "+ Add as playlist", which saves it as a real playlist and
+ * replaces this screen with that playlist, where editing is available.
  */
 public class PlaylistDetailFragment extends Fragment implements SongAdapter.Listener {
 
@@ -73,6 +77,15 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
     private String playlistName = "Playlist";
     private com.psthetech.swara.data.db.entity.Playlist currentPlaylist;
     private List<Song> currentSongs = new ArrayList<>();
+
+    /** Non-null when showing a "For you" mix instead of a playlist. */
+    @Nullable
+    private String mixKey;
+    private Button btnSaveAsPlaylist;
+    /** Small title in the sticky top bar; fades in as the hero header collapses. */
+    private TextView tvCollapsedTitle;
+    /** Bumped on every mix update so a stale background resolve never overwrites a newer one. */
+    private int mixResolveGeneration = 0;
 
     // Tracks the last shuffle order for repeat-avoidance:
     // pressing Shuffle twice on the same playlist must produce a different ordering.
@@ -118,6 +131,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         if (getArguments() != null) {
             playlistId   = getArguments().getLong("playlistId", -1);
             playlistName = getArguments().getString("playlistName", "Playlist");
+            mixKey       = getArguments().getString("mixKey", null);
         }
 
         playlistViewModel = new ViewModelProvider(requireActivity()).get(PlaylistViewModel.class);
@@ -131,7 +145,9 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         recyclerView  = view.findViewById(R.id.recyclerView);
         layoutEmpty   = view.findViewById(R.id.layoutEmpty);
 
-        if (playlistTitle != null) playlistTitle.setText(playlistName);
+        tvCollapsedTitle = view.findViewById(R.id.tvCollapsedTitle);
+        setTitleText(playlistName);
+        setupCollapsingHeader(view);
 
         // --- Navigation ---
         view.findViewById(R.id.backButton)
@@ -170,15 +186,36 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
             editBadge.setOnClickListener(v -> showArtworkOptions());
         }
 
+        // --- Save mix as playlist (mix mode only) ---
+        btnSaveAsPlaylist = view.findViewById(R.id.btnSaveAsPlaylist);
+        if (btnSaveAsPlaylist != null) {
+            btnSaveAsPlaylist.setOnClickListener(v -> saveMixAsPlaylist());
+        }
+
         // --- Song list ---
         songAdapter = new SongAdapter(this);
-        songAdapter.setShowRemoveFromPlaylist(true);
+        songAdapter.setShowRemoveFromPlaylist(!isMixMode());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
 
-        // Drag-to-reorder
-        ItemTouchHelper touchHelper = new ItemTouchHelper(new ReorderCallback());
-        touchHelper.attachToRecyclerView(recyclerView);
+        if (isMixMode()) {
+            // A mix is rebuilt daily, so editing is only offered once it is saved as a playlist.
+            if (btnOverflow != null) btnOverflow.setVisibility(View.GONE);
+            if (btnAddSongs != null) btnAddSongs.setVisibility(View.GONE);
+            if (editBadge != null) editBadge.setVisibility(View.GONE);
+            if (ivPlaylistDetailArtwork != null) {
+                ivPlaylistDetailArtwork.setOnClickListener(null);
+                ivPlaylistDetailArtwork.setClickable(false);
+            }
+            if (btnSaveAsPlaylist != null) {
+                btnSaveAsPlaylist.setVisibility(View.VISIBLE);
+                btnSaveAsPlaylist.setEnabled(false); // enabled once songs resolve
+            }
+        } else {
+            // Drag-to-reorder
+            ItemTouchHelper touchHelper = new ItemTouchHelper(new ReorderCallback());
+            touchHelper.attachToRecyclerView(recyclerView);
+        }
 
         // Observe design tokens
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
@@ -187,11 +224,68 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         observeData();
     }
 
+    /** Sets the playlist name on both the hero title and the sticky top-bar title. */
+    private void setTitleText(String name) {
+        if (playlistTitle != null) playlistTitle.setText(name);
+        if (tvCollapsedTitle != null) tvCollapsedTitle.setText(name);
+    }
+
+    /**
+     * Fades the hero title out and the top-bar title in as the header collapses, and paints the
+     * sticky bar opaque once collapsed so the scrolled-away header never shows through it.
+     */
+    private void setupCollapsingHeader(View root) {
+        com.google.android.material.appbar.AppBarLayout appBar = root.findViewById(R.id.appBar);
+        if (appBar == null) return;
+        appBar.addOnOffsetChangedListener((bar, verticalOffset) -> {
+            int range = bar.getTotalScrollRange();
+            float collapsed = range > 0 ? Math.min(1f, -verticalOffset / (float) range) : 0f;
+            // Small title appears over the last 30% of the collapse; hero title fades early.
+            if (tvCollapsedTitle != null) {
+                tvCollapsedTitle.setAlpha(Math.max(0f, (collapsed - 0.7f) / 0.3f));
+            }
+            if (playlistTitle != null) {
+                playlistTitle.setAlpha(Math.max(0f, 1f - collapsed * 1.5f));
+            }
+        });
+    }
+
+    /** Styles a MaterialButton as an outlined pill (setBackground is ignored by MaterialButton). */
+    private static void styleOutlinedButton(Button button, int textColor, int fillColor,
+                                            int strokeColor, float density, float cornerPx) {
+        button.setTextColor(textColor);
+        if (button instanceof com.google.android.material.button.MaterialButton) {
+            com.google.android.material.button.MaterialButton mb =
+                    (com.google.android.material.button.MaterialButton) button;
+            mb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(fillColor));
+            mb.setStrokeColor(android.content.res.ColorStateList.valueOf(strokeColor));
+            mb.setStrokeWidth(Math.max(1, Math.round(density)));
+            mb.setCornerRadius(Math.round(cornerPx));
+        } else {
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            bg.setColor(fillColor);
+            bg.setStroke(Math.max(1, Math.round(density)), strokeColor);
+            bg.setCornerRadius(cornerPx);
+            button.setBackground(bg);
+        }
+    }
+
     private void applyDesignTokens(com.psthetech.swara.ui.theme.DesignTokens tokens) {
         View v = getView();
         if (v == null || tokens == null) return;
         v.setBackground(tokens.createAmbientDrawable());
         float density = v.getContext().getResources().getDisplayMetrics().density;
+
+        com.google.android.material.appbar.CollapsingToolbarLayout collapsing =
+                v.findViewById(R.id.collapsingHeader);
+        if (collapsing != null) {
+            collapsing.setContentScrimColor(tokens.getBackgroundColor());
+            collapsing.setStatusBarScrimColor(tokens.getBackgroundColor());
+        }
+        View actions = v.findViewById(R.id.layoutPlaylistActions);
+        if (actions != null) actions.setBackgroundColor(tokens.getBackgroundColor());
+        if (tvCollapsedTitle != null) tvCollapsedTitle.setTextColor(tokens.getTextPrimaryColor());
 
         if (playlistTitle != null) playlistTitle.setTextColor(tokens.getTextPrimaryColor());
         if (playlistMeta != null) playlistMeta.setTextColor(tokens.getTextSecondaryColor());
@@ -242,14 +336,16 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
         }
 
         Button btnShuffle = v.findViewById(R.id.btnShuffle);
+        int ghostFill = tokens.isNightMode() ? tokens.getSurfaceElevatedColor() : tokens.getSurfaceColor();
+        float cornerPx = tokens.getCornerRadiusDp() * density;
         if (btnShuffle != null) {
-            btnShuffle.setTextColor(tokens.getTextPrimaryColor());
-            android.graphics.drawable.GradientDrawable shuffleBg = new android.graphics.drawable.GradientDrawable();
-            shuffleBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            shuffleBg.setColor(tokens.isNightMode() ? tokens.getSurfaceElevatedColor() : tokens.getSurfaceColor());
-            shuffleBg.setStroke(Math.max(1, Math.round(density)), tokens.getStrokeColor());
-            shuffleBg.setCornerRadius(tokens.getCornerRadiusDp() * density);
-            btnShuffle.setBackground(shuffleBg);
+            styleOutlinedButton(btnShuffle, tokens.getTextPrimaryColor(), ghostFill,
+                    tokens.getStrokeColor(), density, cornerPx);
+        }
+
+        if (btnSaveAsPlaylist != null) {
+            styleOutlinedButton(btnSaveAsPlaylist, tokens.getAccentColor(), ghostFill,
+                    tokens.getAccentColor(), density, cornerPx);
         }
 
         // Empty state styling
@@ -283,6 +379,12 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 songAdapter.setCurrentPlayingSongId(song != null ? song.getId() : -1L);
             }
         });
+
+        if (isMixMode()) {
+            observeMix();
+            return;
+        }
+
         // Observe playlist metadata (name, custom artwork path)
         playlistViewModel.getPlaylists().observe(getViewLifecycleOwner(), playlists -> {
             if (playlists == null) return;
@@ -290,7 +392,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 if (p.id == playlistId) {
                     currentPlaylist = p;
                     playlistName = p.name;
-                    if (playlistTitle != null) playlistTitle.setText(playlistName);
+                    setTitleText(playlistName);
                     loadHeroArtwork();
                     break;
                 }
@@ -302,24 +404,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
 
         // When songs change, reload artwork (collage may need regenerating)
         playlistViewModel.getSongsForPlaylist(playlistId).observe(getViewLifecycleOwner(), songs -> {
-            currentSongs = songs != null ? songs : new ArrayList<>();
-            songAdapter.submitList(new ArrayList<>(currentSongs));
-
-            if (playlistMeta != null) {
-                int count = currentSongs.size();
-                long totalMs = 0;
-                for (Song s : currentSongs) {
-                    totalMs += s.getDuration();
-                }
-                String durationStr = formatTotalDuration(totalMs);
-                playlistMeta.setText(count + (count == 1 ? " track" : " tracks")
-                        + (durationStr.isEmpty() ? "" : " • " + durationStr));
-            }
-
-            // Empty state
-            if (layoutEmpty != null) {
-                layoutEmpty.setVisibility(currentSongs.isEmpty() ? View.VISIBLE : View.GONE);
-            }
+            bindSongs(songs);
 
             // Invalidate collage if needed (songs changed)
             PlaylistArtworkStore store = playlistViewModel.getPlaylistArtworkStore();
@@ -329,6 +414,114 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 loadHeroArtwork();
             }
         });
+    }
+
+    /** Shows {@code songs} in the list and updates the track count, duration and empty state. */
+    private void bindSongs(@Nullable List<Song> songs) {
+        currentSongs = songs != null ? songs : new ArrayList<>();
+        songAdapter.submitList(new ArrayList<>(currentSongs));
+
+        if (playlistMeta != null) {
+            int count = currentSongs.size();
+            long totalMs = 0;
+            for (Song s : currentSongs) {
+                totalMs += s.getDuration();
+            }
+            String durationStr = formatTotalDuration(totalMs);
+            playlistMeta.setText(count + (count == 1 ? " track" : " tracks")
+                    + (durationStr.isEmpty() ? "" : " • " + durationStr));
+        }
+
+        if (layoutEmpty != null) {
+            layoutEmpty.setVisibility(currentSongs.isEmpty() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    // ===== "For you" mix mode =====
+
+    private boolean isMixMode() {
+        return mixKey != null;
+    }
+
+    /** Follows the stored mix, so a daily rebuild while the screen is open updates the list. */
+    private void observeMix() {
+        com.psthetech.swara.data.db.AppDatabase.getInstance(requireContext().getApplicationContext())
+                .mixDao().byKeyLive(mixKey).observe(getViewLifecycleOwner(), mix -> {
+                    if (mix == null) {
+                        bindMixSongs(new ArrayList<>());
+                        return;
+                    }
+                    if (mix.title != null) {
+                        playlistName = mix.title;
+                        setTitleText(playlistName);
+                    }
+                    resolveMixSongs(com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds));
+                });
+    }
+
+    /** Resolves mix ids to songs: canonical cache first, then MediaStore off the main thread. */
+    private void resolveMixSongs(List<Long> ids) {
+        final int generation = ++mixResolveGeneration;
+        List<Song> cached = MixSongs.resolveInOrder(ids,
+                com.psthetech.swara.data.repository.MusicRepository::getCanonicalSong);
+        if (cached.size() == new HashSet<>(ids).size()) {
+            bindMixSongs(cached);
+            return;
+        }
+        final android.content.Context appCtx = requireContext().getApplicationContext();
+        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
+            com.psthetech.swara.data.repository.MusicRepository repo =
+                    new com.psthetech.swara.data.repository.MusicRepository(appCtx);
+            List<Song> resolved = MixSongs.resolveInOrder(ids, id -> {
+                Song s = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
+                return s != null ? s : repo.getSongById(id);
+            });
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (isAdded() && getView() != null && generation == mixResolveGeneration) {
+                    bindMixSongs(resolved);
+                }
+            });
+        });
+    }
+
+    private void bindMixSongs(List<Song> songs) {
+        bindSongs(songs);
+        if (btnSaveAsPlaylist != null) btnSaveAsPlaylist.setEnabled(!currentSongs.isEmpty());
+        if (ivPlaylistDetailArtwork != null) {
+            com.psthetech.swara.util.ArtworkHelper.loadSongArt(requireContext(),
+                    currentSongs.isEmpty() ? null : currentSongs.get(0), ivPlaylistDetailArtwork);
+        }
+    }
+
+    /** Saves the mix as a persistent playlist, then swaps this screen for that playlist. */
+    private void saveMixAsPlaylist() {
+        if (currentSongs.isEmpty()) return;
+        final List<Song> songs = new ArrayList<>(currentSongs);
+        com.psthetech.swara.ui.theme.ThemedDialogHelper.showSaveAsPlaylistDialog(
+                requireContext(),
+                playlistName,
+                name -> {
+                    String trimmed = name != null ? name.trim() : "";
+                    final String finalName = trimmed.isEmpty() ? playlistName : trimmed;
+                    if (btnSaveAsPlaylist != null) btnSaveAsPlaylist.setEnabled(false);
+                    playlistViewModel.createPlaylistFromSongs(finalName, songs, newId -> {
+                        android.content.Context ctx = getContext();
+                        if (ctx != null) {
+                            android.widget.Toast.makeText(ctx,
+                                    getString(R.string.saved_as_playlist, finalName),
+                                    android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                        if (!isAdded() || getView() == null) return;
+                        Bundle args = new Bundle();
+                        args.putLong("playlistId", newId);
+                        args.putString("playlistName", finalName);
+                        Navigation.findNavController(requireView()).navigate(
+                                R.id.playlistDetailFragment, args,
+                                new androidx.navigation.NavOptions.Builder()
+                                        .setPopUpTo(R.id.playlistDetailFragment, true)
+                                        .build());
+                    });
+                });
     }
 
     // ===== Artwork =====
@@ -491,7 +684,7 @@ public class PlaylistDetailFragment extends Fragment implements SongAdapter.List
                 playlistName,
                 newName -> {
                     playlistName = newName;
-                    if (playlistTitle != null) playlistTitle.setText(newName);
+                    setTitleText(newName);
                     playlistViewModel.renamePlaylist(playlistId, newName);
                 });
     }

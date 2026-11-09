@@ -294,36 +294,14 @@ public class HomeFragment extends Fragment implements SongAdapter.Listener {
         }
     }
 
+    /** Opens the mix in the playlist screen (mix mode); playback starts from there. */
     private void onMixClick(com.psthetech.swara.data.db.entity.Mix mix) {
-        List<Song> songs = new ArrayList<>();
-        for (long id : com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds)) {
-            Song s = com.psthetech.swara.data.repository.MusicRepository.getCanonicalSong(id);
-            if (s != null) songs.add(s);
-        }
-        if (!songs.isEmpty()) {
-            playbackViewModel.playSongs(songs, 0);
-            return;
-        }
-        // Canonical cache is cold: resolve off the main thread, then play on it.
-        final android.content.Context appCtx = requireContext().getApplicationContext();
-        final List<Long> ids = com.psthetech.swara.ui.adapter.MixAdapter.parseIds(mix.songIds);
-        com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() -> {
-            com.psthetech.swara.data.repository.MusicRepository repo =
-                    new com.psthetech.swara.data.repository.MusicRepository(appCtx);
-            List<Song> resolved = new ArrayList<>();
-            try {
-                for (long id : ids) {
-                    Song s = repo.getSongById(id);
-                    if (s != null) resolved.add(s);
-                }
-            } catch (RuntimeException e) {
-                android.util.Log.w("HomeFragment", "Mix resolve failed", e);
-            }
-            if (resolved.isEmpty()) return;
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                if (isAdded()) playbackViewModel.playSongs(resolved, 0);
-            });
-        });
+        Bundle args = new Bundle();
+        args.putLong("playlistId", -1L);
+        args.putString("playlistName", mix.title != null ? mix.title : getString(R.string.for_you));
+        args.putString("mixKey", mix.mixKey);
+        Navigation.findNavController(requireView())
+                .navigate(R.id.action_home_to_playlistDetail, args);
     }
 
     private void onPlaylistClick(Playlist playlist) {

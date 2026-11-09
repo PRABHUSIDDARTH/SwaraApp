@@ -177,6 +177,31 @@ public class PlaylistRepository {
         });
     }
 
+    /**
+     * Creates a playlist holding {@code songs} in the given order (duplicates dropped) in one
+     * background job, then reports the new id on the main thread.
+     */
+    public void createPlaylistWithSongs(String name, List<Song> songs, CreateCallback callback) {
+        final List<Song> snapshot = songs != null ? new java.util.ArrayList<>(songs)
+                : new java.util.ArrayList<>();
+        SwaraApplication.getInstance().getDbExecutor().execute(() -> {
+            long now = System.currentTimeMillis();
+            long id = dao.createPlaylist(new Playlist(name, now, now));
+            java.util.Set<Long> seen = new java.util.HashSet<>();
+            List<PlaylistSong> rows = new java.util.ArrayList<>(snapshot.size());
+            int pos = 0;
+            for (Song song : snapshot) {
+                if (song != null && seen.add(song.getId())) {
+                    rows.add(createPlaylistSongEntity(id, song, pos++));
+                }
+            }
+            if (!rows.isEmpty()) dao.addSongsToPlaylist(rows);
+            if (callback != null) {
+                mainHandler.post(() -> callback.onCreated(id));
+            }
+        });
+    }
+
     /** Bulk-adds all songs, skipping duplicates, preserving order. */
     public void addSongsToPlaylist(long playlistId, List<Song> songs) {
         if (songs == null || songs.isEmpty()) return;

@@ -1,156 +1,219 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    Playlist / "For you" mix detail.
+    Scrolling the songs collapses the hero header (artwork, title, meta) into a compact
+    sticky top bar (back, small title, overflow); the Play / Shuffle / + row stays pinned
+    under it, and the song list fills the rest of the screen.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <!-- Header row: back + overflow menu -->
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="8dp">
+        android:background="@android:color/transparent"
+        android:stateListAnimator="@null"
+        app:elevation="0dp"
+        app:liftOnScroll="false">
 
-        <ImageView
-            android:id="@+id/backButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/ripple_circle"
-            android:contentDescription="@string/back"
-            android:padding="12dp"
-            android:src="@drawable/ic_arrow_back" />
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/playlist_top_bar_height"
+            app:titleEnabled="false"
+            app:scrimAnimationDuration="200"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap">
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            <!-- Hero header: scrolls away with a slight parallax -->
+            <LinearLayout
+                android:id="@+id/layoutHeroHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="@dimen/playlist_top_bar_height"
+                app:layout_collapseMode="parallax"
+                app:layout_collapseParallaxMultiplier="0.5">
 
-        <!-- Overflow menu: Rename, Delete -->
-        <ImageView
-            android:id="@+id/btnPlaylistOverflow"
-            android:layout_width="@dimen/btn_min_touch_target"
-            android:layout_height="@dimen/btn_min_touch_target"
-            android:background="@drawable/ripple_circle"
-            android:contentDescription="@string/more_options"
-            android:padding="12dp"
-            android:src="@drawable/ic_more_vert" />
+                <!-- Hero playlist artwork — visual anchor -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="12dp">
 
-    </LinearLayout>
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivPlaylistDetailArtwork"
+                        android:layout_width="200dp"
+                        android:layout_height="200dp"
+                        android:layout_gravity="center_horizontal"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_playlist"
+                        android:elevation="@dimen/elevation_2"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
 
-    <!-- Hero playlist artwork — visual anchor -->
+                    <!-- Camera badge for artwork editing -->
+                    <ImageView
+                        android:id="@+id/ivArtworkEditBadge"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center|bottom"
+                        android:layout_marginBottom="4dp"
+                        android:layout_marginStart="116dp"
+                        android:src="@drawable/ic_camera"
+                        android:background="@drawable/bg_rounded_gold_alpha"
+                        android:padding="8dp"
+                        android:elevation="@dimen/elevation_3"
+                        android:contentDescription="@string/change_artwork" />
+
+                </FrameLayout>
+
+                <!-- Playlist Info: Title and Song Count / Duration below artwork -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingHorizontal="24dp"
+                    android:paddingBottom="12dp">
+
+                    <TextView
+                        android:id="@+id/playlistTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:gravity="center"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="20sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/playlistMeta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:textColor="@color/swara_text_muted"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <!-- "For you" mix only: save the mix as a persistent playlist -->
+                <Button
+                    android:id="@+id/btnSaveAsPlaylist"
+                    style="@style/Widget.Swara.Button.Ghost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="12dp"
+                    android:paddingHorizontal="24dp"
+                    android:text="@string/add_as_playlist"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Sticky top bar: back, collapsed title, overflow -->
+            <LinearLayout
+                android:id="@+id/layoutTopBar"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/playlist_top_bar_height"
+                android:layout_gravity="top"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                app:layout_collapseMode="pin">
+
+                <ImageView
+                    android:id="@+id/backButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/ripple_circle"
+                    android:contentDescription="@string/back"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_arrow_back" />
+
+                <!-- Fades in as the hero header collapses -->
+                <TextView
+                    android:id="@+id/tvCollapsedTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="8dp"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/swara_text_primary"
+                    android:textSize="17sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold" />
+
+                <!-- Overflow menu: Rename, Delete -->
+                <ImageView
+                    android:id="@+id/btnPlaylistOverflow"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:background="@drawable/ripple_circle"
+                    android:contentDescription="@string/more_options"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_more_vert" />
+
+            </LinearLayout>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <!-- Action bar: Play, Shuffle, Add Songs — no scroll flags, so it stays pinned -->
+        <LinearLayout
+            android:id="@+id/layoutPlaylistActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnPlayAll"
+                style="@style/Widget.Swara.Button.Primary"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="@string/play"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/btnShuffle"
+                style="@style/Widget.Swara.Button.Ghost"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="@string/shuffle"
+                android:layout_marginEnd="10dp" />
+
+            <ImageView
+                android:id="@+id/btnAddSongs"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/ripple_circle"
+                android:contentDescription="@string/add_songs"
+                android:padding="10dp"
+                android:src="@drawable/ic_add" />
+
+        </LinearLayout>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Song list (empty state + RecyclerView) fills everything below the sticky area -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="12dp">
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivPlaylistDetailArtwork"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_gravity="center_horizontal"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_playlist"
-            android:elevation="@dimen/elevation_2"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
-
-        <!-- Camera badge for artwork editing -->
-        <ImageView
-            android:id="@+id/ivArtworkEditBadge"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_gravity="center|bottom"
-            android:layout_marginBottom="4dp"
-            android:layout_marginStart="116dp"
-            android:src="@drawable/ic_camera"
-            android:background="@drawable/bg_rounded_gold_alpha"
-            android:padding="8dp"
-            android:elevation="@dimen/elevation_3"
-            android:contentDescription="@string/change_artwork" />
-
-    </FrameLayout>
-
-    <!-- Playlist Info: Title and Song Count / Duration below artwork -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="16dp">
-
-        <TextView
-            android:id="@+id/playlistTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:gravity="center"
-            android:textColor="@color/swara_text_primary"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-medium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/playlistMeta"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:textColor="@color/swara_text_muted"
-            android:textSize="13sp" />
-
-    </LinearLayout>
-
-    <!-- Action bar: Play, Shuffle, Add Songs -->
-    <LinearLayout
-        android:id="@+id/layoutPlaylistActions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="14dp"
-        android:gravity="center_vertical">
-
-        <Button
-            android:id="@+id/btnPlayAll"
-            style="@style/Widget.Swara.Button.Primary"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:text="@string/play"
-            android:layout_marginEnd="8dp" />
-
-        <Button
-            android:id="@+id/btnShuffle"
-            style="@style/Widget.Swara.Button.Ghost"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:text="@string/shuffle"
-            android:layout_marginEnd="10dp" />
-
-        <ImageView
-            android:id="@+id/btnAddSongs"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/ripple_circle"
-            android:contentDescription="@string/add_songs"
-            android:padding="10dp"
-            android:src="@drawable/ic_add" />
-
-    </LinearLayout>
-
-    <!-- Song list (empty state + RecyclerView) -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
@@ -164,7 +227,8 @@
             android:id="@+id/layoutEmpty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_marginTop="@dimen/dp_32"
             android:gravity="center"
             android:orientation="vertical"
             android:padding="@dimen/dp_32"
@@ -199,4 +263,4 @@
 
     </FrameLayout>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -73,4 +73,5 @@
     <dimen name="mini_player_progress_height">2dp</dimen>
     <dimen name="bottom_content_padding">184dp</dimen>
     <dimen name="radius_artwork">10dp</dimen>
+    <dimen name="playlist_top_bar_height">64dp</dimen>
 </resources>
