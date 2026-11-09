@@ -19,6 +19,9 @@ public interface MixDao {
     @Query("SELECT * FROM mixes ORDER BY mixKey ASC")
     LiveData<List<Mix>> allLive();
 
+    @Query("SELECT * FROM mixes WHERE mixKey = :key LIMIT 1")
+    LiveData<Mix> byKeyLive(String key);
+
     @Query("SELECT COUNT(*) FROM mixes")
     int count();
 

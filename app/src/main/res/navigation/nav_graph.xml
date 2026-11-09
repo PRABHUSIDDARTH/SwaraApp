@@ -104,6 +104,12 @@
         <argument
             android:name="playlistName"
             app:argType="string" />
+        <!-- When set, the screen shows this "For you" mix (read-only) instead of a playlist -->
+        <argument
+            android:name="mixKey"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
     </fragment>
 
     <dialog

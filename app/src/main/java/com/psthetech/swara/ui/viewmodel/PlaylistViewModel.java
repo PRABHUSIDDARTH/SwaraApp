@@ -92,6 +92,15 @@ public class PlaylistViewModel extends AndroidViewModel {
         repository.createPlaylist(name, callback);
     }
 
+    /** Saves a list of songs (e.g. a "For you" mix) as a new persistent playlist. */
+    public void createPlaylistFromSongs(String name, List<Song> songs,
+                                        PlaylistRepository.CreateCallback callback) {
+        repository.createPlaylistWithSongs(name, songs, id -> {
+            com.psthetech.swara.util.ArtworkHelper.notifyArtworkChanged(getApplication());
+            if (callback != null) callback.onCreated(id);
+        });
+    }
+
     public void renamePlaylist(long playlistId, String name) {
         repository.renamePlaylist(playlistId, name);
     }

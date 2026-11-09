@@ -57,6 +57,16 @@ public final class ThemedDialogHelper {
         showPlaylistNameDialog(context, currentName, true, onConfirm);
     }
 
+    /**
+     * Shows the themed Create Playlist dialog prefilled with {@code suggestedName}
+     * (used to save a "For you" mix as a playlist).
+     */
+    public static void showSaveAsPlaylistDialog(@NonNull Context context,
+                                                @Nullable String suggestedName,
+                                                @NonNull Consumer<String> onConfirm) {
+        showPlaylistNameDialog(context, suggestedName, false, onConfirm);
+    }
+
     private static void showPlaylistNameDialog(@NonNull Context context,
                                                @Nullable String initialName,
                                                boolean isRename,
@@ -112,6 +122,10 @@ public final class ThemedDialogHelper {
             tvTitle.setText(R.string.create_playlist);
             tvSubtitle.setText(R.string.playlist_name_hint);
             btnConfirm.setText(R.string.create);
+            if (initialName != null) {
+                etName.setText(initialName);
+                etName.selectAll();
+            }
         }
 
         // Input container styling

@@ -103,6 +103,8 @@
 
     <!-- Home -->
     <string name="for_you">For you</string>
+    <string name="add_as_playlist">+ Add as playlist</string>
+    <string name="saved_as_playlist">Saved as \"%1$s\"</string>
     <string name="mix_morning">Morning</string>
     <string name="mix_afternoon">Afternoon</string>
     <string name="mix_evening">Evening</string>
