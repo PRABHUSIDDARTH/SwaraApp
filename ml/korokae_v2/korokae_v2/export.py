@@ -2,7 +2,9 @@
 
 CLI:
     python -m korokae_v2.export --untrained --blocks 4 --dim 96 --out-dir DIR
-writes DIR/korokae_v2_<blocks>_<dim>.onnx and DIR/korokae_v2_<blocks>_<dim>_parity.bin.
+writes DIR/korokae_v2_<blocks>_<dim>.onnx and DIR/korokae_v2_<blocks>_<dim>_parity.bin;
+    python -m korokae_v2.export --checkpoint best.pt --out-dir DIR
+writes DIR/korokae_v2.onnx and DIR/korokae_v2_parity.bin (spec 5 names).
 
 KRP2 layout (little-endian): b"KRP2", int32 version=1, int32 sampleRate, int32 frames,
 float32[frames*2] input (interleaved L, R), float32[frames*2] expected instrumental.
@@ -59,22 +61,32 @@ def write_parity_fixture(model: torch.nn.Module, path: str,
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--untrained", action="store_true", help="export randomly initialised weights")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--untrained", action="store_true", help="export randomly initialised weights")
+    src.add_argument("--checkpoint", help="train.py checkpoint (step_*.pt or best.pt)")
     ap.add_argument("--blocks", type=int, default=4)
     ap.add_argument("--dim", type=int, default=96)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out-dir", required=True)
     args = ap.parse_args()
-    if not args.untrained:
-        raise SystemExit("only --untrained is supported until training lands (Plan 2)")
-    torch.manual_seed(args.seed)
-    model = KorokaeNetV2(n_blocks=args.blocks, d=args.dim).eval()
     os.makedirs(args.out_dir, exist_ok=True)
-    stem = os.path.join(args.out_dir, f"korokae_v2_{args.blocks}_{args.dim}")
+    if args.checkpoint:
+        from .train import build_model  # deferred: training deps are not needed for --untrained
+        state = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+        model = build_model(state["cfg"]["model"])
+        model.load_state_dict(state["model"])
+        model.eval()
+        stem = os.path.join(args.out_dir, "korokae_v2")
+        origin = f"checkpoint={args.checkpoint} step={state.get('step')} git={state.get('git_hash')}"
+    else:
+        torch.manual_seed(args.seed)
+        model = KorokaeNetV2(n_blocks=args.blocks, d=args.dim).eval()
+        stem = os.path.join(args.out_dir, f"korokae_v2_{args.blocks}_{args.dim}")
+        origin = "untrained"
     export_onnx(model, stem + ".onnx")
     write_parity_fixture(model, stem + "_parity.bin")
     size_mb = os.path.getsize(stem + ".onnx") / 1e6
-    print(f"params={count_params(model)} onnx={size_mb:.1f}MB -> {stem}.onnx, {stem}_parity.bin")
+    print(f"params={count_params(model)} onnx={size_mb:.1f}MB {origin} -> {stem}.onnx, {stem}_parity.bin")
 
 
 if __name__ == "__main__":
