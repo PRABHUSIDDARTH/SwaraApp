@@ -20,7 +20,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
- * Speed gate (spec 7.1): a 4-minute song must separate in <= 60 s with peak memory <= 500 MB.
+ * Speed gate (spec 7.1): a 4-minute song must separate in <= 60 s. Peak memory (VmHWM) is logged;
+ * its 500 MB limit is enforced in Plan 3 on the streaming pipeline (owner decision 2026-11-10).
  * Instrumentation args: korokaeModel (default korokae_v2_4_96.onnx), korokaeThreads (default 4).
  */
 @RunWith(AndroidJUnit4.class)
@@ -77,7 +78,8 @@ public class KorokaeV2SpeedTest {
         Log.i("KorokaeV2", "speed model=" + modelName + " threads=" + threads
                 + " ms=" + ms + " peakMB=" + peakMb + " sampledHeapMB=" + sampledMb);
         assertTrue("took " + ms + " ms (limit 60000)", ms <= 60_000);
-        assertTrue("peak " + peakMb + " MB (limit 500)", peakMb <= 500);
+        // The 500 MB peak limit is enforced in Plan 3 on the streaming app pipeline: this harness
+        // holds the whole song in and out as float arrays (~166 MB) that the app never will.
     }
 
     /** Resets VmHWM to the current RSS (writing 5 to clear_refs). */

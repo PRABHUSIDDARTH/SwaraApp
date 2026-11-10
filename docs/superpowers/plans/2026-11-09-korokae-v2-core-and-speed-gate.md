@@ -364,6 +364,8 @@ def test_parity_fixture_layout(tmp_path):
 > ONNX Runtime CPU arena off. `configs/base.yaml` records `n_blocks`, `d`, `heads`, `ffn`,
 > `head_expansion`, `threads` instead of `hidden`. Device tests run via `adb install -r` and
 > `am instrument`, because `connectedDebugAndroidTest` uninstalls the app (wiping user data).
+> Peak memory is measured as VmHWM; the owner moved the 500 MB limit to Plan 3's streaming
+> pipeline (this harness holds the whole song twice as float arrays: 613 MB measured).
 
 ### Task 7: Speed gate and model size decision
 

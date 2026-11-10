@@ -39,7 +39,8 @@ All five must pass:
    A/B order, each rated 1–5 for "voice gone" and "music clean"): v2 preferred on ≥ 90% of clips;
    mean "music clean" ≥ 4; mean "voice gone" ≥ 4.
 3. **On device (Galaxy S21+, Exynos 2100):** a 4-minute song processes in ≤ 60 s; peak memory
-   ≤ 500 MB; no crash across the test songs; switching to and from the instrumental is seamless.
+   ≤ 500 MB (whole-process VmHWM, measured on the app's streaming decode → separate → save
+   pipeline); no crash across the test songs; switching to and from the instrumental is seamless.
 4. **Correctness tests** (section 6.3) pass.
 5. **Licence:** the manifest audit passes, the in-app credits page exists, and v1 code plus
    `korokae_v1.bin` are deleted.
