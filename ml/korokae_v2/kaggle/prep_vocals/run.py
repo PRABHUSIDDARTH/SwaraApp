@@ -2,6 +2,9 @@
 import os
 import subprocess
 import sys
+import time
+
+START = time.time()  # the session deadline counts from here
 
 COMMIT = "11797f17c60c1b29e587da450dc958a992b921cc"
 REPO = "https://github.com/PRABHUSIDDARTH/SwaraApp"

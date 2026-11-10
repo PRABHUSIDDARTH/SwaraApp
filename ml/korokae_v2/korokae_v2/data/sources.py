@@ -29,6 +29,7 @@ AI_TAGS = (",AI_generated,", ",AI_assisted,", ",ia_stems_generated,")
 USER_AGENT = "SwaraKorokaeDataPrep/1.0"
 SLAKH_SPLITS = {"train": "train", "validation": "val", "test": "test"}
 SLAKH_HELDOUT_BUDGET_S = 5 * 3600.0
+MAX_OUTPUT_BYTES = 18e9  # Kaggle keeps at most 20 GB of notebook output
 
 
 class LicenceError(RuntimeError):
@@ -143,7 +144,8 @@ def fetch_vocadito(work: str, out: str, http: Http, budget_s: float) -> Iterator
                       group=singer[track], split="")
 
 
-def fetch_slakh(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+def fetch_slakh(work: str, out: str, http: Http, budget_s: float,
+                max_bytes: float = MAX_OUTPUT_BYTES) -> Iterator[Row]:
     """Streams the 104 GB archive; keeps only mix.flac, within budget_s for train and
     min(budget_s, 5 h) each for val and test. Never stores the archive."""
     record = 4599666
@@ -151,6 +153,7 @@ def fetch_slakh(work: str, out: str, http: Http, budget_s: float) -> Iterator[Ro
     budgets = {"train": budget_s, "val": min(budget_s, SLAKH_HELDOUT_BUDGET_S),
                "test": min(budget_s, SLAKH_HELDOUT_BUDGET_S)}
     used = Counter()
+    written = 0
     os.makedirs(work, exist_ok=True)
     with tarfile.open(fileobj=http.stream(files["slakh2100_flac_redux.tar.gz"]), mode="r|gz") as t:
         for m in t:
@@ -158,6 +161,8 @@ def fetch_slakh(work: str, out: str, http: Http, budget_s: float) -> Iterator[Ro
             if len(parts) != 4 or parts[3] != "mix.flac" or parts[1] not in SLAKH_SPLITS:
                 continue
             split, track = SLAKH_SPLITS[parts[1]], parts[2]
+            if written >= max_bytes:
+                break
             if used[split] >= budgets[split]:
                 if all(used[s] >= budgets[s] for s in budgets):
                     break
@@ -170,6 +175,7 @@ def fetch_slakh(work: str, out: str, http: Http, budget_s: float) -> Iterator[Ro
                 used[split] += to_flac(tmp, os.path.join(out, rel))
             finally:
                 os.remove(tmp)
+            written += os.path.getsize(os.path.join(out, rel))
             yield Row(path=rel, role="accompaniment", source="slakh2100",
                       source_url=f"https://zenodo.org/records/{record}",
                       author="Ethan Manilow et al.", licence=licence,
@@ -245,11 +251,11 @@ def _ccmixter_file(rec: dict) -> dict | None:
 
 
 def fetch_ccmixter(work: str, out: str, http: Http, budget_s: float,
-                   pause: float = 1.0) -> Iterator[Row]:
+                   pause: float = 1.0, max_bytes: float = MAX_OUTPUT_BYTES) -> Iterator[Row]:
     os.makedirs(work, exist_ok=True)
-    total = 0.0
+    total, written = 0.0, 0
     for rec in ccmixter_records(http, pause):
-        if total >= budget_s:
+        if total >= budget_s or written >= max_bytes:
             return
         f = _ccmixter_file(rec)
         if ccmixter_reason(rec) != "accepted" or f is None:
@@ -262,6 +268,7 @@ def fetch_ccmixter(work: str, out: str, http: Http, budget_s: float,
             total += to_flac(tmp, os.path.join(out, rel))
         finally:
             os.remove(tmp)
+        written += os.path.getsize(os.path.join(out, rel))
         yield Row(path=rel, role="vocal", source="ccmixter", source_url=rec["license_url"],
                   author=rec["user_name"], licence=normalise_licence(rec["license_url"]),
                   attribution=f"\"{rec['upload_name']}\" by {rec['user_name']} "

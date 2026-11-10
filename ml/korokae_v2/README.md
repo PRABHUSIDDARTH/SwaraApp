@@ -83,15 +83,21 @@ Data prep (once, on Kaggle CPU):
    passed the audit.
 
 Each training session (about 2–3 a week within the free GPU quota):
-1. `kaggle/kaggle_cycle.sh train <pushed commit>`.
-   - It downloads the previous session's checkpoints and saves them as a new `korokae-ckpt`
-     version.
-   - It then pushes the next session, which resumes exactly where the last one stopped.
-   - The first call simply starts training.
-2. Each session renders the same fixed val (64 × 10 s, seed 1001) and test (200 × 10 s, seed 2002)
-   mixes, trains for up to 690 min, and writes a checkpoint every 30 min.
-3. Progress lands in `ckpt/log.jsonl`: `loss`, `lr` and `sec_per_step` every 50 steps, plus
+1. Start the first session with `kaggle/kaggle_cycle.sh train <pushed commit> --fresh`.
+   Add `--minutes 30` for the pilot.
+2. After that, after every session, run `kaggle/kaggle_cycle.sh train <pushed commit>`.
+   - It only continues when the previous session is COMPLETE.
+   - It saves that session's checkpoints as a new `korokae-ckpt` version and then pushes the next
+     session.
+   - A session never restarts silently: without `--fresh` it refuses to start if no checkpoints
+     are mounted.
+3. Each session renders the same fixed val (64 × 10 s, seed 1001) and test (200 × 10 s, seed 2002)
+   mixes and trains until 690 min after the notebook started. It writes a checkpoint every 30 min.
+4. Progress lands in `ckpt/log.jsonl`: `loss`, `lr` and `sec_per_step` every 50 steps, plus
    `val_vocal_sdr` and `val_inst_sdr` every 2000 steps.
+5. Fine-tune (spec 5, stage 4): run `kaggle/kaggle_cycle.sh init ft` once, then
+   `kaggle/kaggle_cycle.sh finetune <commit> --fresh`. It starts from `korokae-ckpt`'s `best.pt`
+   and keeps its own checkpoints in `korokae-ckpt-ft`.
 
 After training:
 - `python -m korokae_v2.evaluate --eval eval --checkpoint best.pt` runs the v1-vs-v2 gate.

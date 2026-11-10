@@ -16,7 +16,11 @@ def test_normalise_licence_forms(text, want):
 @pytest.mark.parametrize("text", [
     "CC BY-NC 4.0", "https://creativecommons.org/licenses/by-sa/4.0/", "CC BY-ND 3.0",
     "https://creativecommons.org/licenses/by-nc-sa/3.0/", "Attribution Noncommercial (3.0)",
-    "All rights reserved", "", "CC BY 2.0"])
+    "All rights reserved", "", "CC BY 2.0",
+    "Attribution Non-Commercial 3.0", "Attribution-No Derivatives 4.0", "CC BY 4.0 Share Alike",
+    "Attribution Share-Alike 3.0", "Creative Commons Attribution 4.0, non commercial use only",
+    "CC BY 4.0 (no commercial use)", "GPL-3.0 by", "https://creativecommons.org/licenses/by/4.0/legalcode.nc",
+    "https://example.com/licenses/by/4.0/", "Attribution NoDerivs (3.0)"])
 def test_normalise_licence_rejects(text):
     assert normalise_licence(text) is None
 

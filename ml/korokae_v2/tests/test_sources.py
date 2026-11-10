@@ -183,3 +183,11 @@ def test_ccmixter_bad_page_falls_back_to_single_records(tmp_path):
     recs = list(sources.ccmixter_records(FakeHttp(pages), pause=0))
     assert [r.get("upload_id") for r in recs if "_error" not in r] == [10, 12, 13]
     assert sources.ccmixter_reasons(recs)["fetch_error"] == 1
+
+
+def test_slakh_stops_at_byte_cap(tmp_path):
+    url, rec = _zenodo(4599666, "cc-by-4.0", "slakh2100_flac_redux.tar.gz")
+    blob = _slakh_tar(tmp_path, [("train", "Track00001"), ("train", "Track00002"), ("validation", "Track01501")])
+    http = FakeHttp({sources.ZENODO_API + "4599666": rec}, {url: blob})
+    rows = list(sources.fetch_slakh(str(tmp_path / "w"), str(tmp_path / "o"), http, budget_s=1e9, max_bytes=1))
+    assert len(rows) == 1

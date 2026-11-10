@@ -2,6 +2,9 @@
 import os
 import subprocess
 import sys
+import time
+
+START = time.time()  # the session deadline counts from here
 
 COMMIT = "11797f17c60c1b29e587da450dc958a992b921cc"
 REPO = "https://github.com/PRABHUSIDDARTH/SwaraApp"
@@ -25,6 +28,12 @@ import torch  # noqa: E402
 print("torch", torch.__version__, "cuda", torch.cuda.is_available(), flush=True)
 from korokae_v2 import kaggle_entry  # noqa: E402
 
-CONFIG = os.path.join(SRC, "ml", "korokae_v2", "configs", "train_main.yaml")
+# Stamped by kaggle_cycle.sh at push time:
+CONFIG_NAME = "train_main.yaml"
 MAX_MINUTES = 690.0  # Kaggle stops sessions at 12 h; leave time to save outputs
-print(kaggle_entry.train_session(CONFIG, MAX_MINUTES), flush=True)
+FRESH = False  # True only for the very first session (kaggle_cycle.sh ... --fresh)
+CKPT_MARKER = "korokae_ckpt.txt"
+INIT_MARKER = None
+CONFIG = os.path.join(SRC, "ml", "korokae_v2", "configs", CONFIG_NAME)
+print(kaggle_entry.train_session(CONFIG, MAX_MINUTES, started_at=START, fresh=FRESH,
+                                 ckpt_marker=CKPT_MARKER, init_marker=INIT_MARKER), flush=True)

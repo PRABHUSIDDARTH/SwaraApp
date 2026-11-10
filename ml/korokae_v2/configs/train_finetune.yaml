@@ -1,8 +1,9 @@
 # Fine-tune (spec 5, stage 4): lower learning rate, harder augmentation, starts from best.pt
-# weights only (fresh optimiser and schedule). Run with its own --ckpt directory.
+# weights only (fresh optimiser and schedule). Runs as the korokae-finetune notebook with its
+# own korokae-ckpt-ft dataset: kaggle_cycle.sh finetune <commit> [--fresh].
 base: base.yaml
 model: {}
-init_from: /kaggle/input/korokae-ckpt/best.pt
+init_from: auto          # kaggle_entry resolves it to best.pt in the main korokae-ckpt dataset
 device: auto
 segment: 264600
 batch: 8

@@ -35,25 +35,39 @@ class Row:
 FIELDS = [f.name for f in dataclasses.fields(Row)]
 
 
+_CC_URL = re.compile(r"^https?://(www\.)?creativecommons\.org/"
+                     r"(licenses/by/(?P<by>3\.0|4\.0)|publicdomain/zero/(?P<zero>1\.0))"
+                     r"(/(legalcode(\.en)?)?)?/?$")
+_NAME_FORMS = (
+    re.compile(r"^cc-by-(?P<v>3\.0|4\.0)(-international)?$"),
+    re.compile(r"^(creative-commons-)?attribution-\(?(?P<v>3\.0|4\.0)\)?(-international)?$"),
+    re.compile(r"^(creative-commons-)?attribution-(?P<v>3\.0|4\.0)-(international|unported)$"),
+)
+_ZERO_FORMS = {"cc0", "cc0-1.0", "cc0-1.0-universal", "creative-commons-zero-1.0"}
+_FORBIDDEN = ("non", "commercial", "share", "alike", "deriv", "gpl", "nc", "nd", "sa", "no-")
+
+
 def normalise_licence(text: str) -> str | None:
-    """Map a licence name or Creative Commons URL to an allowed id, or None to reject."""
-    t = (text or "").strip().lower()
-    if not t:
-        return None
-    if t == "own":
+    """Strict allowlist: map an allowed licence id, CC URL or plain name to its id, else None.
+
+    Anything that is not exactly CC0 1.0, CC BY 3.0 / 4.0 or "own" is rejected, including any
+    string that mentions non-commercial, share-alike or no-derivatives terms.
+    """
+    raw = (text or "").strip().lower()
+    if raw == "own":
         return "own"
-    if t in {l.lower() for l in ALLOWED_LICENCES}:
-        return next(l for l in ALLOWED_LICENCES if l.lower() == t)
-    words = set(re.split(r"[^a-z0-9.]+", t))
-    if words & {"nc", "nd", "sa", "noncommercial", "noderivatives", "noderivs", "sharealike",
-                "by-nc", "by-sa", "by-nd"} or re.search(r"by-(nc|nd|sa)", t):
+    m = _CC_URL.match(raw)
+    if m:
+        return "CC0-1.0" if m.group("zero") else f"CC-BY-{m.group('by')}"
+    t = re.sub(r"[\s_,-]+", "-", raw).strip("-")
+    if any(f in t.split("-") or (len(f) > 2 and f in t) for f in _FORBIDDEN):
         return None
-    if "publicdomain/zero/1.0" in t or re.fullmatch(r"cc0[\s-]*1\.0", t) or t == "cc0":
+    if t in _ZERO_FORMS:
         return "CC0-1.0"
-    version = re.search(r"(\d\.\d)", t)
-    is_by = ("/licenses/by/" in t or "attribution" in words or "by" in words)
-    if is_by and version and version.group(1) in ("3.0", "4.0"):
-        return f"CC-BY-{version.group(1)}"
+    for form in _NAME_FORMS:
+        m = form.match(t)
+        if m:
+            return f"CC-BY-{m.group('v')}"
     return None
 
 
