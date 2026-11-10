@@ -2,6 +2,7 @@ import io
 import json
 import subprocess
 import tarfile
+import urllib.error
 import zipfile
 
 import pytest
@@ -42,8 +43,12 @@ class FakeHttp:
         return v() if callable(v) else v
 
     def download(self, url, dst):
+        self.calls.append(url)
+        v = self.blobs[url]
+        if isinstance(v, Exception):
+            raise v
         with open(dst, "wb") as f:
-            f.write(self.blobs[url])
+            f.write(v)
 
     def stream(self, url):
         return io.BytesIO(self.blobs[url])
@@ -122,6 +127,31 @@ def test_ccmixter_paging_survives_empty_pages_and_errors(tmp_path):
     http = FakeHttp(pages, {rec["files"][0]["download_url"]: wav})
     rows = list(sources.fetch_ccmixter(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9, pause=0))
     assert [r.licence for r in rows] == ["CC-BY-3.0"]
+
+
+def _forbidden(url):
+    return urllib.error.HTTPError(url, 403, "Forbidden", {}, None)
+
+
+def test_ccmixter_skips_a_download_that_fails(tmp_path):
+    recs = [_cc_record(i, "https://creativecommons.org/licenses/by/4.0/") for i in (1, 2)]
+    wav = _wav_bytes(tmp_path)
+    bad = recs[0]["files"][0]["download_url"]
+    http = FakeHttp(_cc_pages([recs, [], [], []]),
+                    {bad: _forbidden(bad), recs[1]["files"][0]["download_url"]: wav})
+    rows = list(sources.fetch_ccmixter(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9, pause=0))
+    assert [r.author for r in rows] == ["user2"]
+
+
+def test_ccmixter_gives_up_after_consecutive_download_failures(tmp_path):
+    n = sources.CCMIXTER_MAX_FAILED_DOWNLOADS
+    recs = [_cc_record(i, "https://creativecommons.org/licenses/by/4.0/") for i in range(n + 8)]
+    pages = [recs[i:i + sources.CCMIXTER_PAGE] for i in range(0, len(recs), sources.CCMIXTER_PAGE)]
+    urls = [r["files"][0]["download_url"] for r in recs]
+    http = FakeHttp(_cc_pages(pages + [[], [], []]), {u: _forbidden(u) for u in urls})
+    rows = list(sources.fetch_ccmixter(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9, pause=0))
+    assert rows == []
+    assert sum(c in urls for c in http.calls) == n
 
 
 class _Flaky:

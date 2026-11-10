@@ -30,6 +30,8 @@ USER_AGENT = "SwaraKorokaeDataPrep/1.0"
 SLAKH_SPLITS = {"train": "train", "validation": "val", "test": "test"}
 SLAKH_HELDOUT_BUDGET_S = 5 * 3600.0
 MAX_OUTPUT_BYTES = 18e9  # Kaggle keeps at most 20 GB of notebook output
+# ccMixter answers 403 to scripted downloads from some hosts; stop asking after this many in a row
+CCMIXTER_MAX_FAILED_DOWNLOADS = 10
 
 
 class LicenceError(RuntimeError):
@@ -253,16 +255,26 @@ def _ccmixter_file(rec: dict) -> dict | None:
 def fetch_ccmixter(work: str, out: str, http: Http, budget_s: float,
                    pause: float = 1.0, max_bytes: float = MAX_OUTPUT_BYTES) -> Iterator[Row]:
     os.makedirs(work, exist_ok=True)
-    total, written = 0.0, 0
+    total, written, failed_in_row, failed = 0.0, 0, 0, 0
     for rec in ccmixter_records(http, pause):
         if total >= budget_s or written >= max_bytes:
-            return
+            break
         f = _ccmixter_file(rec)
         if ccmixter_reason(rec) != "accepted" or f is None:
             continue
         ext = f["file_format_info"]["default-ext"]
         tmp = os.path.join(work, f"ccmixter.{ext}")
-        http.download(f["download_url"], tmp)
+        try:
+            http.download(f["download_url"], tmp)
+        except (OSError, http_client_errors) as e:  # urllib's HTTPError is an OSError
+            failed, failed_in_row = failed + 1, failed_in_row + 1
+            print(f"ccmixter: download failed ({e}): {f['download_url']}", flush=True)
+            if failed_in_row >= CCMIXTER_MAX_FAILED_DOWNLOADS:
+                print(f"ccmixter: giving up after {failed_in_row} failed downloads in a row",
+                      flush=True)
+                break
+            continue
+        failed_in_row = 0
         rel = os.path.join("audio", "ccmixter", rec["user_name"], f"{rec['upload_id']}.flac")
         try:
             total += to_flac(tmp, os.path.join(out, rel))
