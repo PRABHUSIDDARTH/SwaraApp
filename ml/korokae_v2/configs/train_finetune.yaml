@@ -1,0 +1,23 @@
+# Fine-tune (spec 5, stage 4): lower learning rate, harder augmentation, starts from best.pt
+# weights only (fresh optimiser and schedule). Run with its own --ckpt directory.
+base: base.yaml
+model: {}
+init_from: /kaggle/input/korokae-ckpt/best.pt
+device: auto
+segment: 264600
+batch: 8
+accum: 2
+lr: 0.00005
+betas: [0.9, 0.999]
+weight_decay: 0.01
+grad_clip: 5.0
+warmup: 500
+total_steps: 100000      # set from sec_per_step like train_main
+amp: true
+ckpt_every_minutes: 30
+keep_last: 3
+val_every: 2000
+log_every: 50
+workers: 4
+seed: 1
+augment: {level_db: [-12, 6], p_master: 1.0, p_reverb: 0.7}

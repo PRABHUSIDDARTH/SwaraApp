@@ -1,0 +1,21 @@
+# Main training on Kaggle T4/P100 (spec 5, stage 3). Model comes from base.yaml.
+base: base.yaml
+model: {}
+device: auto
+segment: 264600          # 6 s at 44.1 kHz
+batch: 8
+accum: 2                 # effective batch 16
+lr: 0.0003
+betas: [0.9, 0.999]
+weight_decay: 0.01
+grad_clip: 5.0
+warmup: 2000
+total_steps: 1000000     # replaced in Plan 2 Task 11 from the pilot's sec_per_step (~70 GPU-h)
+amp: true
+ckpt_every_minutes: 30
+keep_last: 3
+val_every: 2000
+log_every: 50
+workers: 4
+seed: 0
+augment: {}              # spec 3.3 defaults (AugmentConfig)
