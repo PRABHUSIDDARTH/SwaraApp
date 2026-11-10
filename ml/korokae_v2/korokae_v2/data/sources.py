@@ -20,7 +20,7 @@ from collections import Counter
 from typing import Any, BinaryIO, Iterator, Protocol
 
 from .manifest import Row, normalise_licence
-from .prep import to_flac
+from .prep import PrepError, to_flac
 
 ZENODO_API = "https://zenodo.org/api/records/"
 CCMIXTER_API = "https://ccmixter.org/api/query?f=json&tags=acappella"
@@ -185,6 +185,170 @@ def fetch_slakh(work: str, out: str, http: Http, budget_s: float,
                       group=track, split=split)
 
 
+# ---------------------------------------------------------------- JaCRC, AdoVoc Pro, AlbumDB
+
+JACRC_EXCLUDED_SOURCES = {"svad", "commercial"}  # SVAD: its own licence; commercial: not shipped
+
+
+def _download_bytes(http: Http, url: str, work: str, name: str) -> bytes:
+    path = _download_zip(http, url, work, name)
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def _semicolon_csv(data: bytes) -> list[dict[str, str]]:
+    text = data.decode("utf-8-sig")
+    return [{(k or "").strip(): (v or "").strip() if isinstance(v, str) else v for k, v in r.items()}
+            for r in csv.DictReader(io.StringIO(text), delimiter=";")]
+
+
+def fetch_jacrc(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """Jingju a cappella recordings. Everything newly recorded for JaCRC is CC BY 4.0; rows whose
+    metadata source is SVAD (another dataset's licence) or commercial are left out, and so is any
+    file the metadata does not describe. Jinghu accompaniments ('<vocal>-jh.wav') follow their
+    vocal's licence and group."""
+    record = 6536490
+    licence, files = zenodo_record(http, record)
+    info = _semicolon_csv(_download_bytes(http, files["JaCRC-recordings-info.csv"], work, "info.csv"))
+    students = _semicolon_csv(_download_bytes(
+        http, files["JaCRC-students-recordings-info.csv"], work, "students.csv"))
+    group_of: dict[str, str] = {}
+    for r in info:
+        if r.get("source", "").lower() not in JACRC_EXCLUDED_SOURCES and r.get("artist"):
+            group_of[r["file name"]] = r["artist"]
+    student_group = {r["file name"]: f"students-{r['source']}" for r in students
+                     if r.get("source") and r.get("source", "").lower() not in JACRC_EXCLUDED_SOURCES}
+    zpath = _download_zip(http, files["JaCRC-recordings.zip"], work, "JaCRC-recordings.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        for name in _wav_members(z):
+            base = os.path.basename(name)
+            if "/JaCRC-accompaniment-recordings/" in name:
+                role, group = "accompaniment", group_of.get(base[:-len("-jh.wav")] + ".wav")
+            elif "/JaCRC-students-recordings/" in name:
+                role, group = "vocal", student_group.get(base)
+            else:
+                role, group = "vocal", group_of.get(base)
+            if group is None or total >= budget_s:
+                continue
+            rel = os.path.join("audio", "jacrc", base[:-4] + ".flac")
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role=role, source="jacrc",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Rong Gong, Rafael Caro, Yile Yang, Xavier Serra", licence=licence,
+                      attribution="Jingju a Cappella Recordings Collection (Gong, Caro, Yang, Serra; "
+                                  "MTG-UPF, 2022)",
+                      group=group, split="")
+
+
+ADOVOC_SINGERS = {"alba": "alba", "a": "alba", "cris": "cris", "c": "cris", "joaquin": "joaquin",
+                  "j": "joaquin"}
+
+
+def _adovoc_singer(base: str) -> str:
+    for token in base[:-4].lower().split("_")[1:]:
+        if token in ADOVOC_SINGERS:
+            return ADOVOC_SINGERS[token]
+    return "adovoc-unknown"
+
+
+def fetch_adovoc(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """Flamenco solo singing. Only the *_mono folders: the *_true files are cuts of the same
+    takes, and the performances (and 'polifonia' / '_acc' takes) carry guitar."""
+    record = 3383118
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["AdoVoc Pro.zip"], work, "AdoVoc.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        for name in _wav_members(z):
+            parts = name.split("/")
+            base = parts[-1]
+            if (len(parts) < 3 or not parts[-2].endswith("_mono") or "polifonia" in base.lower()
+                    or "_acc" in base.lower() or total >= budget_s):
+                continue
+            rel = os.path.join("audio", "adovoc", parts[-2], base[:-4] + ".flac")
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role="vocal", source="adovoc",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Sonia Rodríguez Luque", licence=licence,
+                      attribution="AdoVoc Pro (Sonia Rodríguez Luque, Cante Flamenco Tech, 2019)",
+                      group=_adovoc_singer(base), split="")
+
+
+ALBUMDB_PEAK = 0.99
+
+
+def _read_stem(z: zipfile.ZipFile, name: str):
+    import numpy as np
+    import soundfile as sf
+    with z.open(name) as f:
+        data, sr = sf.read(io.BytesIO(f.read()), dtype="float64", always_2d=True)
+    if sr != 44100:
+        raise PrepError(f"{name}: sample rate {sr}, expected 44100")
+    return data if data.shape[1] == 2 else np.repeat(data[:, :1], 2, axis=1)
+
+
+def _add(acc, x):
+    import numpy as np
+    if acc is None:
+        return x.copy()
+    n = max(len(acc), len(x))
+    out = np.zeros((n, 2))
+    out[:len(acc)] += acc
+    out[:len(x)] += x
+    return out
+
+
+def fetch_albumdb(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """A ten-song album with stems. Per song: all vox_* stems summed -> one vocal file, all other
+    stems summed -> one accompaniment file, both scaled by the same gain (never boosted) so that
+    vocal, accompaniment and their sum peak at most 0.99."""
+    import numpy as np
+    import soundfile as sf
+    record = 19683001
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["stems_mixed.zip"], work, "stems_mixed.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        songs: dict[str, list[str]] = {}
+        for name in _wav_members(z):
+            parts = name.split("/")
+            if len(parts) == 3:
+                songs.setdefault(parts[1], []).append(name)
+        for song in sorted(songs):
+            if total >= budget_s:
+                return
+            vocal = accomp = None
+            for name in songs[song]:
+                stem = _read_stem(z, name)
+                if os.path.basename(name).lower().startswith("vox"):
+                    vocal = _add(vocal, stem)
+                else:
+                    accomp = _add(accomp, stem)
+            if vocal is None or accomp is None:
+                continue
+            n = max(len(vocal), len(accomp))
+            vocal, accomp = _add(np.zeros((n, 2)), vocal), _add(np.zeros((n, 2)), accomp)
+            peak = max(np.abs(vocal).max(), np.abs(accomp).max(), np.abs(vocal + accomp).max())
+            gain = min(1.0, ALBUMDB_PEAK / peak) if peak > 0 else 1.0
+            for role, x in (("vocal", vocal), ("accompaniment", accomp)):
+                tmp = os.path.join(work, "albumdb_stem.wav")
+                sf.write(tmp, (x * gain).astype("float32"), 44100, subtype="FLOAT")
+                rel = os.path.join("audio", "albumdb", song, f"{role}.flac")
+                try:
+                    seconds = to_flac(tmp, os.path.join(out, rel))
+                finally:
+                    os.remove(tmp)
+                if role == "vocal":
+                    total += seconds
+                yield Row(path=rel, role=role, source="albumdb",
+                          source_url=f"https://zenodo.org/records/{record}",
+                          author="Thomas McKenzie, Eloi Moliner, Alec Wright", licence=licence,
+                          attribution=f"\"{song}\" from the album \"Extraordinary\" by Tom McKenzie, "
+                                      "AlbumDB (McKenzie, Moliner, Wright, AES 2026)",
+                          group=song, split="")
+
+
 # ---------------------------------------------------------------- ccMixter
 
 def ccmixter_page_url(offset: int, limit: int = CCMIXTER_PAGE) -> str:
@@ -288,5 +452,6 @@ def fetch_ccmixter(work: str, out: str, http: Http, budget_s: float,
                   group=rec["user_name"], split="")
 
 
-FETCHERS = {"vocalset": fetch_vocalset, "vocadito": fetch_vocadito,
-            "ccmixter": fetch_ccmixter, "slakh": fetch_slakh}
+FETCHERS = {"vocalset": fetch_vocalset, "vocadito": fetch_vocadito, "jacrc": fetch_jacrc,
+            "adovoc": fetch_adovoc, "albumdb": fetch_albumdb, "ccmixter": fetch_ccmixter,
+            "slakh": fetch_slakh}

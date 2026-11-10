@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import subprocess
 import tarfile
 import urllib.error
@@ -221,3 +222,104 @@ def test_slakh_stops_at_byte_cap(tmp_path):
     http = FakeHttp({sources.ZENODO_API + "4599666": rec}, {url: blob})
     rows = list(sources.fetch_slakh(str(tmp_path / "w"), str(tmp_path / "o"), http, budget_s=1e9, max_bytes=1))
     assert len(rows) == 1
+
+
+# ---------------------------------------------------------------- JaCRC, AdoVoc Pro, AlbumDB
+
+def _np_wav(tmp_path, data, name="np.wav"):
+    import numpy as np
+    import soundfile as sf
+    p = tmp_path / name
+    sf.write(str(p), np.asarray(data, dtype="float32"), 44100, subtype="FLOAT")
+    return p.read_bytes()
+
+
+def _zenodo_multi(record, licence, keys):
+    urls = {k: f"https://zenodo.org/api/records/{record}/files/{k}/content" for k in keys}
+    rec = {"metadata": {"license": {"id": licence}},
+           "files": [{"key": k, "links": {"self": u}} for k, u in urls.items()]}
+    return urls, rec
+
+
+JACRC_INFO = ("file name;source;role type;shengqiang;banshi;work;artist;level;accompaniment\n"
+              "a-Song-nacta.wav;NACTA;dan;xipi;yuanban;w;Artist One ;professional;yes\n"
+              "b-Song-svad.wav;SVAD;dan;xipi;yuanban;w;Artist Two;amateur;\n"
+              "c-Song-comm.wav;commercial;dan;xipi;yuanban;w;Artist Three;professional;\n")
+JACRC_STUDENTS = ("file name;source;role type;shengqiang;banshi;work;artist;date\n"
+                  "a-Song-nacta-S1.wav;DX;dan;xipi;yuanban;w;adult student;20171214\n")
+
+
+def test_jacrc_keeps_cc_by_recordings_only(tmp_path):
+    wav = _wav_bytes(tmp_path)
+    urls, rec = _zenodo_multi(6536490, "cc-by-4.0", ["JaCRC-recordings.zip", "JaCRC-recordings-info.csv",
+                                                     "JaCRC-students-recordings-info.csv"])
+    root = "JaCRC-recordings/"
+    blob = _zip({root + "a-Song-nacta.wav": wav, root + "b-Song-svad.wav": wav,
+                 root + "c-Song-comm.wav": wav, root + "d-unlisted.wav": wav,
+                 root + "JaCRC-students-recordings/a-Song-nacta-S1.wav": wav,
+                 root + "JaCRC-accompaniment-recordings/a-Song-nacta-jh.wav": wav,
+                 root + "JaCRC-accompaniment-recordings/b-Song-svad-jh.wav": wav})
+    http = FakeHttp({sources.ZENODO_API + "6536490": rec},
+                    {urls["JaCRC-recordings.zip"]: blob,
+                     urls["JaCRC-recordings-info.csv"]: JACRC_INFO.encode("utf-8-sig"),
+                     urls["JaCRC-students-recordings-info.csv"]: JACRC_STUDENTS.encode()})
+    rows = list(sources.fetch_jacrc(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9))
+    got = sorted((os.path.basename(r.path), r.role, r.group) for r in rows)
+    assert got == [("a-Song-nacta-S1.flac", "vocal", "students-DX"),
+                   ("a-Song-nacta-jh.flac", "accompaniment", "Artist One"),
+                   ("a-Song-nacta.flac", "vocal", "Artist One")]
+    assert {r.licence for r in rows} == {"CC-BY-4.0"} and {r.source for r in rows} == {"jacrc"}
+    assert all((tmp_path / "o" / r.path).is_file() for r in rows)
+
+
+def test_adovoc_uses_solo_mono_takes_grouped_by_singer(tmp_path):
+    wav = _wav_bytes(tmp_path)
+    url, rec = _zenodo(3383118, "cc-by-4.0", "AdoVoc Pro.zip")
+    r = "AdoVoc Pro/"
+    blob = _zip({r + "jipio/JP_mono/JP_alba_A.wav": wav, r + "jipio/JP_mono/JP_cris_E.wav": wav,
+                 r + "vibrato_marcado/VM_mono/VM_J_a.wav": wav, r + "jipio/JP_mono/JP_frase_aislado.wav": wav,
+                 r + "jipio/JP_true/JP_alba_A_1.wav": wav, r + "jipio/JP_performance/JP_alba_acc.wav": wav,
+                 r + "fandango_performance/f1.wav": wav, r + "ataque_soplado/AS_mono/AS_polifonia.wav": wav,
+                 "__MACOSX/AdoVoc Pro/jipio/JP_mono/._JP_alba_A.wav": b"x"})
+    http = FakeHttp({sources.ZENODO_API + "3383118": rec}, {url: blob})
+    rows = list(sources.fetch_adovoc(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9))
+    assert sorted((os.path.basename(x.path), x.group) for x in rows) == [
+        ("JP_alba_A.flac", "alba"), ("JP_cris_E.flac", "cris"),
+        ("JP_frase_aislado.flac", "adovoc-unknown"), ("VM_J_a.flac", "joaquin")]
+    assert {x.role for x in rows} == {"vocal"} and {x.licence for x in rows} == {"CC-BY-4.0"}
+
+
+def test_albumdb_sums_vocal_and_other_stems_per_song_with_one_gain(tmp_path):
+    import numpy as np
+    import soundfile as sf
+    n = 4410
+    t = np.arange(n) / 44100
+    lead = np.stack([0.7 * np.sin(2 * np.pi * 440 * t)] * 2, axis=1)
+    back = np.stack([0.6 * np.sin(2 * np.pi * 660 * t)] * 2, axis=1)
+    bass = np.stack([0.8 * np.sin(2 * np.pi * 55 * t)] * 2, axis=1)
+    drum = np.stack([0.5 * np.sin(2 * np.pi * 110 * t)] * 2, axis=1)
+    url, rec = _zenodo(19683001, "cc-by-4.0", "stems_mixed.zip")
+    s = "stems_mixed/"
+    blob = _zip({s + "01 Song/vox_lead.wav": _np_wav(tmp_path, lead),
+                 s + "01 Song/vox_backing_l.wav": _np_wav(tmp_path, back),
+                 s + "01 Song/bass.wav": _np_wav(tmp_path, bass),
+                 s + "01 Song/drums.wav": _np_wav(tmp_path, drum),
+                 s + "02 Quiet/vox_lead.wav": _np_wav(tmp_path, 0.1 * lead),
+                 s + "02 Quiet/bass.wav": _np_wav(tmp_path, 0.1 * bass)})
+    http = FakeHttp({sources.ZENODO_API + "19683001": rec}, {url: blob})
+    rows = list(sources.fetch_albumdb(str(tmp_path / "w"), str(tmp_path / "o"), http, 1e9))
+    assert sorted((r.group, r.role) for r in rows) == [("01 Song", "accompaniment"), ("01 Song", "vocal"),
+                                                     ("02 Quiet", "accompaniment"), ("02 Quiet", "vocal")]
+    by = {(r.group, r.role): sf.read(str(tmp_path / "o" / r.path))[0] for r in rows}
+    v, a = by[("01 Song", "vocal")], by[("01 Song", "accompaniment")]
+    vref, aref = lead + back, bass + drum
+    g = 0.99 / np.abs(vref + aref).max()  # the song's own mix must not clip; same gain on both
+    assert np.abs(v - g * vref).max() < 2e-4 and np.abs(a - g * aref).max() < 2e-4
+    q = by[("02 Quiet", "vocal")]
+    assert np.abs(q - 0.1 * lead).max() < 2e-4  # quiet songs are not boosted
+    assert {r.licence for r in rows} == {"CC-BY-4.0"} and {r.source for r in rows} == {"albumdb"}
+
+
+def test_new_sources_are_registered_for_build_and_dry_run():
+    for name, record in (("jacrc", 6536490), ("adovoc", 3383118), ("albumdb", 19683001)):
+        assert name in sources.FETCHERS and build.ZENODO_RECORDS[name] == record

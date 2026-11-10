@@ -15,7 +15,8 @@ from . import sources
 from .manifest import MANIFEST_NAME, audit, write_manifest
 from .splits import assign_splits
 
-ZENODO_RECORDS = {"vocalset": 1203819, "vocadito": 5578807, "slakh": 4599666}
+ZENODO_RECORDS = {"vocalset": 1203819, "vocadito": 5578807, "jacrc": 6536490, "adovoc": 3383118,
+                  "albumdb": 19683001, "slakh": 4599666}
 
 
 def build(names: list[str], out: str, work: str, budget_hours: float,

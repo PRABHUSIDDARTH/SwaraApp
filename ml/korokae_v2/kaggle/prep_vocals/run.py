@@ -1,4 +1,4 @@
-"""Kaggle notebook: prepare the vocal datasets (VocalSet, vocadito, ccMixter) — CPU, internet. Pushed by ml/korokae_v2/kaggle/kaggle_cycle.sh, which stamps COMMIT."""
+"""Kaggle notebook: prepare the vocal datasets (VocalSet, vocadito, JaCRC, AdoVoc Pro, AlbumDB, ccMixter) — CPU, internet. Pushed by ml/korokae_v2/kaggle/kaggle_cycle.sh, which stamps COMMIT."""
 import os
 import subprocess
 import sys
@@ -28,4 +28,5 @@ import torch  # noqa: E402
 print("torch", torch.__version__, "cuda", torch.cuda.is_available(), flush=True)
 from korokae_v2 import kaggle_entry  # noqa: E402
 
-kaggle_entry.prep(["vocalset", "vocadito", "ccmixter"], budget_hours=25.0)
+kaggle_entry.prep(["vocalset", "vocadito", "jacrc", "adovoc", "albumdb", "ccmixter"],
+                  budget_hours=25.0)
