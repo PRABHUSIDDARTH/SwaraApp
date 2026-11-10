@@ -19,9 +19,12 @@ class StemPool:
             raise ValueError(f"no {role} files in split {split!r}")
         self.frames = np.array([sf.info(p).frames for p in self.paths], dtype=np.int64)
         self.weights = self.frames / self.frames.sum()
+        self.root = root
+        self.last_path: str | None = None  # relative path of the most recent draw
 
     def _draw(self, rng: np.random.Generator, length: int) -> np.ndarray:
         i = rng.choice(len(self.paths), p=self.weights)
+        self.last_path = os.path.relpath(self.paths[i], self.root)
         n = int(self.frames[i])
         start = int(rng.integers(0, n - length + 1)) if n > length else 0
         with sf.SoundFile(self.paths[i]) as f:
