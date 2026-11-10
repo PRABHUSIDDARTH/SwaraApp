@@ -1,0 +1,19 @@
+{
+  "id": "prabhusiddarthav/korokae-finetune",
+  "title": "korokae-finetune",
+  "code_file": "run.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "prabhusiddarthav/korokae-ckpt",
+    "prabhusiddarthav/korokae-ckpt-ft"
+  ],
+  "kernel_sources": [
+    "prabhusiddarthav/korokae-prep-vocals",
+    "prabhusiddarthav/korokae-prep-accomp"
+  ],
+  "competition_sources": []
+}

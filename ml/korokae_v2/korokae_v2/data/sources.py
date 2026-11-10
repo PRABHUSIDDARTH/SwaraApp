@@ -1,0 +1,457 @@
+"""Licence-checked fetchers for the Plan 2 training sources (spec 3.1).
+
+Each fetch_<source>(work, out, http, budget_s) downloads from the official host, re-checks the
+licence there, converts audio to 44.1 kHz FLAC under out/audio/<source>/ and yields manifest
+Rows with paths relative to `out`. `split` is filled in later by build.py (Slakh keeps its own).
+"""
+from __future__ import annotations
+
+import csv
+import http.client
+import io
+import json
+import os
+import shutil
+import tarfile
+import time
+import urllib.request
+import zipfile
+from collections import Counter
+from typing import Any, BinaryIO, Iterator, Protocol
+
+from .manifest import Row, normalise_licence
+from .prep import PrepError, to_flac
+
+ZENODO_API = "https://zenodo.org/api/records/"
+CCMIXTER_API = "https://ccmixter.org/api/query?f=json&tags=acappella"
+CCMIXTER_PAGE = 4  # larger pages hit records whose malformed responses break HTTP parsing
+AI_TAGS = (",AI_generated,", ",AI_assisted,", ",ia_stems_generated,")
+USER_AGENT = "SwaraKorokaeDataPrep/1.0"
+SLAKH_SPLITS = {"train": "train", "validation": "val", "test": "test"}
+SLAKH_HELDOUT_BUDGET_S = 5 * 3600.0
+MAX_OUTPUT_BYTES = 18e9  # Kaggle keeps at most 20 GB of notebook output
+# ccMixter answers 403 to scripted downloads from some hosts; stop asking after this many in a row
+CCMIXTER_MAX_FAILED_DOWNLOADS = 10
+
+
+class LicenceError(RuntimeError):
+    pass
+
+
+class Http(Protocol):
+    def get_json(self, url: str) -> Any: ...
+
+    def download(self, url: str, dst: str) -> None: ...
+
+    def stream(self, url: str) -> BinaryIO: ...
+
+
+class UrllibHttp:
+    """Real network access (used on Kaggle and for the laptop --dry-run probe)."""
+
+    def _open(self, url: str, timeout: float = 120.0):
+        return urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=timeout)
+
+    def get_json(self, url: str) -> Any:
+        with self._open(url) as r:
+            body = r.read()
+        if not body.strip():
+            return []
+        return json.loads(body)
+
+    def download(self, url: str, dst: str) -> None:
+        part = dst + ".part"
+        with self._open(url, timeout=600.0) as r, open(part, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+        os.replace(part, dst)
+
+    def stream(self, url: str) -> BinaryIO:
+        return self._open(url, timeout=600.0)
+
+
+# ---------------------------------------------------------------- Zenodo sources
+
+def zenodo_record(http: Http, record_id: int) -> tuple[str, dict[str, str]]:
+    """(normalised licence, {file key: download url}); raises LicenceError if not allowed."""
+    rec = http.get_json(f"{ZENODO_API}{record_id}")
+    raw = ((rec.get("metadata") or {}).get("license") or {}).get("id", "")
+    licence = normalise_licence(raw)
+    if licence is None:
+        raise LicenceError(f"zenodo record {record_id}: licence {raw!r} is not allowed")
+    return licence, {f["key"]: f["links"]["self"] for f in rec.get("files", [])}
+
+
+def _wav_members(z: zipfile.ZipFile) -> list[str]:
+    return sorted(n for n in z.namelist()
+                  if n.lower().endswith(".wav") and not n.startswith("__MACOSX/")
+                  and not os.path.basename(n).startswith("._"))
+
+
+def _convert_member(z: zipfile.ZipFile, name: str, work: str, dst: str) -> float:
+    tmp = os.path.join(work, "member" + os.path.splitext(name)[1])
+    with z.open(name) as src, open(tmp, "wb") as f:
+        shutil.copyfileobj(src, f, 1 << 20)
+    try:
+        return to_flac(tmp, dst)
+    finally:
+        os.remove(tmp)
+
+
+def _download_zip(http: Http, url: str, work: str, name: str) -> str:
+    os.makedirs(work, exist_ok=True)
+    path = os.path.join(work, name)
+    if not os.path.exists(path):
+        http.download(url, path)
+    return path
+
+
+def fetch_vocalset(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    record = 1203819
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["VocalSet11.zip"], work, "VocalSet11.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        for name in _wav_members(z):
+            parts = name.split("/")
+            if len(parts) < 3 or parts[0] != "FULL" or total >= budget_s:
+                continue
+            rel = os.path.join("audio", "vocalset", *parts[1:])[:-4] + ".flac"
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role="vocal", source="vocalset",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Julia Wilkins et al.", licence=licence,
+                      attribution="VocalSet (Wilkins, Seetharaman, Wahl, Pardo, ISMIR 2018)",
+                      group=parts[1], split="")
+
+
+def fetch_vocadito(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    record = 5578807
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["vocadito.zip"], work, "vocadito.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        meta = z.read("vocadito_metadata.csv").decode("utf-8")
+        singer = {r["track_id"]: r["singer_id"] for r in csv.DictReader(io.StringIO(meta))}
+        for name in _wav_members(z):
+            track = os.path.basename(name)[:-4].rsplit("_", 1)[-1]
+            if track not in singer or total >= budget_s:
+                continue
+            rel = os.path.join("audio", "vocadito", os.path.basename(name)[:-4] + ".flac")
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role="vocal", source="vocadito",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Rachel M. Bittner et al.", licence=licence,
+                      attribution="vocadito (Bittner, Pasalo, Bosch, Meseguer-Brocal, Rubinstein, 2021)",
+                      group=singer[track], split="")
+
+
+def fetch_slakh(work: str, out: str, http: Http, budget_s: float,
+                max_bytes: float = MAX_OUTPUT_BYTES) -> Iterator[Row]:
+    """Streams the 104 GB archive; keeps only mix.flac, within budget_s for train and
+    min(budget_s, 5 h) each for val and test. Never stores the archive."""
+    record = 4599666
+    licence, files = zenodo_record(http, record)
+    budgets = {"train": budget_s, "val": min(budget_s, SLAKH_HELDOUT_BUDGET_S),
+               "test": min(budget_s, SLAKH_HELDOUT_BUDGET_S)}
+    used = Counter()
+    written = 0
+    os.makedirs(work, exist_ok=True)
+    with tarfile.open(fileobj=http.stream(files["slakh2100_flac_redux.tar.gz"]), mode="r|gz") as t:
+        for m in t:
+            parts = m.name.split("/")
+            if len(parts) != 4 or parts[3] != "mix.flac" or parts[1] not in SLAKH_SPLITS:
+                continue
+            split, track = SLAKH_SPLITS[parts[1]], parts[2]
+            if written >= max_bytes:
+                break
+            if used[split] >= budgets[split]:
+                if all(used[s] >= budgets[s] for s in budgets):
+                    break
+                continue
+            tmp = os.path.join(work, "slakh_mix.flac")
+            with t.extractfile(m) as src, open(tmp, "wb") as f:
+                shutil.copyfileobj(src, f, 1 << 20)
+            rel = os.path.join("audio", "slakh", split, track, "mix.flac")
+            try:
+                used[split] += to_flac(tmp, os.path.join(out, rel))
+            finally:
+                os.remove(tmp)
+            written += os.path.getsize(os.path.join(out, rel))
+            yield Row(path=rel, role="accompaniment", source="slakh2100",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Ethan Manilow et al.", licence=licence,
+                      attribution="Slakh2100 (Manilow, Wichern, Seetharaman, Le Roux, WASPAA 2019)",
+                      group=track, split=split)
+
+
+# ---------------------------------------------------------------- JaCRC, AdoVoc Pro, AlbumDB
+
+JACRC_EXCLUDED_SOURCES = {"svad", "commercial"}  # SVAD: its own licence; commercial: not shipped
+
+
+def _download_bytes(http: Http, url: str, work: str, name: str) -> bytes:
+    path = _download_zip(http, url, work, name)
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def _semicolon_csv(data: bytes) -> list[dict[str, str]]:
+    text = data.decode("utf-8-sig")
+    return [{(k or "").strip(): (v or "").strip() if isinstance(v, str) else v for k, v in r.items()}
+            for r in csv.DictReader(io.StringIO(text), delimiter=";")]
+
+
+def fetch_jacrc(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """Jingju a cappella recordings. Everything newly recorded for JaCRC is CC BY 4.0; rows whose
+    metadata source is SVAD (another dataset's licence) or commercial are left out, and so is any
+    file the metadata does not describe. Jinghu accompaniments ('<vocal>-jh.wav') follow their
+    vocal's licence and group."""
+    record = 6536490
+    licence, files = zenodo_record(http, record)
+    info = _semicolon_csv(_download_bytes(http, files["JaCRC-recordings-info.csv"], work, "info.csv"))
+    students = _semicolon_csv(_download_bytes(
+        http, files["JaCRC-students-recordings-info.csv"], work, "students.csv"))
+    group_of: dict[str, str] = {}
+    for r in info:
+        if r.get("source", "").lower() not in JACRC_EXCLUDED_SOURCES and r.get("artist"):
+            group_of[r["file name"]] = r["artist"]
+    student_group = {r["file name"]: f"students-{r['source']}" for r in students
+                     if r.get("source") and r.get("source", "").lower() not in JACRC_EXCLUDED_SOURCES}
+    zpath = _download_zip(http, files["JaCRC-recordings.zip"], work, "JaCRC-recordings.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        for name in _wav_members(z):
+            base = os.path.basename(name)
+            if "/JaCRC-accompaniment-recordings/" in name:
+                role, group = "accompaniment", group_of.get(base[:-len("-jh.wav")] + ".wav")
+            elif "/JaCRC-students-recordings/" in name:
+                role, group = "vocal", student_group.get(base)
+            else:
+                role, group = "vocal", group_of.get(base)
+            if group is None or total >= budget_s:
+                continue
+            rel = os.path.join("audio", "jacrc", base[:-4] + ".flac")
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role=role, source="jacrc",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Rong Gong, Rafael Caro, Yile Yang, Xavier Serra", licence=licence,
+                      attribution="Jingju a Cappella Recordings Collection (Gong, Caro, Yang, Serra; "
+                                  "MTG-UPF, 2022)",
+                      group=group, split="")
+
+
+ADOVOC_SINGERS = {"alba": "alba", "a": "alba", "cris": "cris", "c": "cris", "joaquin": "joaquin",
+                  "j": "joaquin"}
+
+
+def _adovoc_singer(base: str) -> str:
+    for token in base[:-4].lower().split("_")[1:]:
+        if token in ADOVOC_SINGERS:
+            return ADOVOC_SINGERS[token]
+    return "adovoc-unknown"
+
+
+def fetch_adovoc(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """Flamenco solo singing. Only the *_mono folders: the *_true files are cuts of the same
+    takes, and the performances (and 'polifonia' / '_acc' takes) carry guitar."""
+    record = 3383118
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["AdoVoc Pro.zip"], work, "AdoVoc.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        for name in _wav_members(z):
+            parts = name.split("/")
+            base = parts[-1]
+            if (len(parts) < 3 or not parts[-2].endswith("_mono") or "polifonia" in base.lower()
+                    or "_acc" in base.lower() or total >= budget_s):
+                continue
+            rel = os.path.join("audio", "adovoc", parts[-2], base[:-4] + ".flac")
+            total += _convert_member(z, name, work, os.path.join(out, rel))
+            yield Row(path=rel, role="vocal", source="adovoc",
+                      source_url=f"https://zenodo.org/records/{record}",
+                      author="Sonia Rodríguez Luque", licence=licence,
+                      attribution="AdoVoc Pro (Sonia Rodríguez Luque, Cante Flamenco Tech, 2019)",
+                      group=_adovoc_singer(base), split="")
+
+
+ALBUMDB_PEAK = 0.99
+
+
+def _read_stem(z: zipfile.ZipFile, name: str):
+    import numpy as np
+    import soundfile as sf
+    with z.open(name) as f:
+        data, sr = sf.read(io.BytesIO(f.read()), dtype="float64", always_2d=True)
+    if sr != 44100:
+        raise PrepError(f"{name}: sample rate {sr}, expected 44100")
+    return data if data.shape[1] == 2 else np.repeat(data[:, :1], 2, axis=1)
+
+
+def _add(acc, x):
+    import numpy as np
+    if acc is None:
+        return x.copy()
+    n = max(len(acc), len(x))
+    out = np.zeros((n, 2))
+    out[:len(acc)] += acc
+    out[:len(x)] += x
+    return out
+
+
+def fetch_albumdb(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]:
+    """A ten-song album with stems. Per song: all vox_* stems summed -> one vocal file, all other
+    stems summed -> one accompaniment file, both scaled by the same gain (never boosted) so that
+    vocal, accompaniment and their sum peak at most 0.99."""
+    import numpy as np
+    import soundfile as sf
+    record = 19683001
+    licence, files = zenodo_record(http, record)
+    zpath = _download_zip(http, files["stems_mixed.zip"], work, "stems_mixed.zip")
+    total = 0.0
+    with zipfile.ZipFile(zpath) as z:
+        songs: dict[str, list[str]] = {}
+        for name in _wav_members(z):
+            parts = name.split("/")
+            if len(parts) == 3:
+                songs.setdefault(parts[1], []).append(name)
+        for song in sorted(songs):
+            if total >= budget_s:
+                return
+            vocal = accomp = None
+            for name in songs[song]:
+                stem = _read_stem(z, name)
+                if os.path.basename(name).lower().startswith("vox"):
+                    vocal = _add(vocal, stem)
+                else:
+                    accomp = _add(accomp, stem)
+            if vocal is None or accomp is None:
+                continue
+            n = max(len(vocal), len(accomp))
+            vocal, accomp = _add(np.zeros((n, 2)), vocal), _add(np.zeros((n, 2)), accomp)
+            peak = max(np.abs(vocal).max(), np.abs(accomp).max(), np.abs(vocal + accomp).max())
+            gain = min(1.0, ALBUMDB_PEAK / peak) if peak > 0 else 1.0
+            for role, x in (("vocal", vocal), ("accompaniment", accomp)):
+                tmp = os.path.join(work, "albumdb_stem.wav")
+                sf.write(tmp, (x * gain).astype("float32"), 44100, subtype="FLOAT")
+                rel = os.path.join("audio", "albumdb", song, f"{role}.flac")
+                try:
+                    seconds = to_flac(tmp, os.path.join(out, rel))
+                finally:
+                    os.remove(tmp)
+                if role == "vocal":
+                    total += seconds
+                yield Row(path=rel, role=role, source="albumdb",
+                          source_url=f"https://zenodo.org/records/{record}",
+                          author="Thomas McKenzie, Eloi Moliner, Alec Wright", licence=licence,
+                          attribution=f"\"{song}\" from the album \"Extraordinary\" by Tom McKenzie, "
+                                      "AlbumDB (McKenzie, Moliner, Wright, AES 2026)",
+                          group=song, split="")
+
+
+# ---------------------------------------------------------------- ccMixter
+
+def ccmixter_page_url(offset: int, limit: int = CCMIXTER_PAGE) -> str:
+    return f"{CCMIXTER_API}&limit={limit}&offset={offset}"
+
+
+def ccmixter_reason(rec: dict) -> str:
+    """'accepted', 'licence', 'ai_tag' (AI tags win: never ours to learn from) or 'fetch_error'."""
+    if "_error" in rec:
+        return "fetch_error"
+    tags = "," + (rec.get("upload_tags") or "").strip(",") + ","
+    if any(t.lower() in tags.lower() for t in AI_TAGS):
+        return "ai_tag"
+    if normalise_licence(rec.get("license_url", "")) is None:
+        return "licence"
+    return "accepted"
+
+
+def ccmixter_reasons(records: list[dict]) -> dict[str, int]:
+    return dict(Counter(ccmixter_reason(r) for r in records))
+
+
+def _get_with_retries(http: Http, url: str, pause: float, retries: int) -> Any:
+    for attempt in range(retries + 1):
+        try:
+            return http.get_json(url)
+        except (OSError, http_client_errors, ValueError):
+            if attempt == retries:
+                raise
+            time.sleep(pause * 2 ** attempt)
+
+
+http_client_errors = http.client.HTTPException
+
+
+def ccmixter_records(http: Http, pause: float = 1.0, retries: int = 3) -> Iterator[dict]:
+    """All a cappella records, paged politely; ends after 3 consecutive empty pages.
+
+    A page that keeps failing is re-fetched one record at a time; a record that still fails is
+    yielded as {"_error": offset} so the dry run can count it.
+    """
+    offset, empties = 0, 0
+    while empties < 3:
+        try:
+            page = _get_with_retries(http, ccmixter_page_url(offset), pause, retries)
+        except (OSError, http_client_errors, ValueError):
+            page = []
+            for i in range(offset, offset + CCMIXTER_PAGE):
+                try:
+                    page += _get_with_retries(http, ccmixter_page_url(i, limit=1), pause, 1) or []
+                except (OSError, http_client_errors, ValueError):
+                    page.append({"_error": i})
+        empties = empties + 1 if not page else 0
+        yield from page or []
+        offset += CCMIXTER_PAGE
+        time.sleep(pause)
+
+
+def _ccmixter_file(rec: dict) -> dict | None:
+    files = rec.get("files") or []
+    for ext in ("flac", "wav", "mp3"):
+        for f in files:
+            if (f.get("file_format_info") or {}).get("default-ext") == ext:
+                return f
+    return None
+
+
+def fetch_ccmixter(work: str, out: str, http: Http, budget_s: float,
+                   pause: float = 1.0, max_bytes: float = MAX_OUTPUT_BYTES) -> Iterator[Row]:
+    os.makedirs(work, exist_ok=True)
+    total, written, failed_in_row, failed = 0.0, 0, 0, 0
+    for rec in ccmixter_records(http, pause):
+        if total >= budget_s or written >= max_bytes:
+            break
+        f = _ccmixter_file(rec)
+        if ccmixter_reason(rec) != "accepted" or f is None:
+            continue
+        ext = f["file_format_info"]["default-ext"]
+        tmp = os.path.join(work, f"ccmixter.{ext}")
+        try:
+            http.download(f["download_url"], tmp)
+        except (OSError, http_client_errors) as e:  # urllib's HTTPError is an OSError
+            failed, failed_in_row = failed + 1, failed_in_row + 1
+            print(f"ccmixter: download failed ({e}): {f['download_url']}", flush=True)
+            if failed_in_row >= CCMIXTER_MAX_FAILED_DOWNLOADS:
+                print(f"ccmixter: giving up after {failed_in_row} failed downloads in a row",
+                      flush=True)
+                break
+            continue
+        failed_in_row = 0
+        rel = os.path.join("audio", "ccmixter", rec["user_name"], f"{rec['upload_id']}.flac")
+        try:
+            total += to_flac(tmp, os.path.join(out, rel))
+        finally:
+            os.remove(tmp)
+        written += os.path.getsize(os.path.join(out, rel))
+        yield Row(path=rel, role="vocal", source="ccmixter", source_url=rec["license_url"],
+                  author=rec["user_name"], licence=normalise_licence(rec["license_url"]),
+                  attribution=f"\"{rec['upload_name']}\" by {rec['user_name']} "
+                              f"({rec.get('file_page_url', 'ccMixter')})",
+                  group=rec["user_name"], split="")
+
+
+FETCHERS = {"vocalset": fetch_vocalset, "vocadito": fetch_vocadito, "jacrc": fetch_jacrc,
+            "adovoc": fetch_adovoc, "albumdb": fetch_albumdb, "ccmixter": fetch_ccmixter,
+            "slakh": fetch_slakh}

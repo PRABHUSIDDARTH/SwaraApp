@@ -39,9 +39,9 @@ def band_edges() -> list[tuple[int, int]]:
     return [(bins[i], bins[i + 1]) for i in range(len(bins) - 1)]
 
 
-def window() -> torch.Tensor:
+def window(device: torch.device | str | None = None) -> torch.Tensor:
     n = torch.arange(N_FFT, dtype=torch.float64)
-    return torch.sqrt(0.5 - 0.5 * torch.cos(2 * math.pi * n / N_FFT)).float()
+    return torch.sqrt(0.5 - 0.5 * torch.cos(2 * math.pi * n / N_FFT)).float().to(device)
 
 
 def frame_count(length: int) -> int:
@@ -59,7 +59,7 @@ def stft(x: torch.Tensor) -> torch.Tensor:
     frames = frame_count(length)
     lp = _padded_length(frames)
     xp = torch.nn.functional.pad(x, (PAD, lp - PAD - length))
-    seg = xp.unfold(-1, N_FFT, HOP) * window()  # [C, T, N_FFT]
+    seg = xp.unfold(-1, N_FFT, HOP) * window(x.device)  # [C, T, N_FFT]
     return torch.fft.rfft(seg, dim=-1).transpose(-1, -2)  # [C, BINS, T]
 
 
@@ -67,7 +67,7 @@ def istft(spec: torch.Tensor, length: int) -> torch.Tensor:
     """spec: complex [C, BINS, T] -> [C, length]."""
     frames = spec.shape[-1]
     lp = _padded_length(frames)
-    seg = torch.fft.irfft(spec.transpose(-1, -2), n=N_FFT, dim=-1) * window()  # [C, T, N_FFT]
+    seg = torch.fft.irfft(spec.transpose(-1, -2), n=N_FFT, dim=-1) * window(spec.device)  # [C, T, N_FFT]
     c = seg.shape[0]
     out = torch.nn.functional.fold(
         seg.transpose(1, 2),  # [C, N_FFT, T]

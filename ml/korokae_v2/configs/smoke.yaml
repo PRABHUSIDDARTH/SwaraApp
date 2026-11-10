@@ -1,0 +1,21 @@
+# Laptop smoke test (spec 5, stage 1): tiny model on CPU, minutes.
+base: base.yaml
+model: {n_blocks: 1, d: 16, heads: 2}
+device: cpu
+segment: 44100
+batch: 2
+accum: 1
+lr: 0.003
+betas: [0.9, 0.999]
+weight_decay: 0.01
+grad_clip: 5.0
+warmup: 2
+total_steps: 20
+amp: false
+ckpt_every_minutes: 30
+keep_last: 3
+val_every: 10
+log_every: 1
+workers: 0
+seed: 0
+augment: {}
