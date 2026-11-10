@@ -35,3 +35,12 @@ __pycache__/
 keystore.properties
 *.jks
 *.keystore
+
+# Korokae v2 ML: local env, datasets, checkpoints, build outputs, generated test models
+ml/korokae_v2/.venv/
+ml/korokae_v2/data/
+ml/korokae_v2/checkpoints/
+ml/korokae_v2/out/
+app/src/androidTest/assets/korokae_v2_*
+# Plan-execution scratch workspace
+.superpowers/

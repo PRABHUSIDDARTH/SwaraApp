@@ -71,6 +71,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    // Korokae v2: ONNX models are memory-mapped/copied as-is; never compress them in the APK
+    androidResources {
+        noCompress 'onnx'
+    }
 }
 
 dependencies {
@@ -91,6 +95,9 @@ dependencies {
     // Navigation Component (pure Java)
     implementation libs.navigation.fragment
     implementation libs.navigation.ui
+
+    // Korokae v2: ONNX Runtime (MIT) executes our own vocal-removal model on device
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.31.1'
 
     // Media3 / ExoPlayer
     implementation libs.media3.exoplayer

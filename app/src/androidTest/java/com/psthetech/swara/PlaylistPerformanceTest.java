@@ -52,7 +52,7 @@ public class PlaylistPerformanceTest {
 
         List<Song> songs = new ArrayList<>();
         for (int i = 0; i < 500; i++) {
-            songs.add(new Song(i, "Title " + i, "Artist " + i, "Album " + i, 0, 1000));
+            songs.add(new Song(i, "Title " + i, "Artist " + i, "Album " + i, 0, 1000, 0, 0, 0));
         }
 
         // We run the loop how PlaylistRepository does it currently
