@@ -1,0 +1,15 @@
+# KorokaeNet v2 size fixed by the S21+ speed gate (Plan 1, Task 7). Read by Plans 2 and 3.
+# 3,204,944 params; ONNX 13.0 MB (float32).
+# S21+ (SM-G996B), 4-minute song: 51145 ms, peak 378 MB (limits 60000 ms / 500 MB).
+model:
+  arch: band_split_transformer
+  n_bands: 23
+  n_blocks: 4
+  d: 96
+  heads: 4
+  ffn: 2
+  head_expansion: 2
+  time_stride: 2
+runtime:
+  threads: 4          # 6 threads measured slower (57959 ms): the extra cores are the small ones
+  cpu_arena: false    # arena on: 43049 ms but 545 MB peak

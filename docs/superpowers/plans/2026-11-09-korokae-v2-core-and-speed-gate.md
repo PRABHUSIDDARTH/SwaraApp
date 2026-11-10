@@ -358,6 +358,13 @@ def test_parity_fixture_layout(tmp_path):
 
 - [ ] **Step 6: Commit:** `feat(korokae-v2): ONNX Runtime mask model with on-device parity test`
 
+> **Revision 2026-11-10 (Task 7 outcome):** every BS-RNN rung failed the speed gate (see
+> `ml/korokae_v2/README.md`); the owner chose attention. Task 2's model is replaced by the
+> band-split transformer (spec section 4), exported as `korokae_v2_4_96.onnx`, run with the
+> ONNX Runtime CPU arena off. `configs/base.yaml` records `n_blocks`, `d`, `heads`, `ffn`,
+> `head_expansion`, `threads` instead of `hidden`. Device tests run via `adb install -r` and
+> `am instrument`, because `connectedDebugAndroidTest` uninstalls the app (wiping user data).
+
 ### Task 7: Speed gate and model size decision
 
 **Files:**

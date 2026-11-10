@@ -8,7 +8,7 @@ def test_band_edges_cover_all_bins_contiguously():
     assert e[0][0] == 0 and e[-1][1] == BINS
     assert all(a[1] == b[0] for a, b in zip(e, e[1:]))
     assert all(hi > lo for lo, hi in e)
-    assert len(e) == 39  # 10 + 12 + 8 + 8 + 1
+    assert len(e) == 23  # 10 + 6 + 4 + 2 + 1
 
 
 def test_stft_istft_round_trip():

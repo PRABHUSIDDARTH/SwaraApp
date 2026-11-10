@@ -26,7 +26,7 @@ OVERLAP = SR  # 44100
 OLA_GAIN = 2.0  # sum over frames of the Hann window at hop N_FFT / 4
 
 # (upper edge in Hz, band width in Hz); the last band takes the remainder up to Nyquist.
-_BAND_PLAN = ((1000, 100), (4000, 250), (8000, 500), (16000, 1000))
+_BAND_PLAN = ((1000, 100), (4000, 500), (8000, 1000), (16000, 4000))  # 23 bands
 
 
 def band_edges() -> list[tuple[int, int]]:

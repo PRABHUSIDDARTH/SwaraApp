@@ -113,23 +113,29 @@ stored, so v1 and v2 are scored on identical audio.
 20–30 songs chosen with the owner (male, female, duets, dense and sparse arrangements). Used only
 for the blind listening test (section 6.2). They stay on the laptop and phone.
 
-## 4. Model: KorokaeNet v2 (band-split RNN)
+## 4. Model: KorokaeNet v2 (band-split transformer)
+
+> Revised 2026-11-10 after the S21+ speed gate: the band-split RNN took 595 s (8x256) and 186 s
+> (6x128) for a 4-minute song against the 60 s limit. The owner chose attention; the network is
+> sized to the phone's measured compute budget (~1 MMAC per band-frame cell).
 
 - **Input:** stereo 44.1 kHz. STFT with a Hann window, N_FFT 2048, hop 512. Per frame and band,
   the real and imaginary parts of L and R form the band's input.
-- **Band split:** ~41 bands, 100 Hz wide below 1 kHz, 250 Hz up to 4 kHz, 500 Hz up to 8 kHz,
-  1 kHz up to 16 kHz, then the remainder as one band. Each band: LayerNorm then Linear to D = 128.
-- **Sequence modelling:** 8–12 blocks, each a residual bidirectional LSTM across time (per band)
-  followed by a residual bidirectional LSTM across bands (per frame); hidden size 256.
-  About 15–25M parameters; the exact size is fixed by the speed check (section 7).
-- **Mask estimation:** a per-band MLP outputs a complex ratio mask for L and R. Vocals =
+- **Band split:** 23 bands, 100 Hz wide below 1 kHz, 500 Hz up to 4 kHz, 1 kHz up to 8 kHz,
+  4 kHz up to 16 kHz, then the remainder as one band. Each band: LayerNorm then Linear to D = 96,
+  plus a learned band embedding.
+- **Sequence modelling:** 4 blocks. Each block runs pre-norm self-attention with rotary position
+  embedding across time (per band) at half the frame rate (strided conv down, transposed conv
+  up, residual), then self-attention across bands (per frame); 4 heads, feed-forward width 2D.
+  About 3.2M parameters (13 MB float32); the size is fixed by the speed check (section 7).
+- **Mask estimation:** a per-band MLP (expansion 2) outputs a complex ratio mask for L and R. Vocals =
   mask × mixture STFT; instrumental = mixture − vocals, so the stems always sum to the mix.
 - **Loss:** waveform L1 plus multi-resolution STFT magnitude L1 (FFT sizes 512, 1024, 2048), on
   both the vocals and the instrumental.
 - **Inference on a full song:** 8 s windows with 1 s overlap and a linear crossfade, so memory is
   constant for any song length.
 - **Export:** the STFT and iSTFT run in Java on the phone. The ONNX graph contains only the
-  network (complex spectrogram in, complex mask out), opset 17, float16 weights (~30–50 MB).
+  network (complex spectrogram in, complex mask out), opset 17, float32 weights (~13 MB).
 
 ## 5. Training on Kaggle
 

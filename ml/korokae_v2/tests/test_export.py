@@ -10,7 +10,7 @@ from korokae_v2.model import KorokaeNetV2
 
 def test_onnx_matches_torch(tmp_path):
     torch.manual_seed(0)
-    m = KorokaeNetV2(n_blocks=2, hidden=64, d=32).eval()
+    m = KorokaeNetV2(n_blocks=2, d=32, heads=2).eval()
     p = tmp_path / "m.onnx"
     export_onnx(m, str(p))
     x = torch.randn(1, 4, 1025, 37)
@@ -22,7 +22,7 @@ def test_onnx_matches_torch(tmp_path):
 
 
 def test_parity_fixture_layout(tmp_path):
-    m = KorokaeNetV2(n_blocks=1, hidden=32, d=16).eval()
+    m = KorokaeNetV2(n_blocks=1, d=16, heads=2).eval()
     p = tmp_path / "f.bin"
     write_parity_fixture(m, str(p), seconds=2.0)
     b = p.read_bytes()

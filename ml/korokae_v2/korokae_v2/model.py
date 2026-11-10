@@ -1,13 +1,16 @@
-"""KorokaeNet v2: band-split RNN predicting a complex stereo vocal mask.
+"""KorokaeNet v2: band-split transformer predicting a complex stereo vocal mask.
 
 Input  spec [B, 4, BINS, T] = (L.re, L.im, R.re, R.im) of the mixture STFT.
 Output mask [B, 4, BINS, T] = complex vocal mask per channel, same channel order.
 The instrumental is X - M*X (see dsp.apply_mask).
 
-Layout: band split (39 bands, dsp.band_edges) -> n_blocks x [BiLSTM across time per band,
-BiLSTM across bands per frame], each residual -> per-band MLP mask head with GLU.
-Mask-head expansion factor is 4 (4*d hidden units); the default config (8 blocks, hidden 256,
-d 128) has ~21M parameters.
+Layout: band split (23 bands, dsp.band_edges) + learned band embedding -> n_blocks x
+[time attention per band at half the frame rate (strided conv down, rotary self-attention,
+transposed conv up, residual), band attention per frame] -> per-band MLP mask head with GLU.
+
+Sized for the S21+ speed gate (4-minute song in <= 60 s): the phone sustains roughly
+10-20 GMAC/s, so the whole network must stay near 1 MMAC per (band, frame) cell. The default
+config (4 blocks, d 96) is ~3.3M parameters and ~13 GMAC per 8 s window.
 """
 from __future__ import annotations
 
@@ -16,49 +19,80 @@ from torch import nn
 
 from .dsp import band_edges
 
-MASK_EXPANSION = 4
 
+class _Rotary(nn.Module):
+    """Rotary position embedding over the sequence axis of [N, H, S, dh]."""
 
-class _ResidualBiLSTM(nn.Module):
-    def __init__(self, d: int, hidden: int):
+    def __init__(self, dim: int):
         super().__init__()
-        self.norm = nn.LayerNorm(d)
-        self.rnn = nn.LSTM(d, hidden, batch_first=True, bidirectional=True)
-        self.proj = nn.Linear(2 * hidden, d)
+        self.register_buffer("inv", 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim)),
+                             persistent=False)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # [N, S, d]
-        y, _ = self.rnn(self.norm(x))
-        return x + self.proj(y)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pos = torch.arange(x.shape[-2], dtype=torch.float32, device=x.device)
+        f = pos[:, None] * self.inv[None, :]  # [S, dh/2]
+        cos, sin = f.cos(), f.sin()
+        x1, x2 = x[..., 0::2], x[..., 1::2]
+        return torch.stack([x1 * cos - x2 * sin, x1 * sin + x2 * cos], dim=-1).flatten(-2)
+
+
+class _Layer(nn.Module):
+    """Pre-norm transformer layer on [N, S, d]."""
+
+    def __init__(self, d: int, heads: int, ffn: int, rotary: bool):
+        super().__init__()
+        self.heads = heads
+        self.norm1 = nn.LayerNorm(d)
+        self.qkv = nn.Linear(d, 3 * d)
+        self.out = nn.Linear(d, d)
+        self.norm2 = nn.LayerNorm(d)
+        self.ff = nn.Sequential(nn.Linear(d, ffn * d), nn.GELU(), nn.Linear(ffn * d, d))
+        self.rotary = _Rotary(d // heads) if rotary else None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        n, s, d = x.shape
+        dh = d // self.heads
+        q, k, v = self.qkv(self.norm1(x)).reshape(n, s, 3, self.heads, dh).permute(2, 0, 3, 1, 4)
+        if self.rotary is not None:
+            q, k = self.rotary(q), self.rotary(k)
+        a = torch.softmax(q @ k.transpose(-1, -2) * dh ** -0.5, dim=-1) @ v  # [N, H, S, dh]
+        x = x + self.out(a.transpose(1, 2).reshape(n, s, d))
+        return x + self.ff(self.norm2(x))
 
 
 class _Block(nn.Module):
-    def __init__(self, d: int, hidden: int):
+    def __init__(self, d: int, heads: int, ffn: int):
         super().__init__()
-        self.time = _ResidualBiLSTM(d, hidden)
-        self.band = _ResidualBiLSTM(d, hidden)
+        self.down = nn.Conv1d(d, d, kernel_size=3, stride=2, padding=1)  # T -> ceil(T / 2)
+        self.time = _Layer(d, heads, ffn, rotary=True)
+        self.up = nn.ConvTranspose1d(d, d, kernel_size=2, stride=2)  # -> 2 * ceil(T / 2)
+        self.band = _Layer(d, heads, ffn, rotary=False)
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:  # [B, K, T, d]
         b, k, t, d = z.shape
-        z = self.time(z.reshape(b * k, t, d)).reshape(b, k, t, d)
-        z = z.transpose(1, 2).reshape(b * t, k, d)
-        z = self.band(z).reshape(b, t, k, d).transpose(1, 2)
-        return z
+        h = self.down(z.reshape(b * k, t, d).transpose(1, 2)).transpose(1, 2)
+        h = self.up(self.time(h).transpose(1, 2))[:, :, :t].transpose(1, 2)
+        z = z + h.reshape(b, k, t, d)
+        z = self.band(z.transpose(1, 2).reshape(b * t, k, d))
+        return z.reshape(b, t, k, d).transpose(1, 2)
 
 
 class KorokaeNetV2(nn.Module):
-    def __init__(self, n_blocks: int = 8, hidden: int = 256, d: int = 128):
+    def __init__(self, n_blocks: int = 4, d: int = 96, heads: int = 4, ffn: int = 2,
+                 head_expansion: int = 2):
         super().__init__()
         self.edges = band_edges()
         widths = [hi - lo for lo, hi in self.edges]
         self.split = nn.ModuleList(
             nn.Sequential(nn.LayerNorm(4 * w), nn.Linear(4 * w, d)) for w in widths)
-        self.blocks = nn.ModuleList(_Block(d, hidden) for _ in range(n_blocks))
+        self.band_emb = nn.Parameter(torch.randn(len(widths), d) * 0.02)
+        self.blocks = nn.ModuleList(_Block(d, heads, ffn) for _ in range(n_blocks))
         self.heads = nn.ModuleList(
             nn.Sequential(
                 nn.LayerNorm(d),
-                nn.Linear(d, MASK_EXPANSION * d),
+                nn.Linear(d, head_expansion * d),
                 nn.Tanh(),
-                nn.Linear(MASK_EXPANSION * d, 2 * 4 * w),
+                nn.Linear(head_expansion * d, 2 * 4 * w),
                 nn.GLU(dim=-1),
             )
             for w in widths)
@@ -69,7 +103,7 @@ class KorokaeNetV2(nn.Module):
         for (lo, hi), split in zip(self.edges, self.split):
             x = spec[:, :, lo:hi, :].permute(0, 3, 1, 2).reshape(b, t, 4 * (hi - lo))
             bands.append(split(x))
-        z = torch.stack(bands, dim=1)  # [B, K, T, d]
+        z = torch.stack(bands, dim=1) + self.band_emb[None, :, None, :]  # [B, K, T, d]
         for block in self.blocks:
             z = block(z)
         masks = []

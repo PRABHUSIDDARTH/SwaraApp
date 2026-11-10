@@ -16,8 +16,8 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class KorokaeV2ParityTest {
 
-    private static final String MODEL = "korokae_v2_8_256.onnx";
-    private static final String FIXTURE = "korokae_v2_8_256_parity.bin";
+    private static final String MODEL = "korokae_v2_4_96.onnx";
+    private static final String FIXTURE = "korokae_v2_4_96_parity.bin";
 
     @Test
     public void parityWithPyTorch() throws Exception {

@@ -23,12 +23,16 @@ public final class OnnxMaskModel implements MaskModel {
         this.session = session;
     }
 
-    /** Opens {@code modelFile} with {@code threads} intra-op threads and full graph optimisation. */
+    /** Opens {@code modelFile} with {@code threads} intra-op threads, full graph optimisation, no arena. */
     public static OnnxMaskModel open(File modelFile, int threads) throws OrtException {
         OrtEnvironment env = OrtEnvironment.getEnvironment();
         try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions()) {
             opts.setIntraOpNumThreads(threads);
             opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
+            // The arena keeps every peak-sized block for the session's lifetime; without it the
+            // per-window intermediates are freed after each run (speed gate: 545 -> see README).
+            opts.setCPUArenaAllocator(false);
+            opts.setMemoryPatternOptimization(false);
             return new OnnxMaskModel(env, env.createSession(modelFile.getAbsolutePath(), opts));
         }
     }
