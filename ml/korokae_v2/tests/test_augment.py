@@ -3,7 +3,7 @@ import math
 import torch
 
 from korokae_v2.augment import (AugmentConfig, make_ir, master_gain, mix_batch, pan_width,
-                                random_eq, reverb, varispeed)
+                                random_eq, reverb, smooth_size, varispeed)
 
 SR = 44100
 OFF = dict(p_varispeed=0.0, p_reverb=0.0, p_eq=0.0, p_master=0.0, width=(1.0, 1.0), pan=(0.0, 0.0))
@@ -85,3 +85,44 @@ def test_deterministic_for_generator_seed():
     r1 = mix_batch(v, a, AugmentConfig(), _gen(9))
     r2 = mix_batch(v, a, AugmentConfig(), _gen(9))
     assert all(torch.equal(x, y) for x, y in zip(r1, r2))
+
+
+def _is_7_smooth(n):
+    for p in (2, 3, 5, 7):
+        while n % p == 0:
+            n //= p
+    return n == 1
+
+
+def test_smooth_size_nearest_and_at_least():
+    assert smooth_size(264600) == 264600 and smooth_size(264600, at_least=True) == 264600
+    for n in (264601, 280211, 249757, 300007):
+        up, near = smooth_size(n, at_least=True), smooth_size(n)
+        assert _is_7_smooth(up) and up >= n and all(not _is_7_smooth(k) for k in range(n, up))
+        assert _is_7_smooth(near) and abs(near - n) <= abs(up - n)
+        assert abs(near - n) / n < 0.01
+
+
+def test_augmentation_ffts_use_few_smooth_sizes(monkeypatch):
+    """Random FFT sizes each cost a cuFFT plan (~25 MB on a T4); 560 of them filled the GPU."""
+    seen = set()
+    real_rfft, real_irfft = torch.fft.rfft, torch.fft.irfft
+
+    def rfft(x, n=None, **kw):
+        seen.add(n if n is not None else x.shape[-1])
+        return real_rfft(x, n=n, **kw)
+
+    def irfft(x, n=None, **kw):
+        seen.add(n)
+        return real_irfft(x, n=n, **kw)
+
+    monkeypatch.setattr(torch.fft, "rfft", rfft)
+    monkeypatch.setattr(torch.fft, "irfft", irfft)
+    gen = _gen(3)
+    x = torch.randn(1, 2, 26460)
+    for _ in range(300):
+        varispeed(x, float(torch.empty(1).uniform_(-2, 2, generator=gen)))
+    for _ in range(40):
+        reverb(x, make_ir(float(torch.empty(1).uniform_(0.2, 1.2, generator=gen)), gen))
+    assert all(_is_7_smooth(n) for n in seen), sorted(n for n in seen if not _is_7_smooth(n))[:5]
+    assert len(seen) < 100  # vs one size per clip before; ~150 at the 6 s training segment

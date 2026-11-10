@@ -42,10 +42,32 @@ def _p(gen: torch.Generator, n: int, p: float) -> torch.Tensor:
     return torch.rand(n, generator=gen) < p
 
 
+def _smooth(n: int) -> bool:
+    for p in (2, 3, 5, 7):
+        while n % p == 0:
+            n //= p
+    return n == 1
+
+
+def smooth_size(n: int, at_least: bool = False) -> int:
+    """Nearest FFT length with prime factors 2, 3, 5, 7 only (or the smallest one >= n).
+
+    Every distinct FFT length costs a cached cuFFT plan, and lengths with large prime factors
+    take ~25 MB of GPU memory each: random lengths filled a T4 after ~560 plans
+    (CUFFT_INTERNAL_ERROR / CUFFT_ALLOC_FAILED). Smooth lengths are few and cheap.
+    """
+    for d in range(n):
+        if _smooth(n + d):
+            return n + d
+        if not at_least and n - d > 1 and _smooth(n - d):
+            return n - d
+    return n
+
+
 def varispeed(x: torch.Tensor, semitones: float) -> torch.Tensor:
     """Resample [..., L] so pitch moves by `semitones` (tempo moves with it); crop/pad to L."""
     length = x.shape[-1]
-    m = max(2, round(length / 2 ** (semitones / 12)))
+    m = smooth_size(max(2, round(length / 2 ** (semitones / 12))))
     spec = torch.fft.rfft(x.double(), n=length)
     bins = m // 2 + 1
     out_spec = torch.zeros(*spec.shape[:-1], bins, dtype=spec.dtype, device=x.device)
@@ -74,7 +96,7 @@ def make_ir(rt60: float, gen: torch.Generator, sr: int = SR) -> torch.Tensor:
 def reverb(x: torch.Tensor, ir: torch.Tensor) -> torch.Tensor:
     """x [B, 2, L] convolved per channel with ir [2, n] via FFT, cropped to L."""
     length = x.shape[-1]
-    n = length + ir.shape[-1] - 1
+    n = smooth_size(length + ir.shape[-1] - 1, at_least=True)
     y = torch.fft.irfft(torch.fft.rfft(x.double(), n=n) * torch.fft.rfft(ir.double().to(x.device), n=n), n=n)
     return y[..., :length].to(x.dtype)
 
