@@ -60,6 +60,10 @@ rate (strided conv down, transposed conv up) to stay inside it.
 - `python -m korokae_v2.data.manifest audit --root DIR` re-checks every file and licence.
 - `python -m korokae_v2.data.credits --manifest M --out F` writes the in-app credits text.
 
+Live dry run (2026-11-10):
+- **Zenodo:** the record pages of VocalSet, vocadito and Slakh all show `cc-by-4.0`.
+- **ccMixter:** 5984 a cappella records. 1414 were accepted, from 288 singers. 4544 were rejected for their licence (NC/SA/ND) and 10 for AI tags. 16 records could not be fetched.
+
 ccMixter quirks: the API ignores its `license=` filter, so licences are checked per record. Pages
 larger than a few records sometimes come back malformed, so the fetcher reads 4 records at a time
 and falls back to single records.
