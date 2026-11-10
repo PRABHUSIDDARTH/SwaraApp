@@ -470,7 +470,11 @@ def test_evaluate_runs_end_to_end_on_tiny_rendered_set(tmp_path): ...
 - [ ] **Step 3: Implement** the files and the README runbook: one-time Kaggle setup, data prep, the weekly training cycle and reading `log.jsonl`.
 - [ ] **Step 4: Run** `.venv/bin/pytest -q`. Expected: all pass.
 - [ ] **Step 5: Commit** `feat(korokae-v2): Kaggle data-prep and training notebooks with session cycle`
-- [ ] **Step 6: Owner step.** The owner installs the Kaggle CLI token at `~/.kaggle/kaggle.json` (Kaggle → Settings → API) and phone-verifies the account (needed for GPU and internet).
+- [x] **Step 6: Owner step.**
+  - The Kaggle API token (new `KGAT_` format) is stored at `~/.kaggle/access_token` (mode 600).
+  - Kaggle CLI 2.2.5 is installed in `ml/korokae_v2/.venv`. It needs `six`, which it doesn't declare, so add `kaggle` and `six` to `requirements.txt` in Step 3.
+  - The account is `prabhusiddarthav`, which is the owner of the private datasets and kernels.
+  - Still open: phone verification for GPU and internet. Confirm it on the account page before Step 7.
 - [ ] **Step 7: Push the code and run data prep.**
   1. Push the branch so the commit is cloneable, then push both prep kernels.
   2. Expected: both complete.
