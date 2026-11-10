@@ -96,7 +96,8 @@ session() {  # <train|finetune> <commit> [--fresh] [--minutes N]
       wait_dataset_ready "$dataset"
       grep '"val_inst_sdr"' "$W/ds/log.jsonl" | tail -1 || echo "(no validation yet)"
       ;;
-    *404*|*"not found"*)
+    # CLI 2.2.5 reports a never-created notebook as "Permission 'kernels.get' was denied"
+    *404*|*"not found"*|*"permission 'kernels.get' was denied"*)
       [ "$fresh" = True ] || die "no previous $kernel session: start the first one with --fresh"
       echo "starting the first $kernel session"
       ;;

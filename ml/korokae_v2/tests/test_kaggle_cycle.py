@@ -14,6 +14,8 @@ echo "$*" >> "$FAKE_LOG"
 case "$1 $2" in
   "kernels status")
     if [ "$FAKE_STATUS" = "missing" ]; then echo "404 Client Error: Not Found for url"; exit 1; fi
+    if [ "$FAKE_STATUS" = "denied" ]; then
+      echo "Cannot access kernel '$3' (Permission 'kernels.get' was denied). The most likely cause is a wrong kernel slug."; exit 1; fi
     echo "$3 has status \"KernelWorkerStatus.$FAKE_STATUS\"" ;;
   "kernels output")
     d="${@: -1}"; mkdir -p "$d/ckpt"
@@ -64,6 +66,15 @@ def test_first_session_needs_explicit_fresh(fake):
     p, _, pushed = fake("train", COMMIT, status="missing")
     assert p.returncode != 0 and pushed is None
     p, calls, pushed = fake("train", COMMIT, "--fresh", status="missing")
+    assert p.returncode == 0, p.stderr
+    assert _const(pushed, "FRESH") == "True" and "datasets version" not in calls
+
+
+def test_never_created_kernel_reported_as_denied_counts_as_missing(fake):
+    # Kaggle CLI 2.2.5 answers a status query for a notebook that does not exist yet like this
+    p, _, pushed = fake("train", COMMIT, status="denied")
+    assert p.returncode != 0 and pushed is None
+    p, calls, pushed = fake("train", COMMIT, "--fresh", status="denied")
     assert p.returncode == 0, p.stderr
     assert _const(pushed, "FRESH") == "True" and "datasets version" not in calls
 
