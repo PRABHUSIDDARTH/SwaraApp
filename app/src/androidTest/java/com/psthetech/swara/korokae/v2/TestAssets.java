@@ -19,10 +19,14 @@ final class TestAssets {
     private TestAssets() {
     }
 
-    /** Copies an androidTest asset into the app's cache dir and returns the file. */
+    /**
+     * Copies an androidTest asset into the app's cache dir and returns the file. A cached copy is
+     * reused only when its size matches the asset: {@code adb install -r} keeps the cache dir, so
+     * a re-exported model under the same name must replace the old one.
+     */
     static File copyToCache(Context appContext, String assetName) throws IOException {
         File out = new File(appContext.getCacheDir(), assetName);
-        if (out.exists()) return out;
+        if (out.exists() && out.length() == assetLength(assetName)) return out;
         File tmp = new File(appContext.getCacheDir(), assetName + ".tmp");
         try (InputStream in = testAssets().open(assetName);
              OutputStream os = new FileOutputStream(tmp)) {
@@ -32,6 +36,13 @@ final class TestAssets {
         }
         if (!tmp.renameTo(out)) throw new IOException("rename failed: " + out);
         return out;
+    }
+
+    /** Length of an uncompressed androidTest asset ({@code .onnx} is stored with noCompress). */
+    private static long assetLength(String assetName) throws IOException {
+        try (android.content.res.AssetFileDescriptor fd = testAssets().openFd(assetName)) {
+            return fd.getLength();
+        }
     }
 
     /** Reads a KRP2 parity fixture: returns {input, expected}, both interleaved stereo. */

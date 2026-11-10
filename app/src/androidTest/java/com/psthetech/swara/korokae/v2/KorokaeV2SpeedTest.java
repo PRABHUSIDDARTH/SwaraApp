@@ -36,6 +36,7 @@ public class KorokaeV2SpeedTest {
         Context app = InstrumentationRegistry.getInstrumentation().getTargetContext();
         File model = TestAssets.copyToCache(app, modelName);
 
+        long baseKb = rssKb("VmRSS:");
         int frames = KorokaeV2Engine.SAMPLE_RATE * SECONDS;
         float[] audio = new float[frames * 2];
         Random r = new Random(42);
@@ -46,6 +47,8 @@ public class KorokaeV2SpeedTest {
             audio[2 * i + 1] = (float) (tone * 0.8 + 0.05 * r.nextGaussian());
         }
 
+        Log.i("KorokaeV2", "rss baseMB=" + baseKb / 1024 + " withAudioMB=" + rssKb("VmRSS:") / 1024);
+        resetPeakRss();
         AtomicLong peak = new AtomicLong();
         AtomicBoolean running = new AtomicBoolean(true);
         Thread sampler = new Thread(() -> {
@@ -67,10 +70,36 @@ public class KorokaeV2SpeedTest {
             running.set(false);
             sampler.join();
         }
-        long peakMb = peak.get() / (1024 * 1024);
+        long sampledMb = peak.get() / (1024 * 1024);
+        // VmHWM: the kernel's exact resident-set high-water mark for this process (no sampling
+        // gaps; includes mmapped and non-malloc memory). The sampled heap figure is logged too.
+        long peakMb = peakRssKb() / 1024;
         Log.i("KorokaeV2", "speed model=" + modelName + " threads=" + threads
-                + " ms=" + ms + " peakMB=" + peakMb);
+                + " ms=" + ms + " peakMB=" + peakMb + " sampledHeapMB=" + sampledMb);
         assertTrue("took " + ms + " ms (limit 60000)", ms <= 60_000);
         assertTrue("peak " + peakMb + " MB (limit 500)", peakMb <= 500);
+    }
+
+    /** Resets VmHWM to the current RSS (writing 5 to clear_refs). */
+    private static void resetPeakRss() throws java.io.IOException {
+        try (java.io.FileWriter w = new java.io.FileWriter("/proc/self/clear_refs")) {
+            w.write("5");
+        }
+    }
+
+    private static long peakRssKb() throws java.io.IOException {
+        return rssKb("VmHWM:");
+    }
+
+    private static long rssKb(String key) throws java.io.IOException {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(
+                new java.io.FileReader("/proc/self/status"))) {
+            for (String line; (line = r.readLine()) != null; ) {
+                if (line.startsWith(key)) {
+                    return Long.parseLong(line.replaceAll("[^0-9]", ""));
+                }
+            }
+        }
+        throw new IllegalStateException("no " + key + " in /proc/self/status");
     }
 }
