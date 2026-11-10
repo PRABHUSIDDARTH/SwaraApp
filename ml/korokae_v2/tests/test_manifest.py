@@ -64,3 +64,15 @@ def test_credits_lists_each_cc_by_author_once_and_skips_cc0_and_own():
     assert lines[0].startswith("Cy, ccmixter — CC-BY-4.0")
     assert lines[1].startswith("Ann, vocalset — CC-BY-4.0")
     assert "Zed" not in text and "Owner" not in text
+
+
+def test_merge_manifests_makes_paths_absolute_and_keeps_rows(tmp_path):
+    from korokae_v2.data.manifest import merge_manifests
+    for name in ("v", "a"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "x.flac").write_bytes(b"x")
+        write_manifest([_row("x.flac", role="vocal" if name == "v" else "accompaniment")],
+                       str(tmp_path / name / "manifest.csv"))
+    rows = merge_manifests([str(tmp_path / "v"), str(tmp_path / "a")])
+    assert [r.path for r in rows] == [str(tmp_path / "v" / "x.flac"), str(tmp_path / "a" / "x.flac")]
+    assert audit(rows, str(tmp_path / "empty_root")) == []

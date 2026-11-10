@@ -72,6 +72,16 @@ def read_manifest(path: str) -> list[Row]:
         return [Row(**{k: rec[k] for k in FIELDS}) for rec in csv.DictReader(f)]
 
 
+def merge_manifests(roots: list[str]) -> list[Row]:
+    """Rows of root/manifest.csv for each root, with absolute paths (os.path.join(any_root, abs)
+    is abs, so the merged list works with any data root)."""
+    rows = []
+    for root in roots:
+        for r in read_manifest(os.path.join(root, MANIFEST_NAME)):
+            rows.append(dataclasses.replace(r, path=os.path.abspath(os.path.join(root, r.path))))
+    return rows
+
+
 def audit(rows: list[Row], data_root: str) -> list[str]:
     """Problems with the manifest against the files under data_root; empty means it passes."""
     problems = []

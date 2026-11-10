@@ -45,3 +45,56 @@ on, peak = the kernel's VmHWM for the whole test process (baseline 171 MB, plus 
 The phone sustains roughly 10-20 GMAC/s, so the network has to stay near 1 MMAC per
 (band, frame) cell; the LSTM designs were 3-10x over that. Time attention runs at half the frame
 rate (strided conv down, transposed conv up) to stay inside it.
+
+## Data (Plan 2)
+
+| Source | Role | Licence (checked on the host at download) | Host |
+|---|---|---|---|
+| VocalSet v1.1 | vocal | CC BY 4.0 | zenodo.org/records/1203819 |
+| vocadito | vocal | CC BY 4.0 | zenodo.org/records/5578807 |
+| ccMixter a cappellas | vocal | per upload: CC BY 3.0/4.0 or CC0 only; uploads tagged `AI_generated`, `AI_assisted` or `ia_stems_generated` are rejected | ccmixter.org query API |
+| Slakh2100 redux (`mix.flac` only) | accompaniment | CC BY 4.0 | zenodo.org/records/4599666 (streamed, never stored whole) |
+
+- `python -m korokae_v2.data.build --sources ... --out DIR [--dry-run]` downloads, converts and
+  splits the data, and writes `manifest.csv`.
+- `python -m korokae_v2.data.manifest audit --root DIR` re-checks every file and licence.
+- `python -m korokae_v2.data.credits --manifest M --out F` writes the in-app credits text.
+
+ccMixter quirks: the API ignores its `license=` filter, so licences are checked per record. Pages
+larger than a few records sometimes come back malformed, so the fetcher reads 4 records at a time
+and falls back to single records.
+
+## Training on Kaggle (Plan 2)
+
+Code reaches Kaggle by `git fetch` of a pinned commit from the public GitHub repo. Data never
+leaves Kaggle: the prep notebooks' outputs are mounted straight into the training notebook. Only
+the ~40 MB checkpoint goes through a private dataset (`korokae-ckpt`).
+
+One-time setup:
+1. Save the Kaggle API token to `~/.kaggle/access_token` (mode 600).
+2. Phone-verify the Kaggle account; GPU and internet in notebooks need it.
+3. Run `.venv/bin/pip install -r requirements.txt`. It includes the Kaggle CLI, which needs `six`.
+4. Run `kaggle/kaggle_cycle.sh init`, which creates the private `korokae-ckpt` dataset.
+
+Data prep (once, on Kaggle CPU):
+1. Run `kaggle/kaggle_cycle.sh prep <pushed commit>`. It runs `korokae-prep-vocals` (VocalSet,
+   vocadito, ccMixter ≤ 25 h) and `korokae-prep-accomp` (Slakh: 40 h train, 5 h val, 5 h test).
+2. Check both with `kaggle/kaggle_cycle.sh status`. Each output holds `data/manifest.csv`, which
+   passed the audit.
+
+Each training session (about 2–3 a week within the free GPU quota):
+1. `kaggle/kaggle_cycle.sh train <pushed commit>`.
+   - It downloads the previous session's checkpoints and saves them as a new `korokae-ckpt`
+     version.
+   - It then pushes the next session, which resumes exactly where the last one stopped.
+   - The first call simply starts training.
+2. Each session renders the same fixed val (64 × 10 s, seed 1001) and test (200 × 10 s, seed 2002)
+   mixes, trains for up to 690 min, and writes a checkpoint every 30 min.
+3. Progress lands in `ckpt/log.jsonl`: `loss`, `lr` and `sec_per_step` every 50 steps, plus
+   `val_vocal_sdr` and `val_inst_sdr` every 2000 steps.
+
+After training:
+- `python -m korokae_v2.evaluate --eval eval --checkpoint best.pt` runs the v1-vs-v2 gate.
+  It must reach +5 dB instrumental SDR over v1.
+- `python -m korokae_v2.export --checkpoint best.pt --out-dir DIR` writes `korokae_v2.onnx`.
+- `python -m korokae_v2.listening_test prepare ...` and then `... score ...` run the blind test.
