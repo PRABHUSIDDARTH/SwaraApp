@@ -76,6 +76,11 @@ UPF.
 JaCRC on the real metadata: 186 newly recorded vocals and 75 student takes are kept (261 vocals),
 plus 76 jinghu accompaniments; exactly the 53 SVAD files are dropped.
 
+Vocals prep at 13e4ec8 (Kaggle, 2026-11-10): 4092 manifest rows. VocalSet 3613 files / 20 singers,
+vocadito 40 / 29, JaCRC 337 / 19 (261 vocals, 76 jinghu), AdoVoc Pro 82 / 4 (alba, cris, joaquin,
+plus 7 phrase takes with no singer in the name, grouped as `adovoc-unknown`), AlbumDB 20 / 10
+songs (one vocal and one accompaniment each), ccMixter 0 (403).
+
 ccMixter answers 403 to scripted downloads (seen from the laptop and from Kaggle). The fetcher
 skips a failed download and gives up after 10 in a row. Access has been requested from the
 ccMixter admins; until they answer, the vocals come from the Zenodo sources only.
