@@ -55,7 +55,12 @@ class _Layer(nn.Module):
         q, k, v = self.qkv(self.norm1(x)).reshape(n, s, 3, self.heads, dh).permute(2, 0, 3, 1, 4)
         if self.rotary is not None:
             q, k = self.rotary(q), self.rotary(k)
-        a = torch.softmax(q @ k.transpose(-1, -2) * dh ** -0.5, dim=-1) @ v  # [N, H, S, dh]
+        q = q * dh ** -0.5
+        kt = k.transpose(-1, -2)
+        # One head at a time: the [N, S, S] score tensor of a single head is what bounds peak
+        # memory on the phone (all four at once held ~130 MB per window for time attention).
+        a = torch.cat([torch.softmax(q[:, h:h + 1] @ kt[:, h:h + 1], dim=-1) @ v[:, h:h + 1]
+                       for h in range(self.heads)], dim=1)  # [N, H, S, dh]
         x = x + self.out(a.transpose(1, 2).reshape(n, s, d))
         return x + self.ff(self.norm2(x))
 

@@ -29,8 +29,18 @@ Untrained weights, float32, ONNX Runtime 1.31.1 CPU, run via `adb install -r` + 
 | BS-RNN 8 blocks x 256 hidden, 39 bands | 21.0M | 84.3 MB | 4 | on | 594.8 s | 1408 MB | fail |
 | BS-RNN 6 blocks x 128 hidden, 39 bands | 10.9M | 43.8 MB | 4 | on | 186.2 s | 912 MB | fail |
 | BS-transformer 4 blocks x d 96, 23 bands | 3.2M | 13.0 MB | 4 | on | 43.0 s | 545 MB | fail (memory) |
-| **BS-transformer 4 blocks x d 96, 23 bands** | **3.2M** | **13.0 MB** | **4** | **off** | **51.1 s** | **378 MB** | **pass** |
+| BS-transformer 4 blocks x d 96, 23 bands | 3.2M | 13.0 MB | 4 | off | 51.1 s | 378 MB (sampled) | pass by the sampled measure |
 | BS-transformer 4 blocks x d 96, 23 bands | 3.2M | 13.0 MB | 6 | off | 58.0 s | 378 MB | pass (slower) |
+
+The rows above sampled the heap every 250 ms, which misses short ORT peaks. From the final review
+on, peak = the kernel's VmHWM for the whole test process (baseline 171 MB, plus 166 MB holding the
+4-minute song in and out as float arrays):
+
+| Model | Threads | Time | Peak (VmHWM) | Result |
+|---|---|---|---|---|
+| BS-transformer 4x96, all heads at once | 4 | 52.3 s | 741 MB | fail (memory) |
+| **BS-transformer 4x96, one head at a time** | **4** | **48.2 s** | **613 MB** | **fail (memory)** |
+| same + pinned ORT output buffers (reverted) | 4 | 57.9 s | 685 MB | fail |
 
 The phone sustains roughly 10-20 GMAC/s, so the network has to stay near 1 MMAC per
 (band, frame) cell; the LSTM designs were 3-10x over that. Time attention runs at half the frame
