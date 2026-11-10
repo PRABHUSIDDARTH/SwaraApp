@@ -161,7 +161,9 @@ def test_splits_tiny_groups(): ...  # 1 group -> train; 2 -> train+test; 3 -> on
 - Produces:
   - One generator per source, `fetch_<source>(work: str, out: str, http: Http, budget_s: float) -> Iterator[Row]`, for `vocalset`, `vocadito`, `slakh` and `ccmixter`.
   - `Http` is a protocol with `get_json(url) -> Any` and `download(url, dst) -> None`, plus `stream(url) -> BinaryIO` for Slakh. Tests pass a fake.
-  - CLI: `python -m korokae_v2.data.build --sources vocalset,vocadito,ccmixter --out DIR --budget-hours H`. It writes `DIR/audio/<source>/...flac` and `DIR/manifest.csv`, then runs `audit`.
+  - CLI: `python -m korokae_v2.data.build --sources vocalset,vocadito,ccmixter --out DIR --budget-hours H`. It writes `DIR/audio/<source>/...flac` and `DIR/manifest.csv`, then runs `audit`. `--dry-run`
+  lists and licence-filters records, printing accepted/rejected counts by reason and distinct
+  groups, without downloading audio.
 
 Source rules (the licence page URL is stored in every row):
 
