@@ -10,7 +10,7 @@ betas: [0.9, 0.999]
 weight_decay: 0.01
 grad_clip: 5.0
 warmup: 2000
-total_steps: 1000000     # replaced in Plan 2 Task 11 from the pilot's sec_per_step (~70 GPU-h)
+total_steps: 186651      # floor(0.9 x 70 h x 3600 / 1.2151 s per step), pilot on a Kaggle T4, 2026-11-10
 amp: true
 ckpt_every_minutes: 30
 keep_last: 3

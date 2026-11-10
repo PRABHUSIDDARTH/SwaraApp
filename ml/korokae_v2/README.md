@@ -102,6 +102,20 @@ Data prep (once, on Kaggle CPU):
 2. Check both with `kaggle/kaggle_cycle.sh status`. Each output holds `data/manifest.csv`, which
    passed the audit.
 
+Pilot (2026-11-10, Kaggle Tesla T4, commit 5ca1482, 30-minute session): setup 4.7 min, then
+1034 steps in 25.3 min. Median **1.215 s/step** (range 1.206-1.230 over 19 log windows), batch 8 x
+accum 2 of 6 s stereo. Loss fell from 1.68 (step 50) to 0.84 (step 1000). So
+`total_steps = floor(0.9 x 70 h x 3600 / 1.2151) = 186651`, which is about 34,000 steps per
+690-minute session, or 6 sessions in all.
+
+Two Kaggle issues the pilot found, both fixed:
+- **GPU memory:** a cuFFT plan for every random augmentation length filled the GPU. FFT lengths are
+  now 7-smooth: about 167 cached plans, 0.4 GB, flat.
+- **Status message:** CLI 2.2.5 reports a never-created notebook as
+  "Permission 'kernels.get' was denied".
+
+The main run starts with `--fresh` once the data is final; the pilot's checkpoints are not reused.
+
 Each training session (about 2–3 a week within the free GPU quota):
 1. Start the first session with `kaggle/kaggle_cycle.sh train <pushed commit> --fresh`.
    Add `--minutes 30` for the pilot.
