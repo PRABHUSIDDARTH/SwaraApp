@@ -16,13 +16,15 @@ import argparse
 import csv
 import json
 import os
+import hashlib
 import tarfile
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
 import yaml
 
-from .manifest import Row, normalise_licence, write_manifest
+from .manifest import ManifestError, Row, assign_splits, normalise_licence, split_for_id, write_manifest
 
 LIBRISPEECH_PAGE = "https://www.openslr.org/12/"
 LIBRISPEECH_ATTRIBUTION = ("LibriSpeech ASR corpus (Panayotov, Chen, Povey, Khudanpur; "
@@ -42,14 +44,48 @@ class FetchItem:
     allowed: bool
 
 
+HTTP_TIMEOUT = 60
+MAX_JSON_BYTES = 5 * 1024 * 1024
+MAX_AUDIO_BYTES = 100 * 1024 * 1024  # per ccMixter file
+MAX_ARCHIVE_BYTES = 8 * 1024 ** 3  # train-clean-100 is ~6.3 GB
+AUDIO_EXTS_OK = (".mp3", ".flac", ".wav", ".ogg")
+
+
+def _check_url(url: str) -> None:
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        raise ValueError(f"only http(s) URLs are allowed, got {url!r}")
+
+
+def _read_capped(url: str, sink, max_bytes: int) -> None:
+    _check_url(url)
+    total = 0
+    with urllib.request.urlopen(url, timeout=HTTP_TIMEOUT) as r:  # noqa: S310 (scheme checked)
+        while True:
+            chunk = r.read(1 << 20)
+            if not chunk:
+                return
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"{url}: larger than the {max_bytes} byte cap")
+            sink(chunk)
+
+
 def _http_get(url: str) -> bytes:
-    with urllib.request.urlopen(url, timeout=60) as r:  # noqa: S310 (fixed https/http sources)
-        return r.read()
+    parts: list[bytes] = []
+    _read_capped(url, parts.append, MAX_JSON_BYTES)
+    return b"".join(parts)
 
 
-def _download(url: str, dest: str) -> None:
+def _download(url: str, dest: str, max_bytes: int = MAX_AUDIO_BYTES) -> None:
     os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
-    urllib.request.urlretrieve(url, dest)  # noqa: S310
+    tmp = dest + ".part"
+    try:
+        with open(tmp, "wb") as f:
+            _read_capped(url, f.write, max_bytes)
+        os.replace(tmp, dest)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
 
 
 def _gate(source: str, text: str) -> str:
@@ -85,30 +121,47 @@ def backgrounds_from_korokae(csv_path: str) -> list[Row]:
             if rec["role"] != "accompaniment":
                 continue
             lic = normalise_licence(rec["licence"])
-            if lic is None:
+            if lic is None or lic == "own":  # same gate as _gate: own is never a background licence
                 continue
             rows.append(Row(path=os.path.join(base, rec["path"]), label="background",
                             source=rec["source"], source_url=rec["source_url"], author=rec["author"],
-                            licence=lic, attribution=rec["attribution"], speaker=rec["group"],
-                            split=rec["split"], consent="n/a"))
+                            licence=lic, attribution=rec["attribution"], speaker=f"korokae-v2:{rec['group']}",
+                            split=split_for_id(f"korokae-v2:{rec['group']}"), consent="n/a"))
     return rows
 
 
 def fetch_ccmixter(cfg: dict, root: str, http_get=_http_get, download=_download) -> list[Row]:
     uploads = json.loads(http_get(cfg["query_url"]))
-    rows = []
+    out_dir = os.path.realpath(os.path.join(root, "ccmixter"))
+    seen_urls: set[str] = set()
+    pending = []
     for up in uploads[: cfg.get("max_files", 200)]:
         lic = normalise_licence(up.get("license_url", ""))
         if lic is None or lic == "own" or not up.get("files"):
             continue
-        url = up["files"][0]["download_url"]
-        rel = f"ccmixter/{os.path.basename(url)}"
-        os.makedirs(os.path.join(root, "ccmixter"), exist_ok=True)
-        download(url, os.path.join(root, rel))
-        rows.append(Row(path=rel, label="background", source="ccmixter",
-                        source_url=up.get("file_page_url", ""), author=up["user_name"], licence=lic,
+        url = up["files"][0].get("download_url", "")
+        ext = os.path.splitext(urllib.parse.urlparse(url).path)[1].lower()
+        if urllib.parse.urlparse(url).scheme not in ("http", "https") or ext not in AUDIO_EXTS_OK:
+            continue
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+        pending.append((up, url, ext, lic))
+    splits = {up["user_name"]: split_for_id(f"ccmixter:{up['user_name']}") for up, *_ in pending}
+    os.makedirs(out_dir, exist_ok=True)
+    rows = []
+    for up, url, ext, lic in pending:
+        uid = str(up.get("upload_id", ""))
+        name = (f"{uid}_" if uid.isalnum() else "") + hashlib.sha1(url.encode()).hexdigest()[:12] + ext
+        dest = os.path.realpath(os.path.join(out_dir, name))
+        if os.path.dirname(dest) != out_dir:
+            raise ValueError(f"destination {dest!r} escapes {out_dir!r}")
+        download(url, dest)
+        rows.append(Row(path=f"ccmixter/{name}", label="background", source="ccmixter",
+                        source_url=up.get("file_page_url") or url, author=up["user_name"], licence=lic,
                         attribution=f'"{up["upload_name"]}" by {up["user_name"]} (ccMixter), {lic}',
-                        speaker=up["user_name"], split="train", consent="n/a"))
+                        speaker=f"ccmixter:{up['user_name']}", split=splits[up["user_name"]],
+                        consent="n/a"))
     return rows
 
 
@@ -120,7 +173,7 @@ def fetch_librispeech(cfg: dict, root: str, download=_download, only: list[str] 
         if only and name not in only:
             continue
         archive = os.path.join(root, f"{name}.tar.gz")
-        download(sub["url"], archive)
+        download(sub["url"], archive, max_bytes=MAX_ARCHIVE_BYTES) if download is _download else download(sub["url"], archive)
         n = 0
         with tarfile.open(archive) as tf:
             for m in tf:
@@ -135,7 +188,7 @@ def fetch_librispeech(cfg: dict, root: str, download=_download, only: list[str] 
                     out.write(tf.extractfile(m).read())
                 rows.append(Row(path=rel, label="negative", source="librispeech",
                                 source_url=LIBRISPEECH_PAGE, author=f"LibriVox reader {spk}",
-                                licence=lic, attribution=LIBRISPEECH_ATTRIBUTION, speaker=spk,
+                                licence=lic, attribution=LIBRISPEECH_ATTRIBUTION, speaker=f"librispeech:{spk}",
                                 split=sub["split"], consent="n/a"))
                 n += 1
                 if limit and n >= limit:
@@ -167,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = fetch_librispeech(cfg["librispeech"], args.root)
     korokae = [i for i in items if i.source == "korokae-v2"]
     rows += backgrounds_from_korokae(korokae[0].url) if korokae else fetch_ccmixter(cfg["ccmixter"], args.root)
-    write_manifest(rows, os.path.join(args.root, "manifest.csv"))
+    write_manifest(rows, os.path.join(args.root, "manifest.csv"))  # validates: fails loudly
     print(f"wrote {len(rows)} rows to {args.root}/manifest.csv")
     return 0
 

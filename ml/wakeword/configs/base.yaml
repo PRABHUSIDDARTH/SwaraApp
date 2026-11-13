@@ -6,12 +6,47 @@ data_root: data              # git-ignored
 
 synth:
   # Kokoro-82M voices; the language code is the first letter (a = US, b = UK English).
-  voices: [af_heart, af_bella, af_nicole, af_sarah, af_sky, am_adam, am_michael, am_puck, bf_emma, bf_isabella, bm_george, bm_lewis]
+  # Every English voice Kokoro-82M ships (American + British, female + male).
+  voices:
+    - af_alloy
+    - af_aoede
+    - af_bella
+    - af_heart
+    - af_jessica
+    - af_kore
+    - af_nicole
+    - af_nova
+    - af_river
+    - af_sarah
+    - af_sky
+    - am_adam
+    - am_echo
+    - am_eric
+    - am_fenrir
+    - am_liam
+    - am_michael
+    - am_onyx
+    - am_puck
+    - am_santa
+    - bf_alice
+    - bf_emma
+    - bf_isabella
+    - bf_lily
+    - bm_daniel
+    - bm_fable
+    - bm_george
+    - bm_lewis
   positives: ["hey swara"]
   near_misses: ["hey sara", "hey siri", "swaram", "play some", "hey there", "hey sarah", "sweater"]
   speeds: [0.8, 0.9, 1.0, 1.1, 1.25]
   semitones: [-2, -1, 0, 1, 2]
   variants_per_voice_text: 6   # random (speed, semitone) combinations per voice and text
+  seed: 0
+
+noise:                       # synthetic room-noise backgrounds (own)
+  kinds: [white, pink, brown, hum, fan]
+  clips_per_kind: 4
+  seconds: 5.0
   seed: 0
 
 mix:

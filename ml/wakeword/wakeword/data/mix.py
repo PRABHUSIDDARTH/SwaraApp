@@ -1,12 +1,39 @@
 """Training-example mixing: clip + background -> one 1.0 s window as the detector sees it."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 from scipy.signal import butter, fftconvolve, sosfilt
 
 SR = 16000
 WINDOW = 16000
 END_SLACK = 3200  # the clip ends within the last 200 ms of the window
+
+
+@dataclass(frozen=True)
+class MixConfig:
+    """Mix parameters; defaults equal configs/base.yaml mix.* (a test keeps them in sync)."""
+    snr_db: tuple[float, float] = (-5.0, 15.0)
+    cheap_mic_p: float = 0.3
+    cheap_mic_band_hz: tuple[float, float] = (300.0, 3400.0)
+    reverb_p: float = 0.5
+    gain_db: tuple[float, float] = (-6.0, 0.0)
+
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "MixConfig":
+        d = d or {}
+        kw = {}
+        for k in ("snr_db", "cheap_mic_band_hz", "gain_db"):
+            if k in d:
+                kw[k] = tuple(float(v) for v in d[k])
+        for k in ("cheap_mic_p", "reverb_p"):
+            if k in d:
+                kw[k] = float(d[k])
+        return cls(**kw)
+
+    def sample_snr(self, rng: np.random.Generator) -> float:
+        return float(rng.uniform(*self.snr_db))
 
 
 def synthetic_rir(rng: np.random.Generator, sr: int = SR) -> np.ndarray:
@@ -36,22 +63,27 @@ def _background_window(background: np.ndarray, rng: np.random.Generator) -> np.n
 
 
 def make_example(clip: np.ndarray, background: np.ndarray, snr_db: float,
-                 rng: np.random.Generator, *, reverb_p: float = 0.5, cheap_mic_p: float = 0.3,
-                 gain_db: tuple[float, float] = (-6.0, 0.0), return_parts: bool = False):
+                 rng: np.random.Generator, cfg: "MixConfig | dict | None" = None, *,
+                 return_parts: bool = False):
     """Mix `clip` over `background` into a float32 window of 16000 samples.
 
-    The clip is placed so it ends in the last 200 ms of the window. SNR is measured over the
-    span the clip occupies (after reverb / cheap-mic filtering), so it holds to the requested
-    value; a random gain is then applied to the whole mix, and the result is kept within +-1.
+    `cfg` (a MixConfig or the mix: dict of configs/base.yaml) supplies reverb_p, cheap_mic_p,
+    cheap_mic_band_hz and gain_db. The clip is placed so it ends in the last 200 ms of the window;
+    its head is trimmed only when it is longer than the window. SNR is measured over the span the
+    clip occupies (after reverb / cheap-mic filtering), so it holds to the requested value; a
+    random gain is then applied to the whole mix, kept within +-1.
     With return_parts=True returns (clip_part, background_part, span) instead.
     """
+    if not isinstance(cfg, MixConfig):
+        cfg = MixConfig.from_dict(cfg)
     x = np.asarray(clip, dtype=np.float32)
-    if rng.random() < reverb_p:
+    if rng.random() < cfg.reverb_p:
         x = fftconvolve(x, synthetic_rir(rng))[:len(x)].astype(np.float32)
-    if rng.random() < cheap_mic_p:
-        x = band_limit(x)
+    if rng.random() < cfg.cheap_mic_p:
+        x = band_limit(x, *cfg.cheap_mic_band_hz)
     end = WINDOW - int(rng.integers(0, END_SLACK + 1))
-    if len(x) > end:  # clip longer than the room before `end`: keep its tail
+    end = max(end, min(len(x), WINDOW))  # a clip that fits is never trimmed
+    if len(x) > end:
         x = x[len(x) - end:]
     start = end - len(x)
     span = slice(start, end)
@@ -62,7 +94,7 @@ def make_example(clip: np.ndarray, background: np.ndarray, snr_db: float,
     p_bg = float(np.mean(bg[span] ** 2)) if len(x) else 0.0
     if p_clip > 0 and p_bg > 0:
         bg *= np.sqrt(p_clip / (p_bg * 10 ** (snr_db / 10)))
-    gain = 10 ** (rng.uniform(*gain_db) / 20)
+    gain = 10 ** (rng.uniform(*cfg.gain_db) / 20)
     clip_part *= gain
     bg *= gain
     peak = float(np.max(np.abs(clip_part + bg)))

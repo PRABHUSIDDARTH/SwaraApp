@@ -10,7 +10,6 @@ CLI: python -m wakeword.data.synth --config configs/base.yaml --out data/synth
 from __future__ import annotations
 
 import argparse
-import hashlib
 from fractions import Fraction
 import os
 import re
@@ -20,7 +19,7 @@ import soundfile as sf
 import yaml
 from scipy.signal import resample_poly
 
-from .manifest import Row, write_manifest
+from .manifest import Row, assign_splits, write_manifest
 
 KOKORO_SR = 24000
 KOKORO_URL = "https://huggingface.co/hexgrad/Kokoro-82M"
@@ -45,9 +44,22 @@ def to_16k(audio: np.ndarray, src_sr: int, semitones: float = 0.0) -> np.ndarray
     return resample_poly(audio, up, down).astype(np.float32)
 
 
-def _split_for(speaker: str) -> str:
-    h = int(hashlib.sha1(speaker.encode()).hexdigest(), 16) % 10
-    return "test" if h == 0 else "val" if h == 1 else "train"
+def trim_silence(x: np.ndarray, thresh_db: float = -40.0, pad: int = 320) -> np.ndarray:
+    """Drop leading/trailing samples below thresh_db relative to the peak (keeps `pad` samples)."""
+    peak = float(np.max(np.abs(x))) if len(x) else 0.0
+    if peak == 0.0:
+        return x
+    idx = np.nonzero(np.abs(x) >= peak * 10 ** (thresh_db / 20))[0]
+    return x[max(0, idx[0] - pad): idx[-1] + 1 + pad]
+
+
+def check_near_misses(s: dict) -> None:
+    """A near-miss must never be the wake word: no 'swara' token, no positive phrase inside."""
+    pos = [p.lower().strip() for p in s["positives"]]
+    for t in s["near_misses"]:
+        tl = t.lower()
+        if "swara" in tl.split() or any(p in tl for p in pos):
+            raise ValueError(f"near-miss text {t!r} contains the wake word")
 
 
 def _slug(text: str) -> str:
@@ -57,6 +69,8 @@ def _slug(text: str) -> str:
 def render_all(cfg: dict, out_dir: str, pipeline_factory=_kokoro_pipeline) -> list[Row]:
     """Render every voice x text (x sampled speed/pitch variants); write WAVs + manifest.csv."""
     s = cfg["synth"]
+    check_near_misses(s)
+    splits = assign_splits(list(s["voices"]))
     rng = np.random.default_rng(s.get("seed", 0))
     texts = [(t, "positive") for t in s["positives"]] + [(t, "near_miss") for t in s["near_misses"]]
     grid = [(sp, st) for sp in s["speeds"] for st in s["semitones"]]
@@ -73,7 +87,7 @@ def render_all(cfg: dict, out_dir: str, pipeline_factory=_kokoro_pipeline) -> li
                 chunks = [_audio_of(c) for c in pipe(text, voice=voice, speed=speed)]
                 if not chunks:
                     continue
-                wav = to_16k(np.concatenate(chunks), KOKORO_SR, semis)
+                wav = trim_silence(to_16k(np.concatenate(chunks), KOKORO_SR, semis))
                 peak = float(np.max(np.abs(wav))) or 1.0
                 wav = wav / max(peak, 1.0)
                 rel = f"{label}/{voice}_{_slug(text)}_{k}.wav"
@@ -82,7 +96,7 @@ def render_all(cfg: dict, out_dir: str, pipeline_factory=_kokoro_pipeline) -> li
                 rows.append(Row(path=rel, label=label, source="kokoro-82m", source_url=KOKORO_URL,
                                 author="Swara (synthetic, Kokoro-82M)", licence="own",
                                 attribution="Synthetic speech generated with Kokoro-82M (Apache-2.0)",
-                                speaker=voice, split=_split_for(voice), consent="n/a"))
+                                speaker=f"kokoro-82m:{voice}", split=splits[voice], consent="n/a"))
     write_manifest(rows, os.path.join(out_dir, "manifest.csv"))
     return rows
 
