@@ -22,8 +22,9 @@ import java.util.concurrent.Executors;
  * a background thread; {@link #release()} frees them so a later {@link #loadAsync} reloads.
  *
  * <p>A failed load is sticky: {@link #failed()} stays true and {@link #loadAsync} does not retry
- * until {@link #release()} resets the holder. Do not keep or use an {@link #stt()} reference after
- * {@link #release()}: the model it points to is closed.
+ * until {@link #release()} resets the holder. {@link #stt()} hands out a guarded model: release
+ * waits for a running transcription before closing it, and a stale reference used after
+ * {@link #release()} throws IllegalStateException instead of touching freed native memory.
  */
 public final class VoiceModels {
 
@@ -107,7 +108,7 @@ public final class VoiceModels {
                 closeQuietly(loaded);
                 return;
             }
-            stt = loaded;
+            stt = loaded != null ? new GuardedStt(loaded) : null;
             state = loaded != null ? State.READY : State.FAILED;
             callbacks = new ArrayList<>(waiting);
             waiting.clear();
@@ -143,6 +144,30 @@ public final class VoiceModels {
             waiting.clear();
         }
         if (old != null) loader.execute(() -> closeQuietly(old));
+    }
+
+    /**
+     * Serialises transcribe and close on one lock, so the native model is never closed while a
+     * transcription is running (close waits for it), and refuses to transcribe once closed.
+     */
+    static final class GuardedStt implements SpeechToText {
+        private final SpeechToText delegate;
+        private boolean closed; // guarded by this
+
+        GuardedStt(SpeechToText delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override public synchronized String transcribe(float[] audio16k) throws Exception {
+            if (closed) throw new IllegalStateException("voice model released");
+            return delegate.transcribe(audio16k);
+        }
+
+        @Override public synchronized void close() throws Exception {
+            if (closed) return;
+            closed = true;
+            delegate.close();
+        }
     }
 
     private static void closeQuietly(SpeechToText s) {

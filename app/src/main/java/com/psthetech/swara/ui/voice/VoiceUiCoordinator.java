@@ -290,9 +290,12 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
         mic.stop();
         voice.shutdown();
         main.removeCallbacksAndMessages(null);
-        worker.shutdown();
         // A rotation recreates the activity straight away; keep the models loaded for it.
+        // release() is safe while swara-voice-stt is still inside transcribe(): the model handed out
+        // by VoiceModels serialises close() behind a running transcription (on the loader thread,
+        // so this never blocks the main thread), and refuses transcriptions queued after it.
         if (!activity.isChangingConfigurations()) models.release();
+        worker.shutdown();
     }
 
     // --- debug typed entry ---
@@ -437,7 +440,9 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
             showSheet();
             return;
         }
-        // Warm the library index on the STT thread; it runs before the transcription.
+        // Build/refresh the library index on the STT thread. The worker is single-threaded and this
+        // is queued before the session's transcription task, so it is ready by the time the
+        // controller reads cachedLibraryIndex() on the main thread.
         worker.execute(this::libraryIndex);
         showSheet();
     }
@@ -468,7 +473,7 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
                 stt,
                 executor,
                 voice,
-                this::libraryIndex,
+                this::cachedLibraryIndex, // main thread: never builds, see startSession()
                 playback::duckForVoice,
                 playback::unduckForVoice,
                 worker,
@@ -515,7 +520,15 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
 
     // --- library index ---
 
-    /** Any thread. Rebuilds only when the repository's cached library changed. */
+    /** Main thread safe: the last built index, or null. Never runs LibraryIndex.build. */
+    @Nullable
+    private LibraryIndex cachedLibraryIndex() {
+        synchronized (indexLock) {
+            return index;
+        }
+    }
+
+    /** Worker thread only. Rebuilds only when the repository's cached library changed. */
     @Nullable
     private LibraryIndex libraryIndex() {
         synchronized (indexLock) {
@@ -554,7 +567,9 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
         if (destroyed) return;
         FragmentManager fm = activity.getSupportFragmentManager();
         if (fm.isStateSaved()) return;
-        if (fm.findFragmentByTag(VoiceSheetFragment.TAG) != null) return;
+        androidx.fragment.app.Fragment existing = fm.findFragmentByTag(VoiceSheetFragment.TAG);
+        // A sheet that is still being dismissed (its removal is async) doesn't count.
+        if (existing instanceof VoiceSheetFragment && !((VoiceSheetFragment) existing).isDismissing()) return;
         new VoiceSheetFragment().show(fm, VoiceSheetFragment.TAG);
     }
 }

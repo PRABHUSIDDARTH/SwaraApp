@@ -104,6 +104,13 @@ public class MainActivity extends AppCompatActivity
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
 
         EdgeToEdge.enable(this);
+        // Activity-scoped PlaybackViewModel (shared by all fragments) and tap-to-talk voice
+        // commands (mic, listening sheet, permission flow). Created before
+        // setContentView so fragments restored during inflation can already reach it.
+        playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
+        voiceCoordinator = new com.psthetech.swara.ui.voice.VoiceUiCoordinator(
+                this, playbackViewModel, micPermissionLauncher);
+
         setContentView(R.layout.activity_main);
 
         // Apply window insets
@@ -132,12 +139,8 @@ public class MainActivity extends AppCompatActivity
         navController = navHostFragment.getNavController();
         NavigationUI.setupWithNavController(bottomNav, navController);
 
-        // Initialize activity-scoped PlaybackViewModel (shared by all fragments)
-        playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
-
-        // Tap-to-talk voice commands (mic, listening sheet, permission flow).
-        voiceCoordinator = new com.psthetech.swara.ui.voice.VoiceUiCoordinator(
-                this, playbackViewModel, micPermissionLauncher);
+        // The activity-scoped PlaybackViewModel (shared by all fragments) was created above,
+        // before setContentView, together with the voice coordinator.
 
         // Show/hide mini-player based on active song
         playbackViewModel.getCurrentSong().observe(this, song -> {

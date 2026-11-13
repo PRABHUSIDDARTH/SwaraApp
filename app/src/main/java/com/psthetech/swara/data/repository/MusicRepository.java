@@ -68,7 +68,7 @@ public class MusicRepository {
         return new ArrayList<>(canonicalSongMap.values());
     }
 
-    /** Changes whenever {@link #getCachedLibrarySongs()} would return a different library. */
+    /** Bumped on each full-library load; voice rebuilds its LibraryIndex when it changes. */
     public static int getLibraryCacheVersion() {
         return libraryCacheVersion;
     }

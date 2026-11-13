@@ -60,6 +60,7 @@ public final class MoonshineStt implements SpeechToText {
     private final OrtSession encoder;
     private final OrtSession decoder;
     private final MoonshineTokenizer tokenizer;
+    private boolean closed; // guarded by this
 
     /** Loads both graphs and the tokenizer from {@code dir} in {@code assets}. */
     public MoonshineStt(OrtEnvironment env, AssetManager assets, String dir)
@@ -84,6 +85,7 @@ public final class MoonshineStt implements SpeechToText {
 
     @Override
     public synchronized String transcribe(float[] audio16k) throws OrtException {
+        if (closed) throw new IllegalStateException("MoonshineStt is closed");
         int n = audio16k.length;
         if (n < MIN_SAMPLES) return "";
         int maxTokens = (int) Math.ceil(6.0 * n / SAMPLE_RATE);
@@ -135,6 +137,8 @@ public final class MoonshineStt implements SpeechToText {
 
     @Override
     public synchronized void close() throws OrtException {
+        if (closed) return;
+        closed = true;
         try {
             encoder.close();
         } finally {

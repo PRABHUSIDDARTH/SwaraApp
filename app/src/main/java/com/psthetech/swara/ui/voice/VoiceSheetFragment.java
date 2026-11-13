@@ -26,7 +26,6 @@ import com.psthetech.swara.ui.glass.LiquidGlassRenderer;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
 import com.psthetech.swara.voice.exec.VoiceOutcome;
-import com.psthetech.swara.voice.exec.VoiceReplies;
 import com.psthetech.swara.voice.match.Candidate;
 
 import java.util.List;
@@ -223,9 +222,9 @@ public class VoiceSheetFragment extends BottomSheetDialogFragment {
 
     private void renderChoices(@NonNull VoiceOutcome out, @Nullable VoiceUiCoordinator coordinator) {
         List<Candidate> choices = out.choices;
-        // MEDIUM ("Did you mean X?"): choices[0] is the Yes option, the rest are alternatives.
-        // AMBIGUOUS ("Which one?"): all choices are peers.
-        boolean medium = VoiceReplies.didYouMean(choices.get(0).display).equals(out.text);
+        // CONFIRM ("Did you mean X?"): choices[0] is the Yes option, the rest are alternatives.
+        // CHOOSE ("Which one?"): all choices are peers.
+        boolean medium = out.kind == VoiceOutcome.Kind.CONFIRM;
         int start = 0;
         if (medium) {
             final Candidate top = choices.get(0);
@@ -303,8 +302,14 @@ public class VoiceSheetFragment extends BottomSheetDialogFragment {
         dismissAllowingStateLoss();
     }
 
+    /** True once this sheet is going away; the coordinator then treats it as absent. */
+    public boolean isDismissing() {
+        return dismissing || isRemoving();
+    }
+
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
+        dismissing = true;
         super.onDismiss(dialog);
         handler.removeCallbacks(autoDismiss);
         FragmentActivity a = getActivity();

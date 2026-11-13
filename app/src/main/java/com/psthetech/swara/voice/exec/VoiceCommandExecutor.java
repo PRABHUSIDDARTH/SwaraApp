@@ -39,16 +39,16 @@ public final class VoiceCommandExecutor {
         switch (intent.getType()) {
             case PAUSE:
                 playback.pause();
-                return VoiceOutcome.silent(VoiceReplies.PAUSED);
+                return VoiceOutcome.result(VoiceReplies.PAUSED, false);
             case RESUME:
                 playback.resume();
-                return VoiceOutcome.silent(VoiceReplies.PLAYING);
+                return VoiceOutcome.result(VoiceReplies.PLAYING, false);
             case NEXT:
                 playback.next();
-                return VoiceOutcome.silent(VoiceReplies.NEXT);
+                return VoiceOutcome.result(VoiceReplies.NEXT, false);
             case PREVIOUS:
                 playback.previous();
-                return VoiceOutcome.silent(VoiceReplies.PREVIOUS);
+                return VoiceOutcome.result(VoiceReplies.PREVIOUS, false);
             case UNKNOWN:
                 return VoiceOutcome.spoken(VoiceReplies.didntCatch());
             default:
@@ -62,7 +62,7 @@ public final class VoiceCommandExecutor {
                 return choose(r.ranked.get(0));
             case MEDIUM: {
                 List<Candidate> choices = new ArrayList<>(r.ranked.subList(0, Math.min(MAX_CHOICES, r.ranked.size())));
-                return new VoiceOutcome(VoiceReplies.didYouMean(r.ranked.get(0).display), true, choices);
+                return new VoiceOutcome(VoiceOutcome.Kind.CONFIRM, VoiceReplies.didYouMean(r.ranked.get(0).display), true, choices);
             }
             case AMBIGUOUS: {
                 double top = r.ranked.get(0).score;
@@ -70,7 +70,7 @@ public final class VoiceCommandExecutor {
                 for (Candidate c : r.ranked) {
                     if (top - c.score <= AMBIGUOUS_BAND + 1e-9) choices.add(c);
                 }
-                return new VoiceOutcome(VoiceReplies.whichOne(), true, choices);
+                return new VoiceOutcome(VoiceOutcome.Kind.CHOOSE, VoiceReplies.whichOne(), true, choices);
             }
             default:
                 return VoiceOutcome.spoken(VoiceReplies.notFound(intent.getQuery()));
@@ -81,17 +81,17 @@ public final class VoiceCommandExecutor {
         if (c.songs.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
         if (c.kind == MatchKind.SONG) {
             playback.playSong(c.songs.get(0));
-            return VoiceOutcome.spoken(VoiceReplies.playingSong(c.display));
+            return VoiceOutcome.result(VoiceReplies.playingSong(c.display), true);
         }
         List<Song> songs = new ArrayList<>(c.songs);
         if (c.kind == MatchKind.ARTIST) {
             Collections.shuffle(songs, random);
             playback.playQueue(songs);
-            return VoiceOutcome.spoken(VoiceReplies.playingArtist(songs.size(), c.display));
+            return VoiceOutcome.result(VoiceReplies.playingArtist(songs.size(), c.display), true);
         }
         Collections.sort(songs, Comparator.comparingInt(Song::getTrackNumber)
                 .thenComparing(Song::getTitle, Comparator.nullsFirst(Comparator.naturalOrder())));
         playback.playQueue(songs);
-        return VoiceOutcome.spoken(VoiceReplies.playingAlbum(c.display, songs.size()));
+        return VoiceOutcome.result(VoiceReplies.playingAlbum(c.display, songs.size()), true);
     }
 }

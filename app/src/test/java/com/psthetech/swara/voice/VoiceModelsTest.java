@@ -3,7 +3,8 @@ package com.psthetech.swara.voice;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertTrue;
 
 import com.psthetech.swara.voice.stt.SpeechToText;
@@ -13,6 +14,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -67,7 +70,7 @@ public class VoiceModelsTest {
         assertFalse(m.failed());
         m.loadAsync(null);
         assertTrue(m.isReady());
-        assertSame(fake, m.stt());
+        assertEquals("ok", transcribeQuietly(m.stt()));
         assertEquals(2, attempts.get());
     }
 
@@ -100,5 +103,75 @@ public class VoiceModelsTest {
         assertFalse(m.isReady());
         assertFalse(m.failed());
         assertEquals(0, called.get());
+    }
+
+    private static String transcribeQuietly(SpeechToText stt) {
+        try {
+            return stt.transcribe(new float[0]);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    /** transcribe blocks until {@code release} is counted down. */
+    private static final class BlockingStt implements SpeechToText {
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        volatile boolean inTranscribe;
+        volatile boolean closedDuringTranscribe;
+        volatile int closes;
+        volatile int transcribes;
+
+        @Override public String transcribe(float[] audio16k) throws Exception {
+            transcribes++;
+            inTranscribe = true;
+            entered.countDown();
+            release.await(5, TimeUnit.SECONDS);
+            inTranscribe = false;
+            return "done";
+        }
+
+        @Override public void close() {
+            if (inTranscribe) closedDuringTranscribe = true;
+            closes++;
+        }
+    }
+
+    @Test public void releaseWaitsForTranscriptionThroughTheHolder() throws Exception {
+        BlockingStt fake = new BlockingStt();
+        VoiceModels m = new VoiceModels(() -> fake, r -> new Thread(r, "loader").start(), DIRECT);
+        m.loadAsync(null);
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!m.isReady() && System.currentTimeMillis() < deadline) Thread.sleep(10);
+        SpeechToText stt = m.stt();
+        Thread stti = new Thread(() -> transcribeQuietly(stt), "stt");
+        stti.start();
+        assertTrue(fake.entered.await(5, TimeUnit.SECONDS));
+
+        m.release();
+        Thread.sleep(150);
+        assertEquals(0, fake.closes);
+        fake.release.countDown();
+        stti.join(5000);
+        deadline = System.currentTimeMillis() + 5000;
+        while (fake.closes == 0 && System.currentTimeMillis() < deadline) Thread.sleep(10);
+        assertEquals(1, fake.closes);
+        assertFalse(fake.closedDuringTranscribe);
+    }
+
+    @Test public void transcribeAfterReleaseFailsWithoutTouchingTheModel() {
+        BlockingStt fake = new BlockingStt();
+        VoiceModels m = models(() -> fake);
+        m.loadAsync(null);
+        SpeechToText stale = m.stt();
+        m.release();
+        assertEquals(1, fake.closes);
+        try {
+            stale.transcribe(new float[16000]);
+            fail("a released model must not transcribe");
+        } catch (Exception expected) {
+            // IllegalStateException
+        }
+        assertEquals(0, fake.transcribes);
     }
 }

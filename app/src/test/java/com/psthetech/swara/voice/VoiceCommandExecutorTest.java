@@ -74,6 +74,7 @@ public class VoiceCommandExecutorTest {
         assertTrue(fake.calls.isEmpty());
         assertEquals("Which one?", o.text);
         assertEquals(2, o.choices.size());
+        assertEquals(VoiceOutcome.Kind.CHOOSE, o.kind);
     }
 
     @Test public void choosingChipPlaysAlbum() {
@@ -83,6 +84,7 @@ public class VoiceCommandExecutorTest {
         for (int i = 0; i < 6; i++) assertEquals(i + 1, fake.queue.get(i).getTrackNumber());
         assertEquals(VoiceFixtures.ALBUM_ROJA_TAMIL, fake.queue.get(0).getAlbumId());
         assertTrue(c.text.startsWith("Playing the album"));
+        assertEquals(VoiceOutcome.Kind.RESULT, c.kind);
     }
 
     @Test public void notFoundReply() {
@@ -129,5 +131,13 @@ public class VoiceCommandExecutorTest {
         assertEquals("Kaavaalaa", o.choices.get(0).display);
         assertTrue(o.choices.size() <= 4);
         assertTrue(fake.calls.isEmpty());
+        assertEquals(VoiceOutcome.Kind.CONFIRM, o.kind);
+    }
+
+    @Test public void outcomeKinds() {
+        assertEquals(VoiceOutcome.Kind.RESULT, exec.handle("pause", index).kind);
+        assertEquals(VoiceOutcome.Kind.INFO, exec.handle("play despacito", index).kind);
+        assertEquals(VoiceOutcome.Kind.INFO, exec.handle("", index).kind);
+        assertEquals(VoiceOutcome.Kind.INFO, exec.handle("play kavalaa", null).kind);
     }
 }
