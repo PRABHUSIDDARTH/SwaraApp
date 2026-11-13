@@ -452,4 +452,20 @@
     <string name="wrapped_period_all_time">All time</string>
     <string name="wrapped_play">Play my Wrapped</string>
     <string name="wrapped_channel_name">Wrapped recaps</string>
+    <!-- Swara Voice -->
+    <string name="voice_mic">Voice command</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_thinking">Thinking…</string>
+    <string name="voice_getting_ready">Getting voice ready…</string>
+    <string name="voice_title">Swara Voice</string>
+    <string name="voice_hint">Say \"play\" and a song, artist or movie, or \"pause\".</string>
+    <string name="voice_yes">Yes</string>
+    <string name="voice_permission_title">Microphone access</string>
+    <string name="voice_permission_rationale">Swara listens only when you tap this or say \'Hey Swara\', and nothing leaves your phone.</string>
+    <string name="voice_permission_settings">Microphone access is off for Swara. To use voice commands, open Settings → Permissions → Microphone and choose Allow.</string>
+    <string name="voice_permission_allow">Allow microphone</string>
+    <string name="voice_unavailable">Voice commands aren\'t available on this device.</string>
+    <string name="voice_debug_title">Voice test (debug)</string>
+    <string name="voice_debug_hint">Type a command, e.g. play kaavaalaa</string>
+    <string name="voice_debug_run">Run</string>
 </resources>

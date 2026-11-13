@@ -35,6 +35,7 @@ public class MiniPlayerFragment extends Fragment {
     private TextView tvArtist;
     private ImageView btnPlayPause;
     private ImageView btnNext;
+    private ImageView btnVoice;
     private View progressLine;
     private View rootView;
     private com.psthetech.swara.ui.widget.AudioWaveView miniAudioWaveView;
@@ -56,6 +57,7 @@ public class MiniPlayerFragment extends Fragment {
         tvArtist = view.findViewById(R.id.tvArtist);
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
         btnNext = view.findViewById(R.id.btnNext);
+        btnVoice = view.findViewById(R.id.btnVoice);
         progressLine = view.findViewById(R.id.progressLine);
         miniAudioWaveView = view.findViewById(R.id.miniAudioWaveView);
         if (miniAudioWaveView != null) {
@@ -124,6 +126,9 @@ public class MiniPlayerFragment extends Fragment {
                     if (btnNext != null) {
                         btnNext.setColorFilter(tokens.getReadableAccentColor());
                     }
+                    if (btnVoice != null) {
+                        btnVoice.setColorFilter(tokens.getReadableAccentColor());
+                    }
 
                     // Progress line color
                     if (progressLine != null) {
@@ -162,6 +167,23 @@ public class MiniPlayerFragment extends Fragment {
         });
 
         btnNext.setOnClickListener(v -> playbackViewModel.skipToNext());
+
+        bindVoiceButton();
+    }
+
+    private void bindVoiceButton() {
+        com.psthetech.swara.ui.voice.VoiceUiCoordinator voice =
+                com.psthetech.swara.ui.voice.VoiceUiCoordinator.from(this);
+        if (btnVoice == null) return;
+        if (voice == null) {
+            btnVoice.setVisibility(View.GONE);
+            return;
+        }
+        LiquidGlassRenderer.attachPressAnimation(btnVoice);
+        voice.micVisible().observe(getViewLifecycleOwner(), visible ->
+                btnVoice.setVisibility(Boolean.TRUE.equals(visible) ? View.VISIBLE : View.GONE));
+        btnVoice.setOnClickListener(v -> voice.onMicTapped());
+        btnVoice.setOnLongClickListener(v -> voice.onMicLongPressed());
     }
 
     private void updateSong(@Nullable Song song) {

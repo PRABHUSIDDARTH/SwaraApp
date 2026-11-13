@@ -49,7 +49,8 @@ import com.psthetech.swara.data.repository.SongDeletionManager;
 import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements com.psthetech.swara.ui.voice.VoiceUiCoordinator.Host {
 
     private NavController navController;
     private PlaybackViewModel playbackViewModel;
@@ -63,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<IntentSenderRequest> deleteRequestLauncher;
     private SongDeletionManager songDeletionManager;
     private boolean hadAudioPermission;
+
+    @Nullable private com.psthetech.swara.ui.voice.VoiceUiCoordinator voiceCoordinator;
+    private ActivityResultLauncher<String> micPermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +90,13 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, R.string.song_delete_failed, Toast.LENGTH_SHORT).show();
                     }
                     pendingDeletionSong = null;
+                }
+        );
+
+        micPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (voiceCoordinator != null) voiceCoordinator.onPermissionResult(granted);
                 }
         );
 
@@ -123,6 +134,10 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize activity-scoped PlaybackViewModel (shared by all fragments)
         playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
+
+        // Tap-to-talk voice commands (mic, listening sheet, permission flow).
+        voiceCoordinator = new com.psthetech.swara.ui.voice.VoiceUiCoordinator(
+                this, playbackViewModel, micPermissionLauncher);
 
         // Show/hide mini-player based on active song
         playbackViewModel.getCurrentSong().observe(this, song -> {
@@ -335,6 +350,28 @@ public class MainActivity extends AppCompatActivity {
             com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
         }
         hadAudioPermission = has;
+        if (voiceCoordinator != null) voiceCoordinator.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (voiceCoordinator != null) voiceCoordinator.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (voiceCoordinator != null) {
+            voiceCoordinator.onDestroy();
+            voiceCoordinator = null;
+        }
+        super.onDestroy();
+    }
+
+    @Nullable
+    @Override
+    public com.psthetech.swara.ui.voice.VoiceUiCoordinator getVoiceCoordinator() {
+        return voiceCoordinator;
     }
 
     private void showPermissionDeniedDialog() {
