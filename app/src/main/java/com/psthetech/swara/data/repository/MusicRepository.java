@@ -52,6 +52,8 @@ public class MusicRepository {
 
     /** True once a full-library MediaStore query has populated the cache in this process. */
     private static volatile boolean fullLibraryCached = false;
+    /** Bumped each time a full-library query refreshes the cache (voice rebuilds its index on change). */
+    private static volatile int libraryCacheVersion = 0;
 
     public static Song getCanonicalSong(long songId) {
         return canonicalSongMap.get(songId);
@@ -64,6 +66,11 @@ public class MusicRepository {
     public static List<Song> getCachedLibrarySongs() {
         if (!fullLibraryCached) return Collections.emptyList();
         return new ArrayList<>(canonicalSongMap.values());
+    }
+
+    /** Changes whenever {@link #getCachedLibrarySongs()} would return a different library. */
+    public static int getLibraryCacheVersion() {
+        return libraryCacheVersion;
     }
 
     public static List<Song> getSongsForArtistFromCache(String artistName) {
@@ -416,6 +423,7 @@ public class MusicRepository {
             for (Song s : songs) present.add(s.getId());
             canonicalSongMap.keySet().retainAll(present);
             fullLibraryCached = true;
+            libraryCacheVersion++;
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");
