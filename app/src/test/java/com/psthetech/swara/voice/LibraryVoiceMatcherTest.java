@@ -43,8 +43,7 @@ public class LibraryVoiceMatcherTest {
         Candidate top = r.ranked.get(0);
         assertEquals(MatchKind.ARTIST, top.kind);
         assertTrue(top.display.startsWith("A.R."));
-        assertTrue(r.confidence == Confidence.HIGH || r.confidence == Confidence.AMBIGUOUS);
-        assertTrue(!top.display.equals("Rahman Theme"));
+        assertEquals(Confidence.HIGH, r.confidence);
     }
 
     @Test public void sceneMovieSongsIsAlbum() {
@@ -84,5 +83,60 @@ public class LibraryVoiceMatcherTest {
                 new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "scene", true), INDEX);
         assertEquals(MatchKind.ALBUM, r.ranked.get(0).kind);
         assertEquals("Scene", r.ranked.get(0).display);
+    }
+
+    private static Song song(long id, String title, String artist, String album, long albumId) {
+        return new Song(id, title, artist, album, albumId, 1000, 1, 2000, 1L);
+    }
+
+    private static MatchResult artist(String q, LibraryIndex idx) {
+        return LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, q), idx);
+    }
+
+    @Test public void artistWinsOverSameNamedAlbum() {
+        MatchResult r = LibraryVoiceMatcher.match(
+                new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "hariharan", true), INDEX);
+        assertEquals(MatchKind.ARTIST, r.ranked.get(0).kind);
+        assertEquals("Hariharan", r.ranked.get(0).display);
+    }
+
+    @Test public void queryInitialsAreIgnoredOrJoined() {
+        for (String q : new String[]{"a r rahman", "ar rahman", "a.r. rahman"}) {
+            MatchResult r = artist(q, INDEX);
+            assertEquals(q, Confidence.HIGH, r.confidence);
+            assertEquals(q, MatchKind.ARTIST, r.ranked.get(0).kind);
+            assertTrue(q, r.ranked.get(0).display.contains("Rahman")
+                    && !r.ranked.get(0).display.contains("Ameen"));
+        }
+    }
+
+    @Test public void arOnlyLibraryTreatsLeadingCapsPairAsInitials() {
+        LibraryIndex idx = LibraryIndex.build(java.util.Arrays.asList(
+                song(1, "One", "AR Rahman", "X", 1), song(2, "Two", "AR Rahman", "X", 1)));
+        MatchResult r = artist("rahman", idx);
+        assertEquals(Confidence.HIGH, r.confidence);
+        assertEquals(2, r.ranked.get(0).songs.size());
+    }
+
+    @Test public void untaggedAlbumsAreNotAlbums() {
+        LibraryIndex idx = LibraryIndex.build(java.util.Arrays.asList(
+                song(1, "One", "Foo Bar", "Unknown Album", 5), song(2, "Two", "Baz Qux", "Unknown Album", 5),
+                song(3, "Three", "Baz Qux", null, 6), song(4, "Four", "Baz Qux", "Real", 0)));
+        MatchResult r = LibraryVoiceMatcher.match(
+                new VoiceIntent(VoiceIntent.Type.PLAY_ALBUM, "unknown album"), idx);
+        assertEquals(Confidence.NONE, r.confidence);
+        assertEquals(Confidence.NONE, LibraryVoiceMatcher.match(
+                new VoiceIntent(VoiceIntent.Type.PLAY_ALBUM, "real"), idx).confidence);
+    }
+
+    @Test public void similarMultiLetterNamesStayDistinct() {
+        LibraryIndex idx = LibraryIndex.build(java.util.Arrays.asList(
+                song(1, "One", "Ann Eliza", "X", 1), song(2, "Two", "Anne Liza", "Y", 2)));
+        int artists = 0;
+        for (Candidate c : LibraryVoiceMatcher.match(
+                new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "ann eliza"), idx).ranked) {
+            if (c.kind == MatchKind.ARTIST) artists++;
+        }
+        assertEquals(2, artists);
     }
 }

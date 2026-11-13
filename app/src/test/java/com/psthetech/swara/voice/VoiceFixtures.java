@@ -12,6 +12,8 @@ public final class VoiceFixtures {
     public static final long ALBUM_ROJA_TAMIL = 200L;
     public static final long ALBUM_ROJA_HINDI = 201L;
     public static final long ALBUM_SCENE = 300L;
+    /** An album named exactly like the artist "Hariharan". */
+    public static final long ALBUM_HARIHARAN = 600L;
 
     public static final long KAAVAALAA_ID = 1L;
     public static final int RAHMAN_SONG_COUNT = 12;
@@ -66,6 +68,10 @@ public final class VoiceFixtures {
         l.add(new Song(4100L, "Quiet Evening", "Ameen Rahman", "Evenings", 410L, 180000, 1, 2015, 9L));
         l.add(new Song(4101L, "Morning Dew", "Ameen Rahman", "Evenings", 410L, 180000, 2, 2015, 9L));
         l.add(new Song(4200L, "Rahman Theme", "Studio Ensemble", "Themes", 420L, 150000, 1, 2010, 10L));
+
+        // Album that shares its name with an artist
+        l.add(new Song(4300L, "Tribute One", "Tribute Band", "Hariharan", ALBUM_HARIHARAN, 200000, 1, 2020, 12L));
+        l.add(new Song(4301L, "Tribute Two", "Tribute Band", "Hariharan", ALBUM_HARIHARAN, 200000, 2, 2020, 12L));
 
         // Filler
         String[][] filler = {

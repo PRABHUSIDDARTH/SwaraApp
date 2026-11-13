@@ -32,18 +32,18 @@ public final class LibraryVoiceMatcher {
         if (qKey.isEmpty()) return MatchResult.none();
         String[] qTokens = qKey.split(" ");
 
-        List<Candidate> scored = new ArrayList<>();
-        for (LibraryIndex.Entry e : index.entries()) {
-            if (!eligible(type, intent.isArtistThenAlbum(), e.kind)) continue;
-            double score = score(qKey, qTokens, e);
-            if (type != VoiceIntent.Type.PLAY_ANY) score = Math.min(1.0, score + CATEGORY_BONUS);
-            if (score <= 0) continue;
-            scored.add(new Candidate(e.kind, e.key, e.display, e.detail, score, e.songs));
+        List<Candidate> scored;
+        if (type == VoiceIntent.Type.PLAY_ARTIST) {
+            // Artist first; only fall back to albums when no artist is a plausible match.
+            scored = rank(index, qKey, qTokens, MatchKind.ARTIST, true);
+            if (intent.isArtistThenAlbum() && (scored.isEmpty() || scored.get(0).score < RANK_MIN)) {
+                scored = rank(index, qKey, qTokens, MatchKind.ALBUM, true);
+            }
+        } else if (type == VoiceIntent.Type.PLAY_ALBUM) {
+            scored = rank(index, qKey, qTokens, MatchKind.ALBUM, true);
+        } else {
+            scored = rank(index, qKey, qTokens, null, false);
         }
-        Collections.sort(scored, (a, b) -> {
-            if (Math.abs(a.score - b.score) > EPS) return Double.compare(b.score, a.score);
-            return Integer.compare(tieOrder(a.kind), tieOrder(b.kind));
-        });
         if (scored.isEmpty() || scored.get(0).score < RANK_MIN) return MatchResult.none();
 
         double top = scored.get(0).score;
@@ -62,15 +62,21 @@ public final class LibraryVoiceMatcher {
         return new MatchResult(c, ranked);
     }
 
-    private static boolean eligible(VoiceIntent.Type type, boolean artistThenAlbum, MatchKind kind) {
-        switch (type) {
-            case PLAY_ARTIST:
-                return kind == MatchKind.ARTIST || (artistThenAlbum && kind == MatchKind.ALBUM);
-            case PLAY_ALBUM:
-                return kind == MatchKind.ALBUM;
-            default:
-                return true;
+    private static List<Candidate> rank(LibraryIndex index, String qKey, String[] qTokens,
+                                         MatchKind only, boolean bonus) {
+        List<Candidate> scored = new ArrayList<>();
+        for (LibraryIndex.Entry e : index.entries()) {
+            if (only != null && e.kind != only) continue;
+            double score = score(qKey, qTokens, e);
+            if (score <= 0) continue;
+            if (bonus) score = Math.min(1.0, score + CATEGORY_BONUS);
+            scored.add(new Candidate(e.kind, e.key, e.display, e.detail, score, e.songs));
         }
+        Collections.sort(scored, (a, b) -> {
+            if (Math.abs(a.score - b.score) > EPS) return Double.compare(b.score, a.score);
+            return Integer.compare(tieOrder(a.kind), tieOrder(b.kind));
+        });
+        return scored;
     }
 
     /** SONG > ALBUM > ARTIST, used only on equal scores (artist first for explicit artist intents is moot: one kind). */
@@ -84,6 +90,17 @@ public final class LibraryVoiceMatcher {
 
     private static double score(String qKey, String[] qTokens, LibraryIndex.Entry e) {
         if (e.fullKey.isEmpty()) return 0;
+        if (e.kind == MatchKind.ARTIST) {
+            // Query-side initials: drop single letters ("a r") and the entry's own initials.
+            List<String> kept = new ArrayList<>();
+            for (String q : qTokens) {
+                if (q.length() == 1) continue;
+                if (!e.initials.contains(q)) kept.add(q);
+            }
+            if (kept.isEmpty()) return 0;
+            qTokens = kept.toArray(new String[0]);
+            qKey = String.join(" ", kept);
+        }
         double sim = similarity(qKey, e.fullKey);
         return Math.max(sim, coverage(qTokens, e.tokens));
     }
