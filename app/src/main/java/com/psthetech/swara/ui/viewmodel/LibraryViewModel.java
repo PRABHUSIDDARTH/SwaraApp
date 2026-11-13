@@ -71,6 +71,8 @@ public class LibraryViewModel extends AndroidViewModel {
         activeSortOrder = new MutableLiveData<>(SortOrder.fromKey(libraryPrefs.getString(KEY_SORT_ORDER, null)));
         customOrderIds = CustomSongOrder.decode(libraryPrefs.getString(KEY_CUSTOM_ORDER, null));
         musicRepository = new MusicRepository(application);
+        aliasRepository = com.psthetech.swara.data.repository.ArtistAliasRepository.get(application);
+        aliasRepository.version().observeForever(aliasVersionObserver);
         AppDatabase db = AppDatabase.getInstance(application);
         historyRepository = new PlayHistoryRepository(db);
         recentlyPlayed = historyRepository.getRecentlyPlayedLive();
@@ -173,8 +175,17 @@ public class LibraryViewModel extends AndroidViewModel {
                 }
             };
 
+    private final com.psthetech.swara.data.repository.ArtistAliasRepository aliasRepository;
+    private boolean aliasVersionSeen;
+    private final androidx.lifecycle.Observer<Long> aliasVersionObserver = v -> {
+        // The first delivery is the current value; later ones mean the merge set changed.
+        if (!aliasVersionSeen) { aliasVersionSeen = true; return; }
+        loadArtists();
+    };
+
     @Override
     protected void onCleared() {
+        aliasRepository.version().removeObserver(aliasVersionObserver);
         mediaChangeHandler.removeCallbacks(mediaChangeReload);
         getApplication().getContentResolver().unregisterContentObserver(mediaObserver);
         super.onCleared();
@@ -327,10 +338,17 @@ public class LibraryViewModel extends AndroidViewModel {
         if (allSongs.getValue() == null || allSongs.getValue().isEmpty()) {
             loadSongs();
         }
-        return Transformations.map(allSongs, songs -> {
-            if (songs == null || songs.isEmpty()) return Collections.emptyList();
-            return com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(artistName, songs);
-        });
+        androidx.lifecycle.MediatorLiveData<List<Song>> out = new androidx.lifecycle.MediatorLiveData<>();
+        Runnable recompute = () -> {
+            List<Song> songs = allSongs.getValue();
+            if (songs == null || songs.isEmpty()) { out.setValue(Collections.emptyList()); return; }
+            out.setValue(com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(
+                    artistName, songs, aliasRepository.resolver()));
+        };
+        out.addSource(allSongs, s -> recompute.run());
+        // The resolver rebuilds off the main thread; re-derive when it publishes a new version.
+        out.addSource(aliasRepository.version(), v -> recompute.run());
+        return out;
     }
 
     /**

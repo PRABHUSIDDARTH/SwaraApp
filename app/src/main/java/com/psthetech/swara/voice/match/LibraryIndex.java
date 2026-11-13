@@ -3,6 +3,7 @@ package com.psthetech.swara.voice.match;
 import androidx.annotation.NonNull;
 
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.util.ArtistAliasResolver;
 import com.psthetech.swara.util.ArtistIdentityHelper;
 import com.psthetech.swara.util.ArtistNameTokens;
 import com.psthetech.swara.util.MetadataNormalization;
@@ -33,6 +34,8 @@ public final class LibraryIndex {
         final List<Song> songs;
         /** Artist initials (e.g. "a", "r", "ar") that queries may omit or spell either way. */
         final Set<String> initials;
+        /** Merged artists only: token lists of each credit spelling, so "Anirudh" fully matches. */
+        List<List<String>> variantTokens = Collections.emptyList();
 
         Entry(MatchKind kind, String key, String display, String detail,
               List<String> tokens, List<Song> songs, Set<String> initials) {
@@ -76,6 +79,11 @@ public final class LibraryIndex {
 
     @NonNull
     public static LibraryIndex build(List<Song> library) {
+        return build(library, ArtistAliasResolver.identity());
+    }
+
+    @NonNull
+    public static LibraryIndex build(List<Song> library, @NonNull ArtistAliasResolver resolver) {
         List<Entry> entries = new ArrayList<>();
         if (library == null) return new LibraryIndex(entries);
 
@@ -84,6 +92,7 @@ public final class LibraryIndex {
         Map<String, List<Song>> artistSongs = new LinkedHashMap<>();
         Map<String, Map<Long, Song>> artistDedup = new HashMap<>();
         Map<String, Map<String, Integer>> artistVariants = new HashMap<>();
+        Map<String, String> mergedGroups = new HashMap<>();   // group key -> resolved artist key
 
         for (Song s : library) {
             if (s == null) continue;
@@ -99,7 +108,14 @@ public final class LibraryIndex {
             for (String name : ArtistIdentityHelper.extractArtists(s.getArtist())) {
                 String canon = ArtistIdentityHelper.getCanonicalKey(name);
                 if (canon.equals("unknown artist")) continue;
+                String rk = resolver.resolve(canon);
+                // Merged credits group by the resolved key; unmerged ones keep the token key.
                 String gk = groupKey(name);
+                if (!rk.equals(canon)) {
+                    String target = resolver.displayName(rk);
+                    gk = groupKey(target.equals(rk) ? rk : target);
+                    mergedGroups.put(gk, rk);
+                }
                 Map<Long, Song> dedup = artistDedup.computeIfAbsent(gk, k -> new LinkedHashMap<>());
                 if (dedup.putIfAbsent(s.getId(), s) == null) {
                     artistSongs.computeIfAbsent(gk, k -> new ArrayList<>()).add(s);
@@ -120,11 +136,25 @@ public final class LibraryIndex {
         for (Map.Entry<String, List<Song>> e : artistSongs.entrySet()) {
             Map<String, Integer> variants = artistVariants.get(e.getKey());
             String display = mostFrequent(variants);
+            String mergedKey = mergedGroups.get(e.getKey());
+            if (mergedKey != null) {
+                String d = resolver.displayName(mergedKey);
+                if (!d.equals(mergedKey)) display = d;
+            }
             Set<String> initials = new LinkedHashSet<>();
             List<String> tokens = artistTokens(variants.keySet(), initials);
             if (tokens.isEmpty()) continue;
-            entries.add(new Entry(MatchKind.ARTIST, e.getKey(), display,
-                    e.getValue().size() + " songs", tokens, e.getValue(), initials));
+            Entry entry = new Entry(MatchKind.ARTIST, e.getKey(), display,
+                    e.getValue().size() + " songs", tokens, e.getValue(), initials);
+            if (mergedKey != null) {
+                List<List<String>> vts = new ArrayList<>();
+                for (String v : variants.keySet()) {
+                    List<String> vt = artistTokens(Collections.singleton(v), new LinkedHashSet<>());
+                    if (!vt.isEmpty()) vts.add(vt);
+                }
+                entry.variantTokens = vts;
+            }
+            entries.add(entry);
         }
         return new LibraryIndex(entries);
     }

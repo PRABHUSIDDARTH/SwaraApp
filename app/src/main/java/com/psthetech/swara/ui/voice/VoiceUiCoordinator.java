@@ -127,6 +127,7 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
     private final Object indexLock = new Object();
     @Nullable private LibraryIndex index;
     private int indexVersion = -1;
+    private long indexAliasVersion = -1;
 
     /**
      * @param permissionLauncher RequestPermission launcher registered by the activity before onStart;
@@ -534,12 +535,18 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
     private LibraryIndex libraryIndex() {
         synchronized (indexLock) {
             int v = MusicRepository.getLibraryCacheVersion();
-            if (index != null && v == indexVersion) return index;
+            com.psthetech.swara.data.repository.ArtistAliasRepository aliases =
+                    com.psthetech.swara.data.repository.ArtistAliasRepository.get(activity);
+            com.psthetech.swara.util.ArtistAliasResolver resolver = aliases.resolver();
+            Long av = aliases.version().getValue();
+            long aliasVersion = av == null ? 0L : av;
+            if (index != null && v == indexVersion && aliasVersion == indexAliasVersion) return index;
             List<Song> songs = MusicRepository.getCachedLibrarySongs();
             if (songs.isEmpty()) return index; // not loaded yet (or keep the last good one)
             long t0 = System.nanoTime();
-            index = LibraryIndex.build(songs);
+            index = LibraryIndex.build(songs, resolver);
             indexVersion = v;
+            indexAliasVersion = aliasVersion;
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "library index built: " + songs.size() + " songs in "
                         + (System.nanoTime() - t0) / 1_000_000 + " ms");

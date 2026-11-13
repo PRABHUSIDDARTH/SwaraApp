@@ -139,4 +139,21 @@ public class LibraryVoiceMatcherTest {
         }
         assertEquals(2, artists);
     }
+
+    @Test public void anirudhMatchesMergedArtist() {
+        java.util.List<Song> songs = new java.util.ArrayList<>();
+        songs.add(new Song(1, "Solo", "Anirudh", "Album10", 10L, 1000L, 1, 2020, 0L));
+        for (int i = 0; i < 29; i++) {
+            songs.add(new Song(100 + i, "Tune" + i, "Anirudh Ravichander", "Album10", 10L, 1000L, 1, 2020, 0L));
+        }
+        com.psthetech.swara.util.ArtistAliasResolver r =
+                com.psthetech.swara.util.ArtistAliasResolver.build(songs, null);
+        LibraryIndex idx = LibraryIndex.build(songs, r);
+        MatchResult res = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "anirudh"), idx);
+        assertEquals(Confidence.HIGH, res.confidence);
+        Candidate top = res.ranked.get(0);
+        assertEquals(MatchKind.ARTIST, top.kind);
+        assertEquals("Anirudh Ravichander", top.display);
+        assertEquals(30, top.songs.size());
+    }
 }

@@ -89,7 +89,17 @@ public final class LibraryVoiceMatcher {
     }
 
     private static double score(String qKey, String[] qTokens, LibraryIndex.Entry e) {
-        if (e.fullKey.isEmpty()) return 0;
+        double best = scoreTokens(qKey, qTokens, e, e.tokens);
+        for (List<String> vt : e.variantTokens) {
+            best = Math.max(best, scoreTokens(qKey, qTokens, e, vt));
+        }
+        return best;
+    }
+
+    private static double scoreTokens(String qKey, String[] qTokens, LibraryIndex.Entry e,
+                                      List<String> tokens) {
+        String fullKey = String.join(" ", tokens);
+        if (fullKey.isEmpty()) return 0;
         if (e.kind == MatchKind.ARTIST) {
             // Query-side initials: drop single letters ("a r") and the entry's own initials.
             List<String> kept = new ArrayList<>();
@@ -101,8 +111,8 @@ public final class LibraryVoiceMatcher {
             qTokens = kept.toArray(new String[0]);
             qKey = String.join(" ", kept);
         }
-        double sim = similarity(qKey, e.fullKey);
-        return Math.max(sim, coverage(qTokens, e.tokens));
+        double sim = similarity(qKey, fullKey);
+        return Math.max(sim, coverage(qTokens, tokens));
     }
 
     private static double coverage(String[] qTokens, List<String> cTokens) {

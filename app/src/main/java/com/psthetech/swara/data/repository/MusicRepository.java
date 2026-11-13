@@ -183,17 +183,18 @@ public class MusicRepository {
     public void loadSongsForArtist(String artistName, Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
-                String canonicalKey = Artist.getCanonicalKey(artistName);
+                com.psthetech.swara.util.ArtistAliasResolver resolver = aliasResolver();
+                String canonicalKey = resolver.resolve(Artist.getCanonicalKey(artistName));
                 List<Song> cached = canonicalArtistIndex.get(canonicalKey);
                 if (cached != null && !cached.isEmpty()) {
                     mainHandler.post(() -> callback.onResult(new ArrayList<>(cached)));
                     return;
                 }
                 List<Song> allSongs = querySongs(null, null, null);
-                buildArtists(allSongs);
+                buildArtists(allSongs, resolver);
                 List<Song> songs = canonicalArtistIndex.get(canonicalKey);
                 if (songs == null) {
-                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs);
+                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs, resolver);
                 }
                 final List<Song> result = songs != null ? songs : Collections.emptyList();
                 mainHandler.post(() -> callback.onResult(result));
@@ -209,7 +210,7 @@ public class MusicRepository {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
                 List<Song> allSongs = querySongs(null, null, null);
-                List<Artist> artists = buildArtists(allSongs);
+                List<Artist> artists = buildArtists(allSongs, aliasResolver());
                 mainHandler.post(() -> callback.onResult(artists));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load artists", e);
@@ -310,11 +311,11 @@ public class MusicRepository {
                 // Artist results show each artist's full song list, which needs the library-wide
                 // index. Build it now if the Artists tab hasn't been opened yet this session.
                 if (canonicalArtistIndex.isEmpty()) {
-                    buildArtists(querySongs(null, null, null));
+                    buildArtists(querySongs(null, null, null), aliasResolver());
                 }
 
                 // Artists: distinct canonical artists whose name matches query, containing all their songs
-                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching);
+                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching, aliasResolver());
                 List<Artist> artistResults = new ArrayList<>();
                 String canonicalQuery = com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(q);
                 for (Artist a : allArtistsFromMatching) {
@@ -456,8 +457,16 @@ public class MusicRepository {
         return albums;
     }
 
+    private com.psthetech.swara.util.ArtistAliasResolver aliasResolver() {
+        return com.psthetech.swara.data.repository.ArtistAliasRepository.get(context).resolver();
+    }
+
     public static List<Artist> buildArtists(List<Song> songs) {
-        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
+        return buildArtists(songs, com.psthetech.swara.util.ArtistAliasResolver.identity());
+    }
+
+    public static List<Artist> buildArtists(List<Song> songs, com.psthetech.swara.util.ArtistAliasResolver resolver) {
+        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs, resolver);
         canonicalArtistIndex.clear();
         for (Artist a : artists) {
             canonicalArtistIndex.put(a.getCanonicalKey(), a.getSongs());
