@@ -119,6 +119,11 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
         });
 
         libraryViewModel.getSongsForArtist(canonicalKey).observe(getViewLifecycleOwner(), songs -> {
+            if (artistTitle != null) {
+                artistTitle.setText(com.psthetech.swara.util.ArtistTitlePolicy.title(artistName,
+                        com.psthetech.swara.data.repository.ArtistAliasRepository
+                                .get(requireContext()).resolver()));
+            }
             if (songs != null) {
                 songAdapter.submitList(songs);
                 if (artistMeta != null) {

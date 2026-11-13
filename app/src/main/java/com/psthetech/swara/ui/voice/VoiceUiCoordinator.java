@@ -537,9 +537,9 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
             int v = MusicRepository.getLibraryCacheVersion();
             com.psthetech.swara.data.repository.ArtistAliasRepository aliases =
                     com.psthetech.swara.data.repository.ArtistAliasRepository.get(activity);
-            com.psthetech.swara.util.ArtistAliasResolver resolver = aliases.resolver();
-            Long av = aliases.version().getValue();
-            long aliasVersion = av == null ? 0L : av;
+            com.psthetech.swara.data.repository.ArtistAliasRepository.Snapshot snap = aliases.snapshot();
+            com.psthetech.swara.util.ArtistAliasResolver resolver = snap.resolver;
+            long aliasVersion = snap.version;
             if (index != null && v == indexVersion && aliasVersion == indexAliasVersion) return index;
             List<Song> songs = MusicRepository.getCachedLibrarySongs();
             if (songs.isEmpty()) return index; // not loaded yet (or keep the last good one)

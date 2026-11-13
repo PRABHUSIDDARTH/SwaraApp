@@ -176,10 +176,14 @@ public class LibraryViewModel extends AndroidViewModel {
             };
 
     private final com.psthetech.swara.data.repository.ArtistAliasRepository aliasRepository;
-    private boolean aliasVersionSeen;
+    private long lastAliasVersion = -1;
     private final androidx.lifecycle.Observer<Long> aliasVersionObserver = v -> {
-        // The first delivery is the current value; later ones mean the merge set changed.
-        if (!aliasVersionSeen) { aliasVersionSeen = true; return; }
+        // LiveData replays the current value on observe; only a version that differs from the
+        // last one we acted on means the merge set changed. The first value is just recorded.
+        long cur = v == null ? 0L : v;
+        long prev = lastAliasVersion;
+        lastAliasVersion = cur;
+        if (prev == -1 || prev == cur) return;
         loadArtists();
     };
 
@@ -342,8 +346,10 @@ public class LibraryViewModel extends AndroidViewModel {
         Runnable recompute = () -> {
             List<Song> songs = allSongs.getValue();
             if (songs == null || songs.isEmpty()) { out.setValue(Collections.emptyList()); return; }
-            out.setValue(com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(
-                    artistName, songs, aliasRepository.resolver()));
+            // Grouping a large library is off the main thread; the latest result wins.
+            com.psthetech.swara.SwaraApplication.getInstance().getIoExecutor().execute(() ->
+                    out.postValue(com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(
+                            artistName, songs, aliasRepository.resolver())));
         };
         out.addSource(allSongs, s -> recompute.run());
         // The resolver rebuilds off the main thread; re-derive when it publishes a new version.

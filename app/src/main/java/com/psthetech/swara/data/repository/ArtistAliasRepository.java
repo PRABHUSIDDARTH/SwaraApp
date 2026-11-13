@@ -56,7 +56,7 @@ public class ArtistAliasRepository {
     private final LiveData<Long> versionLive;
 
     private final Object lock = new Object();
-    private volatile ArtistAliasResolver current = ArtistAliasResolver.identity();
+    private ArtistAliasResolver current = ArtistAliasResolver.identity();
     private int builtLibraryVersion = Integer.MIN_VALUE;
     private boolean overridesDirty = true;
     private boolean rebuildScheduled = false;
@@ -73,12 +73,31 @@ public class ArtistAliasRepository {
         this.versionLive = versionLive;
     }
 
+    /** A resolver together with the version it was published under (captured atomically). */
+    public static final class Snapshot {
+        @NonNull public final ArtistAliasResolver resolver;
+        public final long version;
+        Snapshot(@NonNull ArtistAliasResolver resolver, long version) {
+            this.resolver = resolver;
+            this.version = version;
+        }
+    }
+
     /** Last built resolver; identity() before the first build. Never blocks. */
     @NonNull
     public ArtistAliasResolver resolver() {
-        ArtistAliasResolver r = current;
+        return snapshot().resolver;
+    }
+
+    /** Resolver and its version read under the same lock rebuild() publishes under. Never blocks. */
+    @NonNull
+    public Snapshot snapshot() {
+        ArtistAliasResolver r;
+        long v;
         boolean schedule = false;
         synchronized (lock) {
+            r = current;
+            v = version;
             if (!rebuildScheduled
                     && (overridesDirty || libraryVersion.getAsInt() != builtLibraryVersion)) {
                 rebuildScheduled = true;
@@ -88,7 +107,7 @@ public class ArtistAliasRepository {
         if (schedule) {
             executor.execute(this::rebuild);
         }
-        return r;
+        return new Snapshot(r, v);
     }
 
     /** Bumps after every rebuild. */

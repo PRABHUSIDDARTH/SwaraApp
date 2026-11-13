@@ -156,4 +156,16 @@ public class LibraryVoiceMatcherTest {
         assertEquals("Anirudh Ravichander", top.display);
         assertEquals(30, top.songs.size());
     }
+
+    @Test public void raviDoesNotMatchMergedAnirudhRavichander() {
+        java.util.List<Song> songs = new java.util.ArrayList<>();
+        songs.add(new Song(1, "Solo", "Anirudh", "Album10", 10L, 1000L, 1, 2020, 0L));
+        for (int i = 0; i < 29; i++) {
+            songs.add(new Song(100 + i, "Tune" + i, "Anirudh Ravichander", "Album10", 10L, 1000L, 1, 2020, 0L));
+        }
+        LibraryIndex idx = LibraryIndex.build(songs,
+                com.psthetech.swara.util.ArtistAliasResolver.build(songs, null));
+        MatchResult res = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "ravi"), idx);
+        assertTrue(res.ranked.isEmpty() || !"Anirudh Ravichander".equals(res.ranked.get(0).display));
+    }
 }
