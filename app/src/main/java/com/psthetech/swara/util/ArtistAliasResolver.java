@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Decides which artist credits are the same person ("Anirudh" vs "Anirudh Ravichander").
@@ -28,16 +27,20 @@ import java.util.regex.Pattern;
 public final class ArtistAliasResolver {
 
     private static final int MAX_HOPS = 8;
-    // Same word rule as voice LibraryIndex: split on dots and whitespace, letters only.
-    private static final Pattern WORD_SPLIT = Pattern.compile("[.\\s]+");
-    private static final Pattern NON_LETTER = Pattern.compile("[^\\p{L}\\p{N}]");
     private static final ArtistAliasResolver IDENTITY =
             new ArtistAliasResolver(Collections.emptyMap(), Collections.emptyMap());
 
     private final Map<String, String> merges;      // canonical key -> target key (single hop)
     private final Map<String, String> displayByRoot;
+    private final Map<String, String> autoSnapshot;
 
     private ArtistAliasResolver(Map<String, String> merges, Map<String, String> displayByRoot) {
+        this(merges, displayByRoot, Collections.emptyMap());
+    }
+
+    private ArtistAliasResolver(Map<String, String> merges, Map<String, String> displayByRoot,
+                                Map<String, String> autoSnapshot) {
+        this.autoSnapshot = autoSnapshot;
         this.merges = merges;
         this.displayByRoot = displayByRoot;
     }
@@ -50,14 +53,13 @@ public final class ArtistAliasResolver {
     /** One identity group: all canonical keys sharing a tokensKey. */
     private static final class Group {
         final List<String> tokens;
-        final boolean initialsOnly;
+        boolean initialsOnly;
         final Map<String, Integer> keyCounts = new LinkedHashMap<>();
         final Map<String, String> displayByKey = new HashMap<>();
         final Set<Long> albums = new HashSet<>();
         String rep;
-        Group(List<String> tokens, boolean initialsOnly) {
+        Group(List<String> tokens) {
             this.tokens = tokens;
-            this.initialsOnly = initialsOnly;
         }
     }
 
@@ -77,11 +79,15 @@ public final class ArtistAliasResolver {
                     if (tk.isEmpty()) tk = key;
                     Group g = groups.get(tk);
                     if (g == null) {
-                        g = new Group(tokenList(name), allInitials(name));
+                        g = new Group(tokenList(name));
                         groups.put(tk, g);
                     }
+                    // Order-independent: any initials-only credit ("A.R.", "AR") taints the group.
+                    if (ArtistNameTokens.isInitialsOnly(name)) g.initialsOnly = true;
                     g.keyCounts.merge(key, 1, Integer::sum);
-                    g.albums.add(s.getAlbumId());
+                    if (s.getAlbumId() > 0 && !MetadataNormalization.isMissingAlbum(s.getAlbum())) {
+                        g.albums.add(s.getAlbumId());
+                    }
                     groupOfKey.put(key, tk);
                     String cur = displayByKey.get(key);
                     if (cur == null || better(name, cur)) displayByKey.put(key, name);
@@ -158,14 +164,11 @@ public final class ArtistAliasResolver {
             String cur = display.get(root);
             if (cur == null || better(e.getValue(), cur)) display.put(root, e.getValue());
         }
-        ArtistAliasResolver r = new ArtistAliasResolver(merges, display);
-        r.autoSnapshot = Collections.unmodifiableMap(r.filterAuto(auto, overrides));
-        return r;
+        return new ArtistAliasResolver(merges, display,
+                Collections.unmodifiableMap(filterAuto(auto, overrides)));
     }
 
-    private Map<String, String> autoSnapshot = Collections.emptyMap();
-
-    private Map<String, String> filterAuto(Map<String, String> auto, Map<String, String> overrides) {
+    private static Map<String, String> filterAuto(Map<String, String> auto, Map<String, String> overrides) {
         Map<String, String> out = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : auto.entrySet()) {
             if (overrides != null && overrides.containsKey(e.getKey())) continue;
@@ -205,58 +208,11 @@ public final class ArtistAliasResolver {
      */
     @NonNull
     public static String tokensKey(@Nullable String name) {
-        return String.join(" ", tokenList(name));
-    }
-
-    private static boolean allInitials(String name) {
-        List<String> w = words(name);
-        if (w.isEmpty()) return true;
-        for (String x : w) if (!isInitial(x)) return false;
-        return true;
+        return String.join(" ", ArtistNameTokens.tokenList(name));
     }
 
     private static List<String> tokenList(@Nullable String name) {
-        List<String> out = new ArrayList<>();
-        if (name == null) return out;
-        StringBuilder run = new StringBuilder();
-        for (String w : words(name)) {
-            if (isInitial(w)) {
-                run.append(plain(w));
-            } else {
-                if (run.length() > 0) { out.add(run.toString()); run.setLength(0); }
-                out.add(w);
-            }
-        }
-        if (run.length() > 0) out.add(run.toString());
-        return out;
-    }
-
-    // Mirrors voice LibraryIndex.words(): single letters are initials, and a leading all-caps
-    // 2-letter word followed by a longer word ("AR Rahman") is initials too.
-    private static List<String> words(String name) {
-        List<String> out = new ArrayList<>();
-        for (String w : WORD_SPLIT.split(name.trim())) {
-            String letters = NON_LETTER.matcher(w.toLowerCase(Locale.ROOT)).replaceAll("");
-            if (letters.isEmpty()) continue;
-            out.add(w.length() == letters.length() && w.equals(w.toUpperCase(Locale.ROOT))
-                    && letters.length() == 2 && out.isEmpty() ? letters + "\u0001" : letters);
-        }
-        for (int i = 0; i < out.size(); i++) {
-            String w = out.get(i);
-            if (w.endsWith("\u0001")) {
-                w = w.substring(0, 2);
-                out.set(i, i + 1 < out.size() && out.get(i + 1).length() > 2 ? "\u0002" + w : w);
-            }
-        }
-        return out;
-    }
-
-    private static boolean isInitial(String w) {
-        return w.length() == 1 || w.startsWith("\u0002");
-    }
-
-    private static String plain(String w) {
-        return w.startsWith("\u0002") ? w.substring(1) : w;
+        return ArtistNameTokens.tokenList(name);
     }
 
     private static boolean isPrefix(List<String> s, List<String> l) {

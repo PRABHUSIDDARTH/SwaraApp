@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.util.ArtistIdentityHelper;
+import com.psthetech.swara.util.ArtistNameTokens;
 import com.psthetech.swara.util.MetadataNormalization;
 import com.psthetech.swara.util.TagNoise;
 
@@ -46,8 +47,6 @@ public final class LibraryIndex {
         }
     }
 
-    private static final Pattern WORD_SPLIT = Pattern.compile("[.\\s]+");
-    private static final Pattern NON_LETTER = Pattern.compile("[^a-z]");
 
     private final List<Entry> entries;
 
@@ -130,52 +129,9 @@ public final class LibraryIndex {
         return new LibraryIndex(entries);
     }
 
-    /**
-     * Letter-only words of an artist name, with initials separated out. Initials are single
-     * letters ("A." "R.") and a leading all-caps 2-letter word followed by a longer word ("AR Rahman").
-     */
-    private static List<String> words(String name) {
-        List<String> out = new ArrayList<>();
-        for (String w : WORD_SPLIT.split(name.trim())) {
-            String letters = NON_LETTER.matcher(w.toLowerCase(Locale.ROOT)).replaceAll("");
-            if (letters.isEmpty()) continue;
-            out.add(w.length() == letters.length() && w.equals(w.toUpperCase(Locale.ROOT))
-                    && letters.length() == 2 && out.isEmpty() ? letters + "\u0001" : letters);
-        }
-        // A trailing "\u0001" marks a leading all-caps 2-letter word; it is initials only when
-        // a longer word follows.
-        for (int i = 0; i < out.size(); i++) {
-            String w = out.get(i);
-            if (w.endsWith("\u0001")) {
-                w = w.substring(0, 2);
-                out.set(i, i + 1 < out.size() && out.get(i + 1).length() > 2 ? "\u0002" + w : w);
-            }
-        }
-        return out;
-    }
-
-    private static boolean isInitial(String w) {
-        return w.length() == 1 || w.startsWith("\u0002");
-    }
-
-    private static String plain(String w) {
-        return w.startsWith("\u0002") ? w.substring(1) : w;
-    }
-
     /** Group key: initials runs collapse ("a.r." / "a. r." / "AR" -> "ar"); other words keep boundaries. */
     static String groupKey(String name) {
-        StringBuilder sb = new StringBuilder();
-        StringBuilder run = new StringBuilder();
-        for (String w : words(name)) {
-            if (isInitial(w)) {
-                run.append(plain(w));
-            } else {
-                if (run.length() > 0) { sb.append(run).append(' '); run.setLength(0); }
-                sb.append(w).append(' ');
-            }
-        }
-        if (run.length() > 0) sb.append(run);
-        String k = sb.toString().trim();
+        String k = String.join(" ", ArtistNameTokens.tokenList(name));
         return k.isEmpty() ? name : k;
     }
 
@@ -183,13 +139,13 @@ public final class LibraryIndex {
     private static List<String> artistTokens(Set<String> variants, Set<String> initials) {
         List<List<String>> wordLists = new ArrayList<>();
         for (String v : variants) {
-            List<String> ws = words(v);
+            List<String> ws = ArtistNameTokens.words(v);
             wordLists.add(ws);
             StringBuilder run = new StringBuilder();
             for (String w : ws) {
-                if (isInitial(w)) {
-                    initials.add(plain(w));
-                    run.append(plain(w));
+                if (ArtistNameTokens.isInitial(w)) {
+                    initials.add(ArtistNameTokens.plain(w));
+                    run.append(ArtistNameTokens.plain(w));
                 } else {
                     if (run.length() > 1) initials.add(run.toString());
                     run.setLength(0);
@@ -200,7 +156,7 @@ public final class LibraryIndex {
         Set<String> tokens = new LinkedHashSet<>();
         for (List<String> ws : wordLists) {
             for (String w : ws) {
-                if (isInitial(w) || initials.contains(w)) continue;
+                if (ArtistNameTokens.isInitial(w) || initials.contains(w)) continue;
                 String k = PhoneticKey.of(w);
                 if (k.length() > 1) tokens.add(k);
             }
