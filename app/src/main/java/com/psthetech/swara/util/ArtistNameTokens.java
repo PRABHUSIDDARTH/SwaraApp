@@ -78,6 +78,12 @@ public final class ArtistNameTokens {
     /** True when the name has no word besides initials ("A.R.", "AR" alone, empty). */
     public static boolean isInitialsOnly(@Nullable String name) {
         List<String> ws = words(name);
+        // A lone all-caps Latin 1-2 letter word ("AR", "MJ") is initials-only, like "A.R.".
+        // words() keeps it as a plain word so voice indexing is unchanged.
+        if (ws.size() == 1 && !isInitial(ws.get(0)) && name != null
+                && CAPS_PAIR.matcher(name.trim().replace(".", "")).matches()) {
+            return true;
+        }
         for (String w : ws) if (!isInitial(w)) return false;
         return true;
     }

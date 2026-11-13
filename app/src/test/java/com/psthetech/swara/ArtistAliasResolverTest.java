@@ -179,4 +179,16 @@ public class ArtistAliasResolverTest {
         assertTrue(!ArtistAliasResolver.tokensKey("Bombay Jayashri")
                 .equals(ArtistAliasResolver.tokensKey("Bombay Jayashri 2")));
     }
+
+    @Test
+    public void arOnlyGroupNeverMerges() {
+        ArtistAliasResolver r = build(null, song("AR", 10), song("AR", 10), song("AR Rahman", 10));
+        assertEquals(key("AR"), r.resolve(key("AR")));
+    }
+
+    @Test
+    public void titleCaseTwoLetterIsRealWord() {
+        ArtistAliasResolver r = build(null, song("Ed", 10), song("Ed Sheeran", 10));
+        assertEquals(key("Ed Sheeran"), r.resolve(key("Ed")));
+    }
 }
