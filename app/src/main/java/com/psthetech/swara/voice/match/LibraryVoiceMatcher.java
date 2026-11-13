@@ -53,7 +53,8 @@ public final class LibraryVoiceMatcher {
         double second = scored.size() > 1 ? scored.get(1).score : 0.0;
         Confidence c;
         if (top >= HIGH_MIN) {
-            boolean exactWin = top > 1.0 + EPS && top - second >= EXACT_TITLE_BONUS - EPS;
+            // Exact-title bonus may break a near-tie only when no other candidate is also an exact match.
+            boolean exactWin = top > 1.0 + EPS && second <= 1.0 + EPS && top - second >= EXACT_TITLE_BONUS - EPS;
             c = (exactWin || top - second >= LEAD_MIN - EPS) ? Confidence.HIGH : Confidence.AMBIGUOUS;
         } else {
             c = Confidence.MEDIUM;
@@ -94,7 +95,7 @@ public final class LibraryVoiceMatcher {
             if (score <= 0) continue;
             if (bonus) score = Math.min(1.0, score + CATEGORY_BONUS);
             if (score < HIGH_MIN && !firstLetterMatches(qKey, e)) score = Math.min(score, RANK_MIN - 0.01);
-            if (!rawNorm.isEmpty() && rawNorm.equals(normalizeRaw(e.display))) score += EXACT_TITLE_BONUS;
+            if (!rawNorm.isEmpty() && rawNorm.equals(normalizeRaw(e.compareName))) score += EXACT_TITLE_BONUS;
             scored.add(new Candidate(e.kind, e.key, e.display, e.detail, score, e.songs));
         }
         Collections.sort(scored, (a, b) -> {

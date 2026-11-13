@@ -6,6 +6,7 @@ import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.voice.intent.IntentParser;
 import com.psthetech.swara.voice.intent.VoiceIntent;
 import com.psthetech.swara.voice.match.Candidate;
+import com.psthetech.swara.voice.match.Confidence;
 import com.psthetech.swara.voice.match.LibraryIndex;
 import com.psthetech.swara.voice.match.LibraryVoiceMatcher;
 import com.psthetech.swara.voice.match.MatchKind;
@@ -69,9 +70,10 @@ public final class VoiceCommandExecutor {
             }
             String rest = q.toString();
             if (!rest.contains(" ") && STOP_SINGLES.contains(rest)) continue;
+            // Intentional: remainders under 5 phonetic chars (short one-word titles) are never played from the fallback.
             if (PhoneticKey.joined(PhoneticKey.of(rest)).length() < 5) continue;
             MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, rest), index);
-            if (r.confidence == com.psthetech.swara.voice.match.Confidence.HIGH) return choose(r.ranked.get(0));
+            if (r.confidence == Confidence.HIGH) return choose(r.ranked.get(0));
         }
         return VoiceOutcome.spoken(VoiceReplies.didntCatch());
     }

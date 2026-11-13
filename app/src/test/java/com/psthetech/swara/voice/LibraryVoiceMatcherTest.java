@@ -66,6 +66,15 @@ public class LibraryVoiceMatcherTest {
         assertTrue(r.ranked.get(1).display.startsWith("Roja"));
     }
 
+    @Test public void plainRojaAndRojaOstStayAmbiguous() {
+        java.util.List<Song> songs = new java.util.ArrayList<>();
+        songs.add(new Song(1, "Alpha", "Artist One", "Roja", 11L, 1000L, 1, 1992, 0L));
+        songs.add(new Song(2, "Bravo", "Artist Two", "Roja OST", 12L, 1000L, 1, 1993, 0L));
+        MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ALBUM, "roja"),
+                LibraryIndex.build(songs));
+        assertEquals(Confidence.AMBIGUOUS, r.confidence);
+    }
+
     @Test public void closeButNotSureIsMedium() {
         MatchResult r = match(VoiceIntent.Type.PLAY_ANY, "kalava");
         assertEquals(Confidence.MEDIUM, r.confidence);

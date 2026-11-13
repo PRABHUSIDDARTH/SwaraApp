@@ -29,6 +29,8 @@ public final class LibraryIndex {
         final String key;
         final String display;
         final String detail;
+        /** Display name as the scorer sees it (album noise stripped), for exact-title comparison. */
+        final String compareName;
         final String fullKey;
         final List<String> tokens;
         final List<Song> songs;
@@ -43,6 +45,7 @@ public final class LibraryIndex {
             this.key = key;
             this.display = display;
             this.detail = detail;
+            this.compareName = kind == MatchKind.ALBUM ? TagNoise.stripAlbumNoise(display) : display;
             this.tokens = tokens;
             this.fullKey = String.join(" ", tokens);
             this.songs = songs;

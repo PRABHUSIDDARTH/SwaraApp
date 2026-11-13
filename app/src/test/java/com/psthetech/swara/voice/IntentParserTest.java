@@ -43,6 +43,10 @@ public class IntentParserTest {
         check("play songs by rahman", Type.PLAY_ARTIST, "rahman", false);
         check("play the weeknd", Type.PLAY_ANY, "the weeknd", false);
         check("pause the music", Type.PAUSE, "", false);
+        check("skip this song", Type.NEXT, "", false);
+        check("skip this", Type.NEXT, "", false);
+        check("play next", Type.NEXT, "", false);
+        check("stop please", Type.PAUSE, "", false);
         check("stop the song", Type.PAUSE, "", false);
         check("play the next song", Type.NEXT, "", false);
         check("play the previous song", Type.PREVIOUS, "", false);
