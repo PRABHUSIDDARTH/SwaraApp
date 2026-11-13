@@ -9,7 +9,10 @@ import java.util.List;
 public final class VoiceOutcome {
     public final String text;
     public final boolean speak;
-    /** Non-empty for MEDIUM / AMBIGUOUS results. */
+    /**
+     * Non-empty for MEDIUM / AMBIGUOUS results. For MEDIUM, get(0) is the top candidate (the
+     * "Yes" option of "Did you mean X?") and the rest are alternatives.
+     */
     public final List<Candidate> choices;
 
     public VoiceOutcome(String text, boolean speak, List<Candidate> choices) {

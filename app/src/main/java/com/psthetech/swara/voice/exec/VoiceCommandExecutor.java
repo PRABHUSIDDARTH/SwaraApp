@@ -20,6 +20,7 @@ import java.util.Random;
 /** Parses a transcript, matches it against the library and drives playback. Pure Java. */
 public final class VoiceCommandExecutor {
     private static final double AMBIGUOUS_BAND = 0.10;
+    private static final int MAX_CHOICES = 4;
 
     private final VoicePlayback playback;
     private final Random random;
@@ -30,8 +31,11 @@ public final class VoiceCommandExecutor {
     }
 
     public VoiceOutcome handle(String transcript, @Nullable LibraryIndex index) {
-        if (index == null || index.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.libraryLoading());
-        VoiceIntent intent = IntentParser.parse(transcript);
+        return handle(IntentParser.parse(transcript), index);
+    }
+
+    /** Entry point taking an already-parsed intent. Transport commands work without a library. */
+    public VoiceOutcome handle(VoiceIntent intent, @Nullable LibraryIndex index) {
         switch (intent.getType()) {
             case PAUSE:
                 playback.pause();
@@ -50,12 +54,14 @@ public final class VoiceCommandExecutor {
             default:
                 break;
         }
+        if (index == null || index.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.libraryLoading());
+        if (intent.getQuery().trim().isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
         MatchResult r = LibraryVoiceMatcher.match(intent, index);
         switch (r.confidence) {
             case HIGH:
                 return choose(r.ranked.get(0));
             case MEDIUM: {
-                List<Candidate> choices = new ArrayList<>(r.ranked.subList(0, Math.min(4, r.ranked.size())));
+                List<Candidate> choices = new ArrayList<>(r.ranked.subList(0, Math.min(MAX_CHOICES, r.ranked.size())));
                 return new VoiceOutcome(VoiceReplies.didYouMean(r.ranked.get(0).display), true, choices);
             }
             case AMBIGUOUS: {
@@ -72,6 +78,7 @@ public final class VoiceCommandExecutor {
     }
 
     public VoiceOutcome choose(Candidate c) {
+        if (c.songs.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
         if (c.kind == MatchKind.SONG) {
             playback.playSong(c.songs.get(0));
             return VoiceOutcome.spoken(VoiceReplies.playingSong(c.display));

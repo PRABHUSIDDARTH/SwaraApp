@@ -108,4 +108,26 @@ public class VoiceCommandExecutorTest {
     @Test public void unknownRepliesDidntCatch() {
         assertEquals("Sorry, I didn't catch that.", exec.handle("", index).text);
     }
+
+    @Test public void blankQueryRepliesDidntCatch() {
+        VoiceOutcome o = exec.handle(new com.psthetech.swara.voice.intent.VoiceIntent(
+                com.psthetech.swara.voice.intent.VoiceIntent.Type.PLAY_ANY, "  "), index);
+        assertEquals(VoiceReplies.didntCatch(), o.text);
+        assertTrue(fake.calls.isEmpty());
+    }
+
+    @Test public void transportWorksWithoutLibrary() {
+        VoiceOutcome o = exec.handle("pause", null);
+        assertEquals(java.util.Collections.singletonList("pause"), fake.calls);
+        assertEquals("Paused", o.text);
+    }
+
+    @Test public void mediumOffersDidYouMean() {
+        VoiceOutcome o = exec.handle("play kalava", index);
+        assertEquals("Did you mean Kaavaalaa?", o.text);
+        assertTrue(o.speak);
+        assertEquals("Kaavaalaa", o.choices.get(0).display);
+        assertTrue(o.choices.size() <= 4);
+        assertTrue(fake.calls.isEmpty());
+    }
 }
