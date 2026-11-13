@@ -8,24 +8,47 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.PriorityQueue;
 
 /**
- * Decode-only tokenizer for Moonshine's SentencePiece-style BPE vocabulary, read from a Hugging
+ * Tokenizer for Moonshine's SentencePiece-style BPE vocabulary, read from a Hugging
  * Face {@code tokenizer.json}: {@code model.vocab} (token -> id) plus {@code added_tokens}.
  * Decoding skips special tokens, turns {@code <0xNN>} byte-fallback tokens into raw bytes
  * (interpreted as UTF-8), maps {@code ▁} to a space and trims the result.
+ * Encoding mirrors Hugging Face {@code tokenizers}: prepend {@code ▁}, spaces to {@code ▁}, then
+ * BPE over the whole string by merge rank, with {@code <0xNN>} byte fallback and fused unks.
  */
 public final class MoonshineTokenizer {
 
     private static final char WORD_START = '▁';
 
+    private static final int MAX_CACHE = 20000;
+
     private final String[] tokens;
     private final boolean[] special;
+    private final HashMap<String, Integer> vocab;
+    /** (leftId << 32 | rightId) -> merge rank. */
+    private final HashMap<Long, Integer> mergeRank;
+    /** merge rank -> id of the merged piece. */
+    private final int[] mergeResult;
+    private final int unkId;
+    private final int[] byteIds = new int[256];
+    private final HashMap<String, int[]> cache = new HashMap<>();
 
-    private MoonshineTokenizer(String[] tokens, boolean[] special) {
+    private MoonshineTokenizer(String[] tokens, boolean[] special, HashMap<String, Integer> vocab,
+                               HashMap<Long, Integer> mergeRank, int[] mergeResult, int unkId) {
         this.tokens = tokens;
         this.special = special;
+        this.vocab = vocab;
+        this.mergeRank = mergeRank;
+        this.mergeResult = mergeResult;
+        this.unkId = unkId;
+        for (int b = 0; b < 256; b++) {
+            Integer id = vocab.get(String.format("<0x%02X>", b));
+            byteIds[b] = id == null ? -1 : id;
+        }
     }
 
     /** Parses {@code tokenizer.json}; does not close {@code tokenizerJson}. */
@@ -56,10 +79,124 @@ public final class MoonshineTokenizer {
                 tokens[id] = a.getString("content");
                 special[id] = a.optBoolean("special", false);
             }
-            return new MoonshineTokenizer(tokens, special);
+
+            HashMap<String, Integer> vocabMap = new HashMap<>(vocab.length() * 2);
+            for (Iterator<String> it = vocab.keys(); it.hasNext(); ) {
+                String tok = it.next();
+                vocabMap.put(tok, vocab.getInt(tok));
+            }
+            JSONObject model = root.getJSONObject("model");
+            JSONArray merges = model.optJSONArray("merges");
+            int mc = merges == null ? 0 : merges.length();
+            HashMap<Long, Integer> rank = new HashMap<>(mc * 2);
+            int[] result = new int[mc];
+            int rk = 0;
+            for (int i = 0; i < mc; i++) {
+                Object m = merges.get(i);
+                String a, b;
+                if (m instanceof JSONArray) {
+                    a = ((JSONArray) m).getString(0);
+                    b = ((JSONArray) m).getString(1);
+                } else {
+                    String ms = m.toString();
+                    int sp = ms.indexOf(' ');
+                    if (sp < 0) continue;
+                    a = ms.substring(0, sp);
+                    b = ms.substring(sp + 1);
+                }
+                Integer ia = vocabMap.get(a), ib = vocabMap.get(b), ir = vocabMap.get(a + b);
+                if (ia == null || ib == null || ir == null) continue;
+                Long key = ((long) ia << 32) | ib;
+                if (rank.containsKey(key)) continue;
+                rank.put(key, rk);
+                result[rk++] = ir;
+            }
+            String unk = model.optString("unk_token", "<unk>");
+            Integer unkId = vocabMap.get(unk);
+            return new MoonshineTokenizer(tokens, special, vocabMap, rank,
+                    java.util.Arrays.copyOf(result, rk), unkId == null ? -1 : unkId);
         } catch (JSONException e) {
             throw new IOException("bad tokenizer.json", e);
         }
+    }
+
+    /** True when the token's piece starts with the word-start marker {@code ▁}. */
+    public boolean isWordStart(int tokenId) {
+        return tokenId >= 0 && tokenId < tokens.length && tokens[tokenId] != null
+                && !tokens[tokenId].isEmpty() && tokens[tokenId].charAt(0) == WORD_START;
+    }
+
+    /** Text to token ids like Hugging Face {@code encode(text, add_special_tokens=False)}. */
+    public int[] encode(String text) {
+        if (text == null || text.isEmpty()) return new int[0];
+        synchronized (cache) {
+            int[] hit = cache.get(text);
+            if (hit != null) return hit.clone();
+        }
+        int[] out = bpe(WORD_START + text.replace(' ', WORD_START));
+        synchronized (cache) {
+            if (cache.size() >= MAX_CACHE) cache.clear();
+            cache.put(text, out);
+        }
+        return out.clone();
+    }
+
+    private int[] bpe(String word) {
+        int n = word.length();
+        int[] ids = new int[n * 4];
+        int len = 0;
+        for (int i = 0; i < n; ) {
+            int cp = word.codePointAt(i);
+            int w = Character.charCount(cp);
+            Integer id = vocab.get(word.substring(i, i + w));
+            if (id != null) {
+                ids[len++] = id;
+            } else {
+                byte[] bytes = word.substring(i, i + w).getBytes(StandardCharsets.UTF_8);
+                boolean ok = true;
+                for (byte b : bytes) if (byteIds[b & 0xFF] < 0) ok = false;
+                if (ok) {
+                    for (byte b : bytes) ids[len++] = byteIds[b & 0xFF];
+                } else {
+                    ids[len++] = unkId;
+                }
+            }
+            i += w;
+        }
+        int[] next = new int[len];
+        int[] prev = new int[len];
+        for (int i = 0; i < len; i++) { next[i] = i + 1 < len ? i + 1 : -1; prev[i] = i - 1; }
+        PriorityQueue<Long> pq = new PriorityQueue<>();
+        for (int i = 0; i + 1 < len; i++) push(pq, ids, i, i + 1);
+        while (!pq.isEmpty()) {
+            long e = pq.poll();
+            int r = (int) (e >>> 32), pos = (int) e;
+            int nx = next[pos];
+            if (ids[pos] < 0 || nx < 0 || ids[nx] < 0) continue;
+            Integer cur = mergeRank.get(((long) ids[pos] << 32) | ids[nx]);
+            if (cur == null || cur != r) continue;
+            ids[pos] = mergeResult[r];
+            ids[nx] = -1;
+            int nn = next[nx];
+            next[pos] = nn;
+            if (nn >= 0) prev[nn] = pos;
+            if (nn >= 0) push(pq, ids, pos, nn);
+            int pv = prev[pos];
+            if (pv >= 0) push(pq, ids, pv, pos);
+        }
+        int[] res = new int[len];
+        int c = 0;
+        for (int i = 0; i < len; i++) {
+            if (ids[i] < 0) continue;
+            if (ids[i] == unkId && c > 0 && res[c - 1] == unkId) continue; // fuse_unk
+            res[c++] = ids[i];
+        }
+        return java.util.Arrays.copyOf(res, c);
+    }
+
+    private void push(PriorityQueue<Long> pq, int[] ids, int a, int b) {
+        Integer r = mergeRank.get(((long) ids[a] << 32) | ids[b]);
+        if (r != null) pq.add(((long) r << 32) | a);
     }
 
     /** Turns token ids into text; unknown ids and special tokens are skipped. */
