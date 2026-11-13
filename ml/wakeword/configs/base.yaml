@@ -70,3 +70,18 @@ fetch:
   ccmixter:
     query_url: "http://ccmixter.org/api/query?f=json&lic=by&tags=instrumental&limit=200"
     max_files: 200
+
+train:
+  # Data roots whose manifest.csv files are merged (absent roots are skipped) and validated together.
+  roots: [data/external, data/synth, data/recorded, data/noise]
+  batch_size: 96               # one third positives
+  epochs: 40
+  steps_per_epoch: 200
+  lr: 0.002
+  patience: 8                  # early stop on val loss
+  val_examples: 600
+  hard_neg_candidates: 4000    # windows scanned per epoch
+  hard_neg_per_epoch: 256      # top-scoring ones kept
+  hard_neg_max: 2048           # pool cap (oldest dropped)
+  hard_neg_frac: 0.25          # share of each batch's negatives drawn from the hard pool
+  seed: 0
