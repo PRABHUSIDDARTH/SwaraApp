@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Sound-alike key for matching spoken names against transliterated library tags.
@@ -12,19 +13,27 @@ import java.util.Locale;
  */
 public final class PhoneticKey {
 
+    private static final String CONS = "[bcdfghjklmnpqrstvwxyz]";
+    private static final Pattern MARKS = Pattern.compile("\\p{M}");
+    private static final Pattern NON_ALPHA = Pattern.compile("[^a-z ]");
+    private static final Pattern SPACES = Pattern.compile(" +");
+    private static final Pattern E_BETWEEN_CONS = Pattern.compile("(?<=" + CONS + ")e(?=" + CONS + ")");
+    private static final Pattern H_AFTER_CONS = Pattern.compile("(?<=" + CONS + ")h");
+    private static final Pattern DOUBLED = Pattern.compile("(.)\\1+");
+    private static final Pattern TRAILING_H = Pattern.compile("h$");
+    private static final Pattern TRAILING_Y = Pattern.compile("y$");
+
     private PhoneticKey() {}
 
     @NonNull
     public static String of(@Nullable String input) {
         if (input == null) return "";
-        String s = Normalizer.normalize(input, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z ]", "")
-                .trim();
+        String s = Normalizer.normalize(input, Normalizer.Form.NFD);
+        s = MARKS.matcher(s).replaceAll("");
+        s = NON_ALPHA.matcher(s.toLowerCase(Locale.ROOT)).replaceAll("").trim();
         if (s.isEmpty()) return "";
         StringBuilder out = new StringBuilder();
-        for (String word : s.split(" +")) {
+        for (String word : SPACES.split(s)) {
             String k = keyWord(word);
             if (k.isEmpty()) continue;
             if (out.length() > 0) out.append(' ');
@@ -42,13 +51,13 @@ public final class PhoneticKey {
         // Vowels
         w = w.replace("aa", "a").replace("ee", "i").replace("ii", "i")
                 .replace("oo", "u").replace("uu", "u").replace("ai", "e");
-        w = w.replaceAll("(?<=[bcdfghjklmnpqrstvwxyz])e(?=[bcdfghjklmnpqrstvwxyz])", "a");
+        w = E_BETWEEN_CONS.matcher(w).replaceAll("a");
         // Drop h after a consonant, collapse doubled letters, drop trailing h
-        w = w.replaceAll("(?<=[bcdfghjklmnpqrstvwxyz])h", "");
-        w = w.replaceAll("(.)\\1+", "$1");
-        w = w.replaceAll("h$", "");
+        w = H_AFTER_CONS.matcher(w).replaceAll("");
+        w = DOUBLED.matcher(w).replaceAll("$1");
+        w = TRAILING_H.matcher(w).replaceAll("");
         // Trailing y sounds like i (Thalapathy / Talapati); minimal adjustment to brief rules
-        w = w.replaceAll("y$", "i");
+        w = TRAILING_Y.matcher(w).replaceAll("i");
         return w;
     }
 }
