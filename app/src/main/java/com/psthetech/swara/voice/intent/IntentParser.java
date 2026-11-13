@@ -9,12 +9,16 @@ import java.util.regex.Pattern;
 /** Rule-based parser turning a speech transcript into a {@link VoiceIntent}. */
 public final class IntentParser {
     private static final Pattern WAKE = Pattern.compile("^(?:hey|hi|ok|okay) (?:swara|sara|swaraa)(?: |$)");
-    private static final Pattern FILLERS = Pattern.compile("\\b(?:can you|could you|please|the|some|me)\\b");
-    private static final Pattern PAUSE = Pattern.compile("^(?:pause|stop)$");
+    /** Fillers before the command verb only. */
+    private static final Pattern LEAD_FILLERS = Pattern.compile("^(?:(?:can you|could you|please|the|some|me) )+");
+    /** Fillers directly after "play" only; never inside the query. */
+    private static final Pattern PLAY_FILLERS = Pattern.compile("^(?:(?:please|some|me) )+");
+    private static final Pattern LEAD_PLAY = Pattern.compile("^play ");
+    private static final Pattern PAUSE = Pattern.compile("^(?:pause|stop)(?: the)?(?: music| song)?$");
     private static final Pattern RESUME = Pattern.compile("^(?:resume|play|continue)$");
-    private static final Pattern NEXT = Pattern.compile("^(?:next|skip|next song)$");
-    private static final Pattern PREVIOUS = Pattern.compile("^(?:previous|go back)$");
-    private static final Pattern BY = Pattern.compile("^songs by (.+)$");
+    private static final Pattern NEXT = Pattern.compile("^(?:play )?(?:the )?(?:next|skip)(?: song)?$");
+    private static final Pattern PREVIOUS = Pattern.compile("^(?:play )?(?:the )?(?:previous|go back)(?: song)?$");
+    private static final Pattern BY = Pattern.compile("^(?:play )?songs by (.+)$");
     private static final Pattern ALBUM = Pattern.compile("^(.+) (?:movie|film|padam|album)(?: songs)?$");
     private static final Pattern PLAY_SONGS = Pattern.compile("^play (.+) songs$");
     private static final Pattern PLAY = Pattern.compile("^play (.+)$");
@@ -24,7 +28,7 @@ public final class IntentParser {
     public static VoiceIntent parse(String transcript) {
         String s = normalize(transcript);
         s = WAKE.matcher(s).replaceFirst("");
-        s = normalize(FILLERS.matcher(s).replaceAll(" "));
+        s = LEAD_FILLERS.matcher(s).replaceFirst("");
         if (s.isEmpty()) return new VoiceIntent(Type.UNKNOWN, "");
 
         if (PAUSE.matcher(s).matches()) return new VoiceIntent(Type.PAUSE, "");
@@ -36,14 +40,19 @@ public final class IntentParser {
         if (m.matches()) return new VoiceIntent(Type.PLAY_ARTIST, m.group(1), false);
         m = ALBUM.matcher(s);
         if (m.matches()) {
-            String q = m.group(1).replaceFirst("^play ", "");
+            String q = LEAD_PLAY.matcher(m.group(1)).replaceFirst("");
             if (!q.isEmpty() && !q.equals("play")) return new VoiceIntent(Type.PLAY_ALBUM, q, false);
         }
         m = PLAY_SONGS.matcher(s);
-        if (m.matches()) return new VoiceIntent(Type.PLAY_ARTIST, m.group(1), true);
+        if (m.matches()) return new VoiceIntent(Type.PLAY_ARTIST, stripPlayFillers(m.group(1)), true);
         m = PLAY.matcher(s);
-        if (m.matches()) return new VoiceIntent(Type.PLAY_ANY, m.group(1), false);
+        if (m.matches()) return new VoiceIntent(Type.PLAY_ANY, stripPlayFillers(m.group(1)), false);
         return new VoiceIntent(Type.UNKNOWN, "");
+    }
+
+    private static String stripPlayFillers(String q) {
+        String r = PLAY_FILLERS.matcher(q).replaceFirst("");
+        return r.isEmpty() ? q : r;
     }
 
     private static String normalize(String in) {

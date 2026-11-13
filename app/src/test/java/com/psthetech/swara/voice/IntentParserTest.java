@@ -37,6 +37,15 @@ public class IntentParserTest {
         check("", Type.UNKNOWN, "", false);
         check("um", Type.UNKNOWN, "", false);
         check("play rahman", Type.PLAY_ANY, "rahman", false);
+        check("play call me maybe", Type.PLAY_ANY, "call me maybe", false);
+        check("hey swara can you please play some kaavaalaa", Type.PLAY_ANY, "kaavaalaa", false);
+        check("play songs by the weeknd", Type.PLAY_ARTIST, "the weeknd", false);
+        check("play songs by rahman", Type.PLAY_ARTIST, "rahman", false);
+        check("play the weeknd", Type.PLAY_ANY, "the weeknd", false);
+        check("pause the music", Type.PAUSE, "", false);
+        check("stop the song", Type.PAUSE, "", false);
+        check("play the next song", Type.NEXT, "", false);
+        check("play the previous song", Type.PREVIOUS, "", false);
         check(null, Type.UNKNOWN, "", false);
     }
 }
