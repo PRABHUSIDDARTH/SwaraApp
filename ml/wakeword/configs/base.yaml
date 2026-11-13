@@ -1,0 +1,37 @@
+# Wake-word "hey swara" data pipeline. Every audio source must pass the licence gate
+# (CC0-1.0, CC-BY-3.0, CC-BY-4.0 or own); see wakeword/data/manifest.py.
+sample_rate: 16000
+window_samples: 16000        # 1.0 s detector window
+data_root: data              # git-ignored
+
+synth:
+  # Kokoro-82M voices; the language code is the first letter (a = US, b = UK English).
+  voices: [af_heart, af_bella, af_nicole, af_sarah, af_sky, am_adam, am_michael, am_puck, bf_emma, bf_isabella, bm_george, bm_lewis]
+  positives: ["hey swara"]
+  near_misses: ["hey sara", "hey siri", "swaram", "play some", "hey there", "hey sarah", "sweater"]
+  speeds: [0.8, 0.9, 1.0, 1.1, 1.25]
+  semitones: [-2, -1, 0, 1, 2]
+  variants_per_voice_text: 6   # random (speed, semitone) combinations per voice and text
+  seed: 0
+
+mix:
+  snr_db: [-5.0, 15.0]
+  cheap_mic_p: 0.3
+  cheap_mic_band_hz: [300, 3400]
+  reverb_p: 0.5
+  gain_db: [-6.0, 0.0]
+
+fetch:
+  # Korokae v2 audited manifest (columns incl. role, licence); used for backgrounds when present.
+  korokae_manifest_csv: ../korokae_v2/data/accompaniment/manifest.csv
+  librispeech:
+    licence: "CC BY 4.0"
+    licence_url: https://creativecommons.org/licenses/by/4.0/
+    subsets:
+      train-clean-100: {url: https://www.openslr.org/resources/12/train-clean-100.tar.gz, split: train}
+      dev-clean: {url: https://www.openslr.org/resources/12/dev-clean.tar.gz, split: val}
+      test-clean: {url: https://www.openslr.org/resources/12/test-clean.tar.gz, split: test}
+    max_files_per_subset: 0    # 0 = all
+  ccmixter:
+    query_url: "http://ccmixter.org/api/query?f=json&lic=by&tags=instrumental&limit=200"
+    max_files: 200

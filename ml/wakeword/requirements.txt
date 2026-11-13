@@ -1,0 +1,9 @@
+numpy>=2.0
+scipy>=1.13
+soundfile>=0.12
+pyyaml>=6
+pytest>=8
+# Optional, training/data machine only (imported lazily, never needed by tests or CI):
+# kokoro>=0.9          # Kokoro-82M TTS (Apache-2.0); espeak-ng is a system package used only here
+# sounddevice>=0.4     # microphone capture for wakeword.data.record
+# torch>=2.15          # Task 11 (training); CPU index: https://download.pytorch.org/whl/cpu
