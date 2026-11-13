@@ -50,11 +50,6 @@ public final class ArtistIdentityHelper {
     // Regex for ampersand separator when flanked by spaces: "Artist A & Artist B"
     private static final Pattern AMPERSAND_PATTERN = Pattern.compile("\\s+&\\s+");
 
-    // Common junk suffix tags like " - MassTamilan.com", " - MassTa...", " [MassTamilan]", web URLs, etc.
-    private static final Pattern JUNK_TAGS_PATTERN = Pattern.compile(
-            "(?i)\\s*-\\s*(?:masstamilan|massta|sensongs|starmusiq|isaimini|tamiltunes|songspk|www\\.[^,]+|[^,]+\\.com|[^,]+\\.net|[^,]+\\.org)[^,]*"
-    );
-
     private ArtistIdentityHelper() {}
 
     /**
@@ -77,7 +72,7 @@ public final class ArtistIdentityHelper {
         }
 
         // Clean website promotion suffixes (e.g. " - MassTamilan...")
-        cleaned = JUNK_TAGS_PATTERN.matcher(cleaned).replaceAll("");
+        cleaned = TagNoise.JUNK_TAGS_PATTERN.matcher(cleaned).replaceAll("");
 
         // Check for parenthetical featuring credits: "Artist A (feat. Artist B)"
         List<String> extractedFromParens = new ArrayList<>();
