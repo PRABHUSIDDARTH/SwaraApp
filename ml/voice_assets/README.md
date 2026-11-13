@@ -108,3 +108,18 @@ LibriVox public-domain recordings. Clips are unmodified apart from WAV re-encodi
 1272-141231-0000   4.65s    122 ms  OK   'A man said to the universe, Sir, I exist.'
 1272-128104-0008   5.12s    168 ms  OK   'As for etchings, there are of two kinds British and foreign.'
 ```
+
+## Device check (MoonshineSttInstrumentedTest, Pixel 3 XL / Snapdragon 845 / Android 12, ORT 1.31.1, 2 threads)
+
+Run via `adb install -r` of the debug + androidTest APKs and `am instrument` (offline Gradle lacks the UTP plugin
+that `connectedDebugAndroidTest` needs). `OK (3 tests)`.
+
+```
+load ms=3367
+budget clip=1272-135031-0011 audio=3.18s ms=539 (target < 800, fail > 2000)
+clip=1272-135031-0011 audio=3.18s ms=513 OK "Not exactly, returned Calico."
+clip=1272-135031-0008 audio=3.67s ms=862 OK "I hope he doesn't work too hard, said Shaggy."
+clip=1272-135031-0004 audio=4.22s ms=909 OK "The king is flooded disgrace in your friends, or asking for you."
+clip=1272-141231-0000 audio=4.65s ms=816 OK "A man said to the universe, Sir, I exist."
+clip=1272-128104-0008 audio=5.12s ms=1138 OK "As for etchings, there are of two kinds British and foreign."
+```
