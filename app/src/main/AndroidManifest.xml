@@ -14,6 +14,9 @@
     <!-- Post notifications (Android 13+) for the media notification -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Microphone for offline voice commands (audio never leaves the device) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Wake lock — Media3 handles this internally when playing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
