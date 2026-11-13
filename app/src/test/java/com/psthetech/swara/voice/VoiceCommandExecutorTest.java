@@ -149,6 +149,39 @@ public class VoiceCommandExecutorTest {
         assertTrue(fake.calls.isEmpty());
     }
 
+    private void withShortTitles() {
+        List<Song> l = VoiceFixtures.library();
+        long id = 9000;
+        for (String t : new String[]{"One", "You", "Please", "Up"}) {
+            l.add(new Song(id++, t, "Short Artist", "Shorts", 900L, 100000, 1, 2020, 20L));
+        }
+        index = LibraryIndex.build(l);
+    }
+
+    @Test public void nextOneIsTransportNotSongOne() {
+        withShortTitles();
+        exec.handle("next one", index);
+        assertEquals(java.util.Collections.singletonList("next"), fake.calls);
+    }
+
+    @Test public void thankYouDoesNotPlay() {
+        withShortTitles();
+        assertEquals(VoiceReplies.didntCatch(), exec.handle("thank you", index).text);
+        assertTrue(fake.calls.isEmpty());
+    }
+
+    @Test public void pausePleaseIsPause() {
+        withShortTitles();
+        exec.handle("pause please", index);
+        assertEquals(java.util.Collections.singletonList("pause"), fake.calls);
+    }
+
+    @Test public void volumeUpDoesNotPlay() {
+        withShortTitles();
+        assertEquals(VoiceReplies.didntCatch(), exec.handle("volume up", index).text);
+        assertTrue(fake.calls.isEmpty());
+    }
+
     @Test public void outcomeKinds() {
         assertEquals(VoiceOutcome.Kind.RESULT, exec.handle("pause", index).kind);
         assertEquals(VoiceOutcome.Kind.INFO, exec.handle("play despacito", index).kind);

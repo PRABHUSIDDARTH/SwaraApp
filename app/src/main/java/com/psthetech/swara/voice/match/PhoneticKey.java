@@ -21,7 +21,6 @@ public final class PhoneticKey {
     private static final Pattern H_AFTER_CONS = Pattern.compile("(?<=" + CONS + ")h");
     private static final Pattern DOUBLED = Pattern.compile("(.)\\1+");
     private static final Pattern TRAILING_H = Pattern.compile("h$");
-    private static final Pattern FINAL_H = Pattern.compile("h$");
     private static final Pattern TRAILING_Y = Pattern.compile("y$");
 
     private PhoneticKey() {}
@@ -67,7 +66,8 @@ public final class PhoneticKey {
         w = TRAILING_Y.matcher(w).replaceAll("i");
         // Indian-name folding (applied last): Anirudh / An-erode / Anirud sound alike
         w = w.replace('e', 'i').replace('o', 'u');
-        w = FINAL_H.matcher(w).replaceAll("");
+        w = TRAILING_H.matcher(w).replaceAll("");
+        w = DOUBLED.matcher(w).replaceAll("$1");
         return w;
     }
 }

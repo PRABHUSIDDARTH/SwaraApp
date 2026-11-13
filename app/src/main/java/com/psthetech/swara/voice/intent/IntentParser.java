@@ -16,9 +16,9 @@ public final class IntentParser {
     private static final Pattern LEAD_PLAY = Pattern.compile("^play ");
     /** Moonshine often hears "play" as one of these; only honoured when a query follows. */
     private static final Pattern MISHEARD_PLAY = Pattern.compile("^(?:player|played|plays|pray|flay) (?=.)");
-    private static final Pattern PAUSE = Pattern.compile("^(?:pause|stop)(?: the)?(?: music| song)?$");
+    private static final Pattern PAUSE = Pattern.compile("^(?:pause|stop)(?: the)?(?: music| song)?(?: please)?$");
     private static final Pattern RESUME = Pattern.compile("^(?:resume|play|continue)$");
-    private static final Pattern NEXT = Pattern.compile("^(?:play )?(?:the )?(?:next|skip)(?: song)?$");
+    private static final Pattern NEXT = Pattern.compile("^(?:play )?(?:the )?(?:next|skip)(?: song| one| this| this song)?$");
     private static final Pattern PREVIOUS = Pattern.compile("^(?:play )?(?:the )?(?:previous|go back)(?: song)?$");
     private static final Pattern BY = Pattern.compile("^(?:play )?songs by (.+)$");
     private static final Pattern ALBUM = Pattern.compile("^(.+) (?:movie|film|padam|album)(?: songs)?$");

@@ -10,6 +10,7 @@ import com.psthetech.swara.voice.match.LibraryIndex;
 import com.psthetech.swara.voice.match.LibraryVoiceMatcher;
 import com.psthetech.swara.voice.match.MatchKind;
 import com.psthetech.swara.voice.match.MatchResult;
+import com.psthetech.swara.voice.match.PhoneticKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +37,18 @@ public final class VoiceCommandExecutor {
         return handle(intent, index);
     }
 
+    private static final java.util.Set<String> PLAY_LIKE = new java.util.HashSet<>(java.util.Arrays.asList(
+            "player", "played", "plays", "pray", "flay", "plate", "clay", "blay",
+            "there", "their", "they", "three", "the"));
+    private static final java.util.Set<String> STOP_SINGLES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "one", "it", "this", "up", "down", "please", "song", "songs", "music", "that", "you", "me"));
+
+    private static boolean soundsLikePlay(String w) {
+        if (PLAY_LIKE.contains(w)) return true;
+        String a = PhoneticKey.of(w), b = PhoneticKey.of("play");
+        return LibraryVoiceMatcher.levenshtein(a, b) <= 1;
+    }
+
     /**
      * The first word is often a misheard "play" (or noise), so retry the rest as PLAY_ANY
      * (also trying with the first two words dropped). Acts only on a HIGH match; never plays on chatter.
@@ -47,13 +60,17 @@ public final class VoiceCommandExecutor {
         String s = IntentParser.stripLeading(transcript);
         if (s.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
         String[] words = s.split(" ");
+        if (!soundsLikePlay(words[0])) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
         for (int drop = 1; drop <= 2 && drop < words.length; drop++) {
             StringBuilder q = new StringBuilder();
             for (int i = drop; i < words.length; i++) {
                 if (q.length() > 0) q.append(' ');
                 q.append(words[i]);
             }
-            MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, q.toString()), index);
+            String rest = q.toString();
+            if (!rest.contains(" ") && STOP_SINGLES.contains(rest)) continue;
+            if (PhoneticKey.joined(PhoneticKey.of(rest)).length() < 5) continue;
+            MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, rest), index);
             if (r.confidence == com.psthetech.swara.voice.match.Confidence.HIGH) return choose(r.ranked.get(0));
         }
         return VoiceOutcome.spoken(VoiceReplies.didntCatch());

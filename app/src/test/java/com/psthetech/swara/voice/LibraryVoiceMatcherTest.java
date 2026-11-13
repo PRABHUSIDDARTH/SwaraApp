@@ -186,6 +186,32 @@ public class LibraryVoiceMatcherTest {
         assertEquals("Respectaa", r.ranked.get(0).display);
     }
 
+    @Test public void outOfLibraryNearNeighbourIsNone() {
+        java.util.List<Song> songs = VoiceFixtures.library();
+        songs.add(new Song(2500L, "Respectaa", "Nila Vaanam", "Mukhyam", 700L, 200000, 1, 2021, 13L));
+        LibraryIndex idx = LibraryIndex.build(songs);
+        assertEquals(Confidence.NONE, LibraryVoiceMatcher.match(
+                new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "despacito"), idx).confidence);
+        MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "respectation"), idx);
+        assertEquals(Confidence.MEDIUM, r.confidence);
+        assertEquals("Respectaa", r.ranked.get(0).display);
+        MatchResult a = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "an erode"), mergedIndex());
+        assertEquals("Anirudh Ravichander", a.ranked.get(0).display);
+    }
+
+    @Test public void godAndGoodStayDistinct() {
+        java.util.List<Song> songs = new java.util.ArrayList<>();
+        songs.add(new Song(1, "God", "A One", "X", 1L, 1000L, 1, 2020, 0L));
+        songs.add(new Song(2, "Good", "B Two", "Y", 2L, 1000L, 1, 2020, 0L));
+        LibraryIndex idx = LibraryIndex.build(songs);
+        MatchResult g = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "god"), idx);
+        assertEquals(Confidence.HIGH, g.confidence);
+        assertEquals("God", g.ranked.get(0).display);
+        MatchResult o = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "good"), idx);
+        assertEquals(Confidence.HIGH, o.confidence);
+        assertEquals("Good", o.ranked.get(0).display);
+    }
+
     @Test public void raviDoesNotMatchMergedAnirudhRavichander() {
         java.util.List<Song> songs = new java.util.ArrayList<>();
         songs.add(new Song(1, "Solo", "Anirudh", "Album10", 10L, 1000L, 1, 2020, 0L));

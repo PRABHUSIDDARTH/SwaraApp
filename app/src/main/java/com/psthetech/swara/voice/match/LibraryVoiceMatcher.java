@@ -16,6 +16,8 @@ public final class LibraryVoiceMatcher {
     static final double RANK_MIN = 0.60;
     static final double CATEGORY_BONUS = 0.10;
     static final int MAX_RANKED = 4;
+    static final double EXACT_TITLE_BONUS = 0.01;
+    static final int JOINED_MIN_LEN = 5;
     private static final double EPS = 1e-9;
 
     private LibraryVoiceMatcher() {}
@@ -31,18 +33,19 @@ public final class LibraryVoiceMatcher {
         String qKey = PhoneticKey.of(intent.getQuery());
         if (qKey.isEmpty()) return MatchResult.none();
         String[] qTokens = qKey.split(" ");
+        String rawNorm = normalizeRaw(intent.getQuery());
 
         List<Candidate> scored;
         if (type == VoiceIntent.Type.PLAY_ARTIST) {
             // Artist first; only fall back to albums when no artist is a plausible match.
-            scored = rank(index, qKey, qTokens, MatchKind.ARTIST, true);
+            scored = rank(index, qKey, qTokens, rawNorm, MatchKind.ARTIST, true);
             if (intent.isArtistThenAlbum() && (scored.isEmpty() || scored.get(0).score < RANK_MIN)) {
-                scored = rank(index, qKey, qTokens, MatchKind.ALBUM, true);
+                scored = rank(index, qKey, qTokens, rawNorm, MatchKind.ALBUM, true);
             }
         } else if (type == VoiceIntent.Type.PLAY_ALBUM) {
-            scored = rank(index, qKey, qTokens, MatchKind.ALBUM, true);
+            scored = rank(index, qKey, qTokens, rawNorm, MatchKind.ALBUM, true);
         } else {
-            scored = rank(index, qKey, qTokens, null, false);
+            scored = rank(index, qKey, qTokens, rawNorm, null, false);
         }
         if (scored.isEmpty() || scored.get(0).score < RANK_MIN) return MatchResult.none();
 
@@ -50,7 +53,8 @@ public final class LibraryVoiceMatcher {
         double second = scored.size() > 1 ? scored.get(1).score : 0.0;
         Confidence c;
         if (top >= HIGH_MIN) {
-            c = (top - second >= LEAD_MIN - EPS) ? Confidence.HIGH : Confidence.AMBIGUOUS;
+            boolean exactWin = top > 1.0 + EPS && top - second >= EXACT_TITLE_BONUS - EPS;
+            c = (exactWin || top - second >= LEAD_MIN - EPS) ? Confidence.HIGH : Confidence.AMBIGUOUS;
         } else {
             c = Confidence.MEDIUM;
         }
@@ -62,7 +66,26 @@ public final class LibraryVoiceMatcher {
         return new MatchResult(c, ranked);
     }
 
-    private static List<Candidate> rank(LibraryIndex index, String qKey, String[] qTokens,
+    private static String normalizeRaw(String q) {
+        return q == null ? "" : q.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+    }
+
+    private static boolean firstLetterMatches(String qKey, LibraryIndex.Entry e) {
+        String qj = PhoneticKey.joined(qKey);
+        if (qj.isEmpty()) return false;
+        if (startsSame(qj, String.join(" ", e.tokens))) return true;
+        for (List<String> vt : e.variantTokens) {
+            if (startsSame(qj, String.join(" ", vt))) return true;
+        }
+        return false;
+    }
+
+    private static boolean startsSame(String qj, String key) {
+        String cj = PhoneticKey.joined(key);
+        return !cj.isEmpty() && cj.charAt(0) == qj.charAt(0);
+    }
+
+    private static List<Candidate> rank(LibraryIndex index, String qKey, String[] qTokens, String rawNorm,
                                          MatchKind only, boolean bonus) {
         List<Candidate> scored = new ArrayList<>();
         for (LibraryIndex.Entry e : index.entries()) {
@@ -70,6 +93,8 @@ public final class LibraryVoiceMatcher {
             double score = score(qKey, qTokens, e);
             if (score <= 0) continue;
             if (bonus) score = Math.min(1.0, score + CATEGORY_BONUS);
+            if (score < HIGH_MIN && !firstLetterMatches(qKey, e)) score = Math.min(score, RANK_MIN - 0.01);
+            if (!rawNorm.isEmpty() && rawNorm.equals(normalizeRaw(e.display))) score += EXACT_TITLE_BONUS;
             scored.add(new Candidate(e.kind, e.key, e.display, e.detail, score, e.songs));
         }
         Collections.sort(scored, (a, b) -> {
@@ -112,8 +137,12 @@ public final class LibraryVoiceMatcher {
             qKey = String.join(" ", kept);
         }
         double sim = similarity(qKey, fullKey);
-        double joinedSim = similarity(PhoneticKey.joined(qKey), PhoneticKey.joined(fullKey));
-        return Math.max(Math.max(sim, joinedSim), coverage(qTokens, tokens));
+        double best = Math.max(sim, coverage(qTokens, tokens));
+        String qj = PhoneticKey.joined(qKey), cj = PhoneticKey.joined(fullKey);
+        if (qTokens.length != tokens.size() && qj.length() >= JOINED_MIN_LEN && cj.length() >= JOINED_MIN_LEN) {
+            best = Math.max(best, similarity(qj, cj));
+        }
+        return best;
     }
 
     private static double coverage(String[] qTokens, List<String> cTokens) {
@@ -139,6 +168,8 @@ public final class LibraryVoiceMatcher {
         if (max == 0) return 0;
         return 1.0 - (double) lev(a, b) / max;
     }
+
+    public static int levenshtein(String a, String b) { return lev(a, b); }
 
     static int lev(String a, String b) {
         int n = a.length(), m = b.length();
