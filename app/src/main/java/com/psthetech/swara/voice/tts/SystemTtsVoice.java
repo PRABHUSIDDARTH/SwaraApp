@@ -1,6 +1,7 @@
 package com.psthetech.swara.voice.tts;
 
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
@@ -10,22 +11,34 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Offline replies via the system TextToSpeech engine, using an installed local English voice. */
+/**
+ * Offline replies via the system TextToSpeech engine, using an installed local English voice.
+ * Construct on the main thread.
+ */
 public final class SystemTtsVoice implements SwaraVoice {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ConcurrentHashMap<String, Runnable> pending = new ConcurrentHashMap<>();
     private final AtomicInteger counter = new AtomicInteger();
     private volatile boolean available;
     private volatile boolean shut;
-    private TextToSpeech tts;
+    private volatile TextToSpeech tts;
 
     public SystemTtsVoice(Context context) {
         tts = new TextToSpeech(context.getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override public void onInit(int status) {
-                if (status != TextToSpeech.SUCCESS || shut) return;
-                available = selectVoice();
+                TextToSpeech engine = tts;
+                if (status != TextToSpeech.SUCCESS || shut || engine == null) {
+                    closeEngine();
+                    return;
+                }
+                available = selectVoice(engine);
+                if (!available) closeEngine();
             }
         });
+        tts.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build());
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override public void onStart(String utteranceId) { }
             @Override public void onDone(String utteranceId) { finish(utteranceId); }
@@ -34,7 +47,7 @@ public final class SystemTtsVoice implements SwaraVoice {
         });
     }
 
-    private boolean selectVoice() {
+    private boolean selectVoice(TextToSpeech tts) {
         try {
             Set<Voice> voices = tts.getVoices();
             if (voices == null) return false;
@@ -81,16 +94,21 @@ public final class SystemTtsVoice implements SwaraVoice {
         if (r != null) main.post(r);
     }
 
+    private void closeEngine() {
+        TextToSpeech engine = tts;
+        tts = null;
+        if (engine != null) {
+            try {
+                engine.stop();
+                engine.shutdown();
+            } catch (RuntimeException ignored) { }
+        }
+    }
+
     @Override public void shutdown() {
         shut = true;
         available = false;
-        if (tts != null) {
-            try {
-                tts.stop();
-                tts.shutdown();
-            } catch (RuntimeException ignored) { }
-            tts = null;
-        }
+        closeEngine();
         for (String id : pending.keySet()) finish(id);
     }
 }
