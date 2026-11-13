@@ -55,6 +55,10 @@ public final class LibraryIndex {
         this.entries = entries;
     }
 
+    public boolean isEmpty() {
+        return entries.isEmpty();
+    }
+
     List<Entry> entries() {
         return entries;
     }
