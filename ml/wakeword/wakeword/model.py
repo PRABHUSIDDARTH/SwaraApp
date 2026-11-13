@@ -46,9 +46,11 @@ def mel_filterbank(sr: int = SR, n_fft: int = N_FFT, n_mels: int = N_MELS) -> np
 class DSBlock(nn.Module):
     """Depthwise 3x3 + pointwise 1x1, each with BatchNorm and ReLU."""
 
-    def __init__(self, cin: int, cout: int, stride: tuple[int, int]):
+    def __init__(self, cin: int, cout: int, stride: tuple[int, int], dilation: int = 1):
         super().__init__()
-        self.dw = nn.Conv2d(cin, cin, 3, stride=stride, padding=1, groups=cin, bias=False)
+        # dilation applies along time only, widening the temporal receptive field cheaply
+        self.dw = nn.Conv2d(cin, cin, 3, stride=stride, padding=(1, dilation), dilation=(1, dilation),
+                            groups=cin, bias=False)
         self.bn1 = nn.BatchNorm2d(cin)
         self.pw = nn.Conv2d(cin, cout, 1, bias=False)
         self.bn2 = nn.BatchNorm2d(cout)
@@ -60,7 +62,7 @@ class DSBlock(nn.Module):
 
 
 class WakeNet(nn.Module):
-    CHANNELS = (32, 48, 64, 96, 128)
+    CHANNELS = (48, 96, 128, 192, 256)
 
     def __init__(self):
         super().__init__()
@@ -69,18 +71,24 @@ class WakeNet(nn.Module):
         f = torch.arange(N_FREQ, dtype=torch.float64)[:, None]
         ang = 2 * math.pi * f * k[None, :] / N_FFT
         basis = torch.cat([torch.cos(ang) * win, -torch.sin(ang) * win], dim=0)  # [2*N_FREQ, N_FFT]
-        self.register_buffer("stft_basis", basis.float()[:, None, :], persistent=False)
+        # stored as fp16 (halves the ONNX size); the torch model uses the same rounded values via a cast,
+        # so torch and ONNX stay identical
+        self.register_buffer("stft_basis", basis.half()[:, None, :], persistent=False)
         self.register_buffer("mel_fb", torch.from_numpy(mel_filterbank()), persistent=False)
         self.stem = nn.Sequential(nn.Conv2d(1, 16, 3, stride=(1, 2), padding=1, bias=False),
                                   nn.BatchNorm2d(16), nn.ReLU())
-        strides = [(2, 1), (2, 1), (1, 1), (2, 1), (1, 1)]  # downsample mel axis, keep time resolution
+        # (mel stride, time stride) and time dilation per block: time is downsampled 4x and then
+        # dilated 2/4/8, so the temporal receptive field spans > 1 s of the 1 s window ("hey ... swara").
+        strides = [(2, 2), (2, 2), (1, 1), (2, 1), (1, 1)]
+        dilations = [1, 1, 2, 4, 8]
         chans = (16,) + self.CHANNELS
-        self.blocks = nn.Sequential(*[DSBlock(chans[i], chans[i + 1], strides[i]) for i in range(5)])
+        self.blocks = nn.Sequential(*[DSBlock(chans[i], chans[i + 1], strides[i], dilations[i])
+                                      for i in range(5)])
         self.head = nn.Linear(self.CHANNELS[-1], 1)
 
     def features(self, audio: torch.Tensor) -> torch.Tensor:
         """[B, 16000] -> log-mel [B, 40, 98]."""
-        spec = nn.functional.conv1d(audio[:, None, :], self.stft_basis, stride=HOP)  # [B, 2F, T]
+        spec = nn.functional.conv1d(audio[:, None, :], self.stft_basis.float(), stride=HOP)  # [B, 2F, T]
         re, im = spec[:, :N_FREQ], spec[:, N_FREQ:]
         power = re * re + im * im
         mel = torch.matmul(self.mel_fb, power)  # [B, 40, T]
@@ -98,3 +106,18 @@ class WakeNet(nn.Module):
 
 def count_params(m: nn.Module) -> int:
     return sum(p.numel() for p in m.parameters())
+
+
+def receptive_field_frames(model: WakeNet, trials: int = 8) -> int:
+    """Number of mel frames (10 ms) that influence one central output position of the conv stack,
+    measured from input gradients (union over random inputs, so ReLU gating does not hide frames)."""
+    model.eval()
+    touched = None
+    for seed in range(trials):
+        g = torch.Generator().manual_seed(seed)
+        x = torch.randn(1, 1, N_MELS, 98, generator=g).requires_grad_(True)
+        y = model.blocks(model.stem(x))
+        y[0, :, :, y.shape[-1] // 2].sum().backward()
+        t = (x.grad.abs().sum(dim=(0, 1, 2)) > 0)
+        touched = t if touched is None else touched | t
+    return int(touched.sum())

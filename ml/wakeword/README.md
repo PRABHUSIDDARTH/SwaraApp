@@ -31,7 +31,13 @@ Run later, with the owner (real data; not run in CI):
     # 3. export (refuses when the gate fails; report the numbers to the owner instead)
     python -m wakeword.export --ckpt checkpoints/best.pt --out ../../app/src/main/assets/voice/wakeword/
 
-The gate threshold is the lowest value with <= 0.1 false triggers/hour; it passes at detection >= 0.95.
+Gate: the threshold is calibrated on the VAL negative stream (lowest value with <= 0.1 false triggers/hour);
+that fixed threshold is then applied to TEST positives and the TEST negative stream. It passes when test
+detection >= 0.95, test FA/hour <= 0.1 and the test negative stream is >= `gate.min_negative_hours` (10 h).
+At least 10 h of test-split negatives (speech/music/noise) are required; add more test-split audio if the gate
+reports the stream is too short. `--eval DIR` adds owner recordings (positives as recorded, any negatives too)
+to the test evaluation; the long negative stream always comes from the configured roots.
+wakeword.json reports the test numbers, including `negative_hours`.
 `WakeGate` in `wakeword/evaluate.py` is the reference for the Android WakeGate (Task 12): trigger on the
 2nd consecutive hop with prob >= threshold; a sub-threshold hop resets the counter; after a trigger, the next
 2000 ms (25 hops) are ignored and the counter restarts at 0.

@@ -85,3 +85,8 @@ train:
   hard_neg_max: 2048           # pool cap (oldest dropped)
   hard_neg_frac: 0.25          # share of each batch's negatives drawn from the hard pool
   seed: 0
+  cache_bytes: 2000000000      # LRU cap on cached decoded audio (bytes)
+  long_clip_seconds: 10.0      # longer files are randomly cropped on load, never cached whole
+
+gate:
+  min_negative_hours: 10.0     # held-out test negative stream must be at least this long, else the gate fails

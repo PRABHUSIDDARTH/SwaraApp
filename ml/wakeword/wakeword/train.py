@@ -13,6 +13,7 @@ import argparse
 import dataclasses
 import math
 import os
+from collections import OrderedDict
 
 import numpy as np
 import soundfile as sf
@@ -25,13 +26,34 @@ from wakeword.data.mix import SR, WINDOW, MixConfig, make_example
 from wakeword.model import WakeNet
 
 
-def load_audio(path: str) -> np.ndarray:
-    x, sr = sf.read(path, dtype="float32", always_2d=True)
+def _to_16k(x: np.ndarray, sr: int) -> np.ndarray:
     x = x.mean(axis=1)
     if sr != SR:
         g = math.gcd(sr, SR)
-        x = resample_poly(x, SR // g, sr // g).astype(np.float32)
-    return x.astype(np.float32)
+        x = resample_poly(x, SR // g, sr // g)
+    return np.ascontiguousarray(x, dtype=np.float32)
+
+
+def load_audio(path: str) -> np.ndarray:
+    x, sr = sf.read(path, dtype="float32", always_2d=True)
+    return _to_16k(x, sr)
+
+
+def audio_seconds(path: str) -> float:
+    info = sf.info(path)
+    return info.frames / info.samplerate
+
+
+def load_audio_crop(path: str, seconds: float, rng: np.random.Generator) -> np.ndarray:
+    """Whole file when it is at most `seconds` long, else a random `seconds`-long crop (only the
+    crop is read from disk)."""
+    info = sf.info(path)
+    n = int(seconds * info.samplerate)
+    if info.frames <= n:
+        return load_audio(path)
+    start = int(rng.integers(0, info.frames - n + 1))
+    x, sr = sf.read(path, start=start, frames=n, dtype="float32", always_2d=True)
+    return _to_16k(x, sr)
 
 
 def load_rows(roots: list[str]) -> list[Row]:
@@ -60,8 +82,11 @@ class Batcher:
         tc = cfg.get("train", {})
         self.hard_frac = float(tc.get("hard_neg_frac", 0.25))
         self.hard_max = int(tc.get("hard_neg_max", 2048))
+        self.cache_cap = int(tc.get("cache_bytes", 2_000_000_000))
+        self.crop_seconds = float(tc.get("long_clip_seconds", 10.0))
+        self.cache_bytes = 0
         rows = [r for r in rows if r.split == split]
-        self._cache: dict[str, np.ndarray] = {}
+        self._cache: OrderedDict[str, np.ndarray] = OrderedDict()  # LRU, bounded by cache_cap bytes
         self.pos = [r.path for r in rows if r.label == "positive"]
         self.neg = [r.path for r in rows if r.label in ("negative", "near_miss")]
         self.bg = [r.path for r in rows if r.label == "background"]
@@ -72,9 +97,19 @@ class Batcher:
         self.hard: list[np.ndarray] = []
 
     def _audio(self, path: str) -> np.ndarray:
+        """Short files come from a byte-bounded LRU cache; files longer than crop_seconds are never
+        cached whole: a fresh random crop is read from disk each time."""
         a = self._cache.get(path)
-        if a is None:
-            a = self._cache[path] = load_audio(path)
+        if a is not None:
+            self._cache.move_to_end(path)
+            return a
+        a = load_audio_crop(path, self.crop_seconds, self.rng)
+        if audio_seconds(path) <= self.crop_seconds and a.nbytes <= self.cache_cap:
+            self._cache[path] = a
+            self.cache_bytes += a.nbytes
+            while self.cache_bytes > self.cache_cap:
+                _, old = self._cache.popitem(last=False)
+                self.cache_bytes -= old.nbytes
         return a
 
     def _pick(self, paths: list[str]) -> np.ndarray:
@@ -91,7 +126,11 @@ class Batcher:
     def negative_window(self) -> np.ndarray:
         """A background crop alone, or a negative / near-miss clip mixed over one."""
         if self.neg and (not self.bg or self.rng.random() < 0.7):
-            return make_example(self._pick(self.neg), self._background(), self.mix.sample_snr(self.rng),
+            clip = self._pick(self.neg)
+            if len(clip) > WINDOW:  # random WINDOW-long crop, not always the tail
+                s0 = int(self.rng.integers(0, len(clip) - WINDOW + 1))
+                clip = clip[s0:s0 + WINDOW]
+            return make_example(clip, self._background(), self.mix.sample_snr(self.rng),
                                 self.rng, self.mix)
         bg = self._background()
         if len(bg) < WINDOW:

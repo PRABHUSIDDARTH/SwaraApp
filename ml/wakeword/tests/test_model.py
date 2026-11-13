@@ -33,3 +33,8 @@ def test_trainable_gradients_flow():
     out = m(torch.randn(2, 16000) * 0.1)
     out.sum().backward()
     assert all(p.grad is not None for p in m.parameters())
+
+
+def test_temporal_receptive_field_ge_80_frames():
+    from wakeword.model import receptive_field_frames
+    assert receptive_field_frames(WakeNet()) >= 80  # >= 800 ms at the 10 ms mel rate

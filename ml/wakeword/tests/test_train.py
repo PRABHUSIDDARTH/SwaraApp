@@ -82,3 +82,25 @@ def test_train_smoke(tiny_root, tmp_path):
     m = WakeNet()
     m.load_state_dict(ck["state_dict"])
     assert "val_loss" in ck and np.isfinite(ck["val_loss"])
+
+
+def test_cache_bounded_and_long_files_cropped(tmp_path):
+    import soundfile as sf
+    root = str(tmp_path / "r")
+    make_root(root, per_split=3)
+    long_path = os.path.join(root, "long_bg.wav")
+    sf.write(long_path, np.zeros(16000 * 40, np.float32), 16000)  # 40 s
+    cfg = _cfg([root])
+    cfg["train"]["cache_bytes"] = 400_000
+    cfg["train"]["long_clip_seconds"] = 5.0
+    rows = load_rows([root])
+    b = Batcher(rows, "train", cfg, seed=0)
+    paths = [r.path for r in rows] + [long_path]
+    for _ in range(3):
+        for p in paths:
+            a = b._audio(p)
+            assert len(a) <= 5 * 16000  # long file is cropped, never loaded whole
+            assert b.cache_bytes <= 400_000
+            assert sum(v.nbytes for v in b._cache.values()) == b.cache_bytes
+    assert long_path not in b._cache
+    assert len(b._cache) < len(paths)  # eviction really happened

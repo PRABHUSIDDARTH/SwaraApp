@@ -3,7 +3,8 @@ import pytest
 import torch
 
 from tests.conftest import make_root
-from wakeword.evaluate import GateResult, WakeGate, fa_per_hour, gate, stream_triggers
+from wakeword.evaluate import (GateResult, WakeGate, _neg_chunks, count_triggers, fa_per_hour, gate,
+                               lowest_threshold, stream_probs, stream_probs_chunks, stream_triggers)
 from wakeword.model import WakeNet
 
 
@@ -45,19 +46,83 @@ def test_fa_per_hour_known_spikes():
     assert fa_per_hour(probs, 0.95) == 0.0
 
 
-def test_gate_runs_and_threshold_rule(tmp_path):
-    root = str(tmp_path / "eval")
-    make_root(root, splits=("test",), per_split=4)
+def test_count_triggers_matches_wakegate_reference():
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        probs = np.clip(rng.random(3000) * 1.3 - 0.1, 0, 1)
+        for t in (0.3, 0.6, 0.8):
+            assert count_triggers(probs, t) == len(stream_triggers(probs, t))
+
+
+def test_threshold_search_one_hour_is_fast():
+    import time
+    rng = np.random.default_rng(1)
+    probs = rng.random(45_000) ** 3  # ~1 h of hops
+    t0 = time.time()
+    thr = lowest_threshold(probs)
+    assert time.time() - t0 < 20
+    assert fa_per_hour(probs, thr) <= 0.1
+    # lowest: the next lower candidate violates the budget (or this is the smallest value)
+    lower = np.unique(probs)[np.unique(probs) < thr]
+    if len(lower):
+        assert fa_per_hour(probs, float(lower[-1])) > 0.1
+
+
+def test_stream_probs_chunks_equals_concatenated_stream():
     torch.manual_seed(0)
-    res = gate(WakeNet().eval(), [root], split="test", seed=0)
-    assert isinstance(res, GateResult)
-    assert 0.0 <= res.detection_rate <= 1.0 and 0.0 <= res.threshold <= 1.0
-    assert res.fa_per_hour <= 0.1  # lowest threshold meeting the FA budget is chosen
-    assert res.passed == (res.detection_rate >= 0.95)
+    m = WakeNet().eval()
+    rng = np.random.default_rng(0)
+    parts = [(0.1 * rng.standard_normal(n)).astype(np.float32) for n in (9000, 30000, 700, 25000)]
+    whole = stream_probs(m, np.concatenate(parts))
+    chunked, total = stream_probs_chunks(m, parts)
+    assert total == 64700 and chunked.shape == whole.shape
+    assert np.allclose(chunked, whole, atol=1e-6)
 
 
-def test_gate_external_eval_dir_uses_all_rows(tmp_path):
-    root = str(tmp_path / "owner")
-    make_root(root, splits=("train",), per_split=2)  # an owner-recording dir: split is ignored
-    res = gate(WakeNet().eval(), [root], split=None, mix_positives=False, seed=0)
+def _cfgs(tmp_path):
+    root = str(tmp_path / "synth")
+    make_root(root, per_split=3)
+    return root
+
+
+def test_gate_calibrates_on_val_reports_on_test(tmp_path):
+    root = _cfgs(tmp_path)
+    torch.manual_seed(0)
+    m = WakeNet().eval()
+    res = gate(m, [root], min_negative_hours=0.0, seed=0)
     assert isinstance(res, GateResult)
+    from wakeword.train import load_rows
+    val_rows = [r for r in load_rows([root]) if r.split == "val"]
+    val_probs, _ = stream_probs_chunks(m, _neg_chunks(val_rows))
+    assert res.threshold == pytest.approx(min(lowest_threshold(val_probs), 1.0))
+    assert res.negative_hours > 0
+    assert res.passed == (res.detection_rate >= 0.95 and res.fa_per_hour <= 0.1)
+
+
+def test_gate_fails_when_negative_stream_too_short(tmp_path):
+    root = _cfgs(tmp_path)
+    res = gate(WakeNet().eval(), [root], min_negative_hours=10.0, seed=0)
+    assert res.passed is False and res.negative_hours < 10.0
+    assert "negative stream" in res.reason and "10" in res.reason
+
+
+def test_gate_owner_positives_only_dir_adds_rows(tmp_path):
+    root = _cfgs(tmp_path)
+    owner = str(tmp_path / "owner")
+    make_root(owner, splits=("train",), per_split=2, labels=("positive",), tag="owner")
+    m = WakeNet().eval()
+    base = gate(m, [root], min_negative_hours=0.0, seed=0)
+    res = gate(m, [root], [owner], min_negative_hours=0.0, seed=0)
+    assert res.negative_hours == pytest.approx(base.negative_hours)  # negatives still from the roots
+    assert res.threshold == base.threshold
+    assert res.detection_rate * 5 == pytest.approx(round(res.detection_rate * 5), abs=1e-6)  # 3 + 2 positives
+
+
+def test_gate_owner_negatives_extend_negative_stream(tmp_path):
+    root = _cfgs(tmp_path)
+    owner = str(tmp_path / "owner")
+    make_root(owner, splits=("train",), per_split=2, labels=("positive", "negative"), tag="owner")
+    m = WakeNet().eval()
+    base = gate(m, [root], min_negative_hours=0.0, seed=0)
+    res = gate(m, [root], [owner], min_negative_hours=0.0, seed=0)
+    assert res.negative_hours > base.negative_hours
