@@ -2,6 +2,7 @@ package com.psthetech.swara.voice.stt;
 
 import android.content.res.AssetManager;
 
+import com.psthetech.swara.voice.audio.LevelNormalizer;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtEnvironment;
@@ -88,6 +89,8 @@ public final class MoonshineStt implements SpeechToText {
         if (closed) throw new IllegalStateException("MoonshineStt is closed");
         int n = audio16k.length;
         if (n < MIN_SAMPLES) return "";
+        // Model-specific input conditioning: hot/clipped mics make the decoder emit EOS at once.
+        audio16k = LevelNormalizer.normalize(audio16k);
         int maxTokens = (int) Math.ceil(6.0 * n / SAMPLE_RATE);
 
         List<Long> tokens = new ArrayList<>();

@@ -65,7 +65,34 @@ class Tokenizer:
         return out.decode("utf-8", errors="replace").strip()
 
 
+TARGET_RMS, MIN_GAIN, MAX_GAIN, MAX_PEAK = 0.05, 0.1, 8.0, 0.9
+FRAME, ACTIVE_RMS = 1280, 0.01
+
+
+def normalize(audio):
+    """Port of LevelNormalizer.java: hot/clipped mics make Moonshine emit an empty transcript."""
+    audio = np.asarray(audio, dtype=np.float32)
+    peak = float(np.max(np.abs(audio))) if audio.size else 0.0
+    if audio.size == 0 or peak == 0.0:
+        return audio.copy()
+    e, c = 0.0, 0
+    for s in range(0, audio.size, FRAME):
+        f = audio[s:s + FRAME].astype(np.float64)
+        if math.sqrt(float(np.mean(f * f))) >= ACTIVE_RMS:
+            e += float(np.sum(f * f))
+            c += f.size
+    if c == 0:
+        f = audio.astype(np.float64)
+        e, c = float(np.sum(f * f)), f.size
+    rms = math.sqrt(e / c)
+    gain = TARGET_RMS / rms if rms > 0 else MAX_GAIN
+    gain = max(MIN_GAIN, min(MAX_GAIN, gain))
+    gain = min(gain, MAX_PEAK / peak)
+    return (audio * np.float32(gain)).astype(np.float32)
+
+
 def transcribe(enc, dec, audio):
+    audio = normalize(audio)
     n = audio.shape[0]
     max_tokens = math.ceil(6 * n / 16000)
     hidden = enc.run(["last_hidden_state"], {"input_values": audio[None, :].astype(np.float32)})[0]
