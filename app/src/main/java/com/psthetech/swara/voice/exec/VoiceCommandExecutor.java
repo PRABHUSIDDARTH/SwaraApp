@@ -31,7 +31,32 @@ public final class VoiceCommandExecutor {
     }
 
     public VoiceOutcome handle(String transcript, @Nullable LibraryIndex index) {
-        return handle(IntentParser.parse(transcript), index);
+        VoiceIntent intent = IntentParser.parse(transcript);
+        if (intent.getType() == VoiceIntent.Type.UNKNOWN) return unknownFallback(transcript, index);
+        return handle(intent, index);
+    }
+
+    /**
+     * The first word is often a misheard "play" (or noise), so retry the rest as PLAY_ANY
+     * (also trying with the first two words dropped). Acts only on a HIGH match; never plays on chatter.
+     */
+    private VoiceOutcome unknownFallback(String transcript, @Nullable LibraryIndex index) {
+        if (transcript == null || index == null || index.isEmpty()) {
+            return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        }
+        String s = IntentParser.stripLeading(transcript);
+        if (s.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        String[] words = s.split(" ");
+        for (int drop = 1; drop <= 2 && drop < words.length; drop++) {
+            StringBuilder q = new StringBuilder();
+            for (int i = drop; i < words.length; i++) {
+                if (q.length() > 0) q.append(' ');
+                q.append(words[i]);
+            }
+            MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, q.toString()), index);
+            if (r.confidence == com.psthetech.swara.voice.match.Confidence.HIGH) return choose(r.ranked.get(0));
+        }
+        return VoiceOutcome.spoken(VoiceReplies.didntCatch());
     }
 
     /** Entry point taking an already-parsed intent. Transport commands work without a library. */

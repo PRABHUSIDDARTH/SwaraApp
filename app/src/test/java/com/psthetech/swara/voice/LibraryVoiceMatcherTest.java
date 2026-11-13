@@ -157,6 +157,35 @@ public class LibraryVoiceMatcherTest {
         assertEquals(30, top.songs.size());
     }
 
+    private static LibraryIndex mergedIndex() {
+        java.util.List<Song> songs = VoiceFixtures.library();
+        songs.add(new Song(1, "Solo", "Anirudh", "Jailer", VoiceFixtures.ALBUM_JAILER, 1000L, 3, 2023, 1L));
+        return LibraryIndex.build(songs, com.psthetech.swara.util.ArtistAliasResolver.build(songs, null));
+    }
+
+    @Test public void misheardAnErodeFindsAnirudh() {
+        MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "an erode"), mergedIndex());
+        assertTrue(r.confidence.ordinal() <= Confidence.MEDIUM.ordinal() || r.confidence == Confidence.HIGH);
+        assertEquals(MatchKind.ARTIST, r.ranked.get(0).kind);
+        assertEquals("Anirudh Ravichander", r.ranked.get(0).display);
+    }
+
+    @Test public void misheardAnErodeRaviChanderIsHigh() {
+        MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ARTIST, "an erode ravi chander"), mergedIndex());
+        assertEquals(Confidence.HIGH, r.confidence);
+        assertEquals("Anirudh Ravichander", r.ranked.get(0).display);
+    }
+
+    @Test public void respectationFindsRespectaa() {
+        java.util.List<Song> songs = VoiceFixtures.library();
+        songs.add(new Song(2500L, "Respectaa", "Nila Vaanam", "Mukhyam", 700L, 200000, 1, 2021, 13L));
+        MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, "respectation"),
+                LibraryIndex.build(songs));
+        assertTrue(r.confidence == Confidence.MEDIUM || r.confidence == Confidence.HIGH);
+        assertEquals(MatchKind.SONG, r.ranked.get(0).kind);
+        assertEquals("Respectaa", r.ranked.get(0).display);
+    }
+
     @Test public void raviDoesNotMatchMergedAnirudhRavichander() {
         java.util.List<Song> songs = new java.util.ArrayList<>();
         songs.add(new Song(1, "Solo", "Anirudh", "Album10", 10L, 1000L, 1, 2020, 0L));

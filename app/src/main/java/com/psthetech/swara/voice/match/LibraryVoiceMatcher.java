@@ -112,7 +112,8 @@ public final class LibraryVoiceMatcher {
             qKey = String.join(" ", kept);
         }
         double sim = similarity(qKey, fullKey);
-        return Math.max(sim, coverage(qTokens, tokens));
+        double joinedSim = similarity(PhoneticKey.joined(qKey), PhoneticKey.joined(fullKey));
+        return Math.max(Math.max(sim, joinedSim), coverage(qTokens, tokens));
     }
 
     private static double coverage(String[] qTokens, List<String> cTokens) {

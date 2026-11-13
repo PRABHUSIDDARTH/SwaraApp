@@ -14,6 +14,8 @@ public final class IntentParser {
     /** Fillers directly after "play" only; never inside the query. */
     private static final Pattern PLAY_FILLERS = Pattern.compile("^(?:(?:please|some|me) )+");
     private static final Pattern LEAD_PLAY = Pattern.compile("^play ");
+    /** Moonshine often hears "play" as one of these; only honoured when a query follows. */
+    private static final Pattern MISHEARD_PLAY = Pattern.compile("^(?:player|played|plays|pray|flay) (?=.)");
     private static final Pattern PAUSE = Pattern.compile("^(?:pause|stop)(?: the)?(?: music| song)?$");
     private static final Pattern RESUME = Pattern.compile("^(?:resume|play|continue)$");
     private static final Pattern NEXT = Pattern.compile("^(?:play )?(?:the )?(?:next|skip)(?: song)?$");
@@ -30,6 +32,7 @@ public final class IntentParser {
         s = WAKE.matcher(s).replaceFirst("");
         s = LEAD_FILLERS.matcher(s).replaceFirst("");
         if (s.isEmpty()) return new VoiceIntent(Type.UNKNOWN, "");
+        s = MISHEARD_PLAY.matcher(s).replaceFirst("play ");
 
         if (PAUSE.matcher(s).matches()) return new VoiceIntent(Type.PAUSE, "");
         if (RESUME.matcher(s).matches()) return new VoiceIntent(Type.RESUME, "");
@@ -48,6 +51,13 @@ public final class IntentParser {
         m = PLAY.matcher(s);
         if (m.matches()) return new VoiceIntent(Type.PLAY_ANY, stripPlayFillers(m.group(1)), false);
         return new VoiceIntent(Type.UNKNOWN, "");
+    }
+
+    /** Normalized transcript with the wake phrase and leading fillers removed. */
+    public static String stripLeading(String transcript) {
+        String s = normalize(transcript);
+        s = WAKE.matcher(s).replaceFirst("");
+        return LEAD_FILLERS.matcher(s).replaceFirst("");
     }
 
     private static String stripPlayFillers(String q) {

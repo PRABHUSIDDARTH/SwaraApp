@@ -134,6 +134,21 @@ public class VoiceCommandExecutorTest {
         assertEquals(VoiceOutcome.Kind.CONFIRM, o.kind);
     }
 
+    @Test public void unknownFallbackPlaysOnHigh() {
+        VoiceOutcome o = exec.handle("there are kaavaalaa", index);
+        assertEquals(VoiceFixtures.KAAVAALAA_ID, fake.song.getId());
+        assertEquals("Playing Kaavaalaa.", o.text);
+    }
+
+    @Test public void unknownChatterDoesNotPlay() {
+        for (String t : new String[]{"But he bought them laptops.", "Three cyber-incored songs.",
+                "There are one songs.", "They are Ramon songs."}) {
+            VoiceOutcome o = exec.handle(t, index);
+            assertEquals(t, VoiceReplies.didntCatch(), o.text);
+        }
+        assertTrue(fake.calls.isEmpty());
+    }
+
     @Test public void outcomeKinds() {
         assertEquals(VoiceOutcome.Kind.RESULT, exec.handle("pause", index).kind);
         assertEquals(VoiceOutcome.Kind.INFO, exec.handle("play despacito", index).kind);

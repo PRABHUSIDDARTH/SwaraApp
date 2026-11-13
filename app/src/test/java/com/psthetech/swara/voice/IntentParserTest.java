@@ -46,6 +46,8 @@ public class IntentParserTest {
         check("stop the song", Type.PAUSE, "", false);
         check("play the next song", Type.NEXT, "", false);
         check("play the previous song", Type.PREVIOUS, "", false);
+        check("Player kaavaalaa", Type.PLAY_ANY, "kaavaalaa", false);
+        check("plays rahman songs", Type.PLAY_ARTIST, "rahman", true);
         check(null, Type.UNKNOWN, "", false);
     }
 }
