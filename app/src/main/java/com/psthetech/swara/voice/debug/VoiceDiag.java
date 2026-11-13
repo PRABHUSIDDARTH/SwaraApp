@@ -41,6 +41,19 @@ public final class VoiceDiag {
         try { Log.d(TAG, msg); } catch (RuntimeException ignored) { }
     }
 
+    /** Logs every automatic artist merge once per resolver build. Debug builds only. */
+    public static void logMerges(@Nullable com.psthetech.swara.util.ArtistAliasResolver r) {
+        if (!BuildConfig.DEBUG || r == null) return;
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, String> e : r.autoMerges().entrySet()) {
+            lines.add("merge: \"" + r.creditDisplay(e.getKey()) + "\" -> \""
+                    + r.displayName(e.getValue()) + "\"");
+        }
+        java.util.Collections.sort(lines);
+        d("auto merges: " + lines.size());
+        for (String l : lines) d(l);
+    }
+
     /** Call once with context.getCacheDir(). */
     public static void init(@Nullable File cacheDir) {
         if (!BuildConfig.DEBUG || cacheDir == null) return;

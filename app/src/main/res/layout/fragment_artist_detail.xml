@@ -47,6 +47,15 @@
 
         </LinearLayout>
 
+        <ImageView
+            android:id="@+id/btnArtistMore"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ripple_circle"
+            android:contentDescription="@string/cd_more_options"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_vert" />
+
     </LinearLayout>
 
     <!-- Play All / Shuffle action row -->

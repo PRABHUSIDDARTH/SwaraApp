@@ -160,6 +160,9 @@ public class ArtistAliasRepository {
             rebuildScheduled = false;
             v = ++version;
         }
+        if (com.psthetech.swara.BuildConfig.DEBUG) {
+            com.psthetech.swara.voice.debug.VoiceDiag.logMerges(built);
+        }
         publish.accept(v);
     }
 }

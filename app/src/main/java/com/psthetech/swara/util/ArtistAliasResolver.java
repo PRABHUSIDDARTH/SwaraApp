@@ -33,14 +33,17 @@ public final class ArtistAliasResolver {
     private final Map<String, String> merges;      // canonical key -> target key (single hop)
     private final Map<String, String> displayByRoot;
     private final Map<String, String> autoSnapshot;
+    private final Map<String, String> creditDisplay;
 
     private ArtistAliasResolver(Map<String, String> merges, Map<String, String> displayByRoot) {
-        this(merges, displayByRoot, Collections.emptyMap());
+        this(merges, displayByRoot, Collections.emptyMap(), Collections.emptyMap());
     }
 
     private ArtistAliasResolver(Map<String, String> merges, Map<String, String> displayByRoot,
-                                Map<String, String> autoSnapshot) {
+                                Map<String, String> autoSnapshot,
+                                Map<String, String> creditDisplay) {
         this.autoSnapshot = autoSnapshot;
+        this.creditDisplay = creditDisplay;
         this.merges = merges;
         this.displayByRoot = displayByRoot;
     }
@@ -165,7 +168,8 @@ public final class ArtistAliasResolver {
             if (cur == null || better(e.getValue(), cur)) display.put(root, e.getValue());
         }
         return new ArtistAliasResolver(merges, display,
-                Collections.unmodifiableMap(filterAuto(auto, overrides)));
+                Collections.unmodifiableMap(filterAuto(auto, overrides)),
+                Collections.unmodifiableMap(new HashMap<>(displayByKey)));
     }
 
     private static Map<String, String> filterAuto(Map<String, String> auto, Map<String, String> overrides) {
@@ -193,6 +197,24 @@ public final class ArtistAliasResolver {
     @NonNull
     public Map<String, String> autoMerges() {
         return autoSnapshot;
+    }
+
+    /** Credit keys (other than mergedKey) that currently resolve into mergedKey, auto or manual. */
+    @NonNull
+    public List<String> keysMergedInto(@NonNull String mergedKey) {
+        List<String> out = new ArrayList<>();
+        for (String k : merges.keySet()) {
+            if (!k.equals(mergedKey) && resolve(k).equals(mergedKey)) out.add(k);
+        }
+        Collections.sort(out);
+        return out;
+    }
+
+    /** Display spelling of one credit key (not its merged root); falls back to the key. */
+    @NonNull
+    public String creditDisplay(@NonNull String creditKey) {
+        String d = creditDisplay.get(creditKey);
+        return d != null ? d : creditKey;
     }
 
     /** Longest display name among the credits that resolve to this key. */

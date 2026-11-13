@@ -26,7 +26,7 @@ import com.psthetech.swara.ui.playlists.AddToPlaylistDialog;
 import java.util.HashSet;
 import java.util.List;
 
-public class ArtistDetailFragment extends Fragment implements SongAdapter.Listener {
+public class ArtistDetailFragment extends Fragment implements SongAdapter.Listener, ArtistPickerBottomSheet.Listener {
 
     private LibraryViewModel libraryViewModel;
     private PlaybackViewModel playbackViewModel;
@@ -70,6 +70,9 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
 
         view.findViewById(R.id.backButton).setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
 
+        View btnMore = view.findViewById(R.id.btnArtistMore);
+        if (btnMore != null) btnMore.setOnClickListener(this::showArtistMenu);
+
         songAdapter = new SongAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(songAdapter);
@@ -103,6 +106,8 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
                     if (artistMeta != null) artistMeta.setTextColor(tokens.getTextSecondaryColor());
                     android.widget.ImageView backButton = getView().findViewById(R.id.backButton);
                     if (backButton != null) backButton.setColorFilter(tokens.getTextPrimaryColor());
+                    android.widget.ImageView moreButton = getView().findViewById(R.id.btnArtistMore);
+                    if (moreButton != null) moreButton.setColorFilter(tokens.getTextPrimaryColor());
                     if (songAdapter != null) songAdapter.notifyDataSetChanged();
                 });
 
@@ -131,6 +136,67 @@ public class ArtistDetailFragment extends Fragment implements SongAdapter.Listen
                 }
             }
         });
+    }
+
+    private static final int ID_MERGE_WITH = 1;
+    private static final int ID_UNMERGE_BASE = 100;
+
+    private void showArtistMenu(View anchor) {
+        com.psthetech.swara.data.repository.ArtistAliasRepository repo =
+                com.psthetech.swara.data.repository.ArtistAliasRepository.get(requireContext());
+        com.psthetech.swara.util.ArtistAliasResolver resolver = repo.resolver();
+        String mergedKey = resolver.resolve(canonicalKey);
+        List<com.psthetech.swara.util.ArtistMergeMenuPolicy.Item> items =
+                com.psthetech.swara.util.ArtistMergeMenuPolicy.items(mergedKey, resolver);
+        android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), anchor);
+        for (int i = 0; i < items.size(); i++) {
+            com.psthetech.swara.util.ArtistMergeMenuPolicy.Item it = items.get(i);
+            String label = it.kind == com.psthetech.swara.util.ArtistMergeMenuPolicy.Kind.UNMERGE
+                    ? getString(R.string.artist_unmerge, it.creditDisplay)
+                    : getString(R.string.artist_merge_with);
+            int id = it.kind == com.psthetech.swara.util.ArtistMergeMenuPolicy.Kind.UNMERGE
+                    ? ID_UNMERGE_BASE + i : ID_MERGE_WITH;
+            android.view.MenuItem mi = popup.getMenu().add(0, id, i, label);
+            if (android.os.Build.VERSION.SDK_INT >= 26) mi.setContentDescription(label);
+        }
+        popup.setOnMenuItemClickListener(mi -> {
+            if (mi.getItemId() == ID_MERGE_WITH) {
+                ArtistPickerBottomSheet.newInstance(mergedKey)
+                        .show(getChildFragmentManager(), ArtistPickerBottomSheet.TAG);
+                return true;
+            }
+            int idx = mi.getItemId() - ID_UNMERGE_BASE;
+            if (idx >= 0 && idx < items.size()) {
+                com.psthetech.swara.util.ArtistMergeMenuPolicy.Item it = items.get(idx);
+                repo.unmerge(it.creditKey);
+                com.google.android.material.snackbar.Snackbar.make(requireView(),
+                        getString(R.string.artist_unmerged_snackbar, it.creditDisplay),
+                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    @Override
+    public void onArtistPicked(@NonNull String pickedKey, @NonNull String pickedName) {
+        com.psthetech.swara.data.repository.ArtistAliasRepository repo =
+                com.psthetech.swara.data.repository.ArtistAliasRepository.get(requireContext());
+        String mergedKey = repo.resolver().resolve(canonicalKey);
+        String fromName = artistTitle != null ? artistTitle.getText().toString() : artistName;
+        repo.merge(mergedKey, pickedKey);
+        View root = requireActivity().findViewById(android.R.id.content);
+        com.google.android.material.snackbar.Snackbar.make(root != null ? root : requireView(),
+                getString(R.string.artist_merged_snackbar, fromName, pickedName),
+                com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
+        Bundle b = new Bundle();
+        b.putString("artistName", pickedName);
+        b.putString("canonicalKey", pickedKey);
+        androidx.navigation.NavController nav = Navigation.findNavController(requireView());
+        nav.navigate(R.id.artistDetailFragment, b,
+                new androidx.navigation.NavOptions.Builder()
+                        .setPopUpTo(R.id.artistDetailFragment, true).build());
     }
 
     @Override
