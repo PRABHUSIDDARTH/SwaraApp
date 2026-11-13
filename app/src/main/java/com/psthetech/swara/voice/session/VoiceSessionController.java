@@ -31,6 +31,7 @@ public final class VoiceSessionController {
 
     public interface Cancellable { void cancel(); }
 
+    /** Callbacks may arrive on any thread; the controller re-posts them to deps.main. */
     public interface Scheduler { Cancellable schedule(Runnable r, long delayMs); }
 
     public interface Listener {
@@ -92,13 +93,25 @@ public final class VoiceSessionController {
         this.deps = deps;
     }
 
+    /** Main thread only. */
     public void setListener(@Nullable Listener l) { this.listener = l; }
 
     public VoiceState state() { return stateView; }
 
-    /** Main thread. False (ignored) unless IDLE. */
+    /**
+     * Main thread only. False (ignored) unless IDLE, or REPLY with pending choices, which a new
+     * command supersedes.
+     */
     public boolean startCommand() {
-        if (state != VoiceState.IDLE) return false;
+        if (state == VoiceState.REPLY && choicesPending) {
+            gen++;
+            speakToken++;
+            choicesPending = false;
+            cancelWatchdog();
+            unduckOnce(); // balance the superseded session before ducking for the new one
+        } else if (state != VoiceState.IDLE) {
+            return false;
+        }
         gen++;
         unducked = false;
         choicesPending = false;
@@ -142,7 +155,7 @@ public final class VoiceSessionController {
         }
     }
 
-    /** Main thread. The user tapped one of the choices of a REPLY. */
+    /** Main thread only. The user tapped one of the choices of a REPLY. */
     public void onChoice(Candidate c) {
         if (state != VoiceState.REPLY || !choicesPending) return;
         choicesPending = false;
@@ -157,7 +170,7 @@ public final class VoiceSessionController {
         reply(gen, out);
     }
 
-    /** Main thread. Activity paused: drop everything, no reply. */
+    /** Main thread only. Activity paused: drop everything, no reply. */
     public void cancel() {
         if (state == VoiceState.IDLE) return;
         gen++;
@@ -206,17 +219,17 @@ public final class VoiceSessionController {
     private void reply(int g, VoiceOutcome out) {
         if (g != gen || state == VoiceState.IDLE) return;
         capture = null;
+        final String text = out.text == null ? "" : out.text;
         final boolean hasChoices = !out.choices.isEmpty();
         choicesPending = hasChoices;
         setState(VoiceState.REPLY, out, 0f);
-        if (hasChoices) unduckOnce(); // music resumes while the user chooses
 
         boolean speak = false;
         try {
             speak = out.speak && deps.speakReplies.getAsBoolean() && deps.voice.isAvailable();
         } catch (RuntimeException ignored) { }
         if (!speak) {
-            if (!hasChoices) finish(g);
+            if (hasChoices) unduckOnce(); else finish(g);
             return;
         }
         final int token = ++speakToken;
@@ -224,15 +237,14 @@ public final class VoiceSessionController {
             if (g != gen || token != speakToken) return;
             speakToken++;
             cancelWatchdog();
-            if (!hasChoices) finish(g);
+            if (hasChoices) unduckOnce(); else finish(g);
         };
-        if (!hasChoices) {
-            try {
-                watchdog = deps.scheduler.schedule(done, TTS_BASE_MS + TTS_PER_CHAR_MS * out.text.length());
-            } catch (RuntimeException ignored) { }
-        }
         try {
-            deps.voice.speak(out.text, done);
+            watchdog = deps.scheduler.schedule(() -> deps.main.execute(done),
+                    TTS_BASE_MS + TTS_PER_CHAR_MS * text.length());
+        } catch (RuntimeException ignored) { }
+        try {
+            deps.voice.speak(text, done);
         } catch (RuntimeException e) {
             done.run();
         }
@@ -263,6 +275,10 @@ public final class VoiceSessionController {
         state = s;
         stateView = s;
         Listener l = listener;
-        if (l != null) l.onState(s, outcome, level);
+        if (l != null) {
+            try {
+                l.onState(s, outcome, level);
+            } catch (Throwable ignored) { }
+        }
     }
 }

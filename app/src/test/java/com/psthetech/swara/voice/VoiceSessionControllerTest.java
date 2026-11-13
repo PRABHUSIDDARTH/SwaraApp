@@ -235,4 +235,151 @@ public class VoiceSessionControllerTest {
         assertTrue(cancelled.get(0));
         assertEquals(1, unducks);
     }
+
+    @Test public void throwingListenerStillUnducksAndReturnsIdle() {
+        c.setListener((st, o, l) -> { throw new RuntimeException("ui"); });
+        assertTrue(c.startCommand());
+        say();
+        assertEquals(VoiceState.IDLE, c.state());
+        assertEquals(1, unducks);
+        assertEquals(1, ducks);
+    }
+
+    private Candidate cand() {
+        return new Candidate(MatchKind.SONG, "k", "Kaavaalaa", "Anirudh", 0.7,
+                Collections.singletonList(VoiceFixtures.KAAVAALAA));
+    }
+
+    @Test public void newCommandSupersedesPendingChoices() {
+        Candidate cand = cand();
+        when(executor.handle(anyString(), any()))
+                .thenReturn(new VoiceOutcome("Which one?", true, Arrays.asList(cand)))
+                .thenReturn(VoiceOutcome.spoken("Playing Kaavaalaa."));
+        c.startCommand();
+        say();
+        assertEquals(VoiceState.REPLY, c.state());
+        assertTrue(c.startCommand());
+        assertEquals(VoiceState.LISTENING, c.state());
+        c.onChoice(cand);
+        verify(executor, never()).choose(any());
+        assertEquals(2, ducks);
+        say();
+        assertEquals(VoiceState.IDLE, c.state());
+        assertEquals(2, unducks);
+    }
+
+    @Test public void startCommandRefusedInReplyWithoutChoices() {
+        voiceImmediate = false;
+        c.startCommand();
+        say();
+        assertEquals(VoiceState.REPLY, c.state());
+        assertFalse(c.startCommand());
+        assertEquals(1, ducks);
+    }
+
+    @Test public void spokenChoicesPromptUnducksWhenSpeechEnds() {
+        voiceImmediate = false;
+        Candidate cand = cand();
+        when(executor.handle(anyString(), any()))
+                .thenReturn(new VoiceOutcome("Which one?", true, Arrays.asList(cand)));
+        c.startCommand();
+        say();
+        assertEquals(0, unducks);
+        assertEquals(1, scheduled.size());
+        pendingDone.get(0).run();
+        assertEquals(1, unducks);
+        assertEquals(VoiceState.REPLY, c.state());
+    }
+
+    @Test public void unspokenChoicesUnduckImmediately() {
+        speakReplies = false;
+        Candidate cand = cand();
+        when(executor.handle(anyString(), any()))
+                .thenReturn(new VoiceOutcome("Which one?", true, Arrays.asList(cand)));
+        c.startCommand();
+        say();
+        assertEquals(1, unducks);
+        assertEquals(VoiceState.REPLY, c.state());
+    }
+
+    @Test public void spokenChoicesWatchdogUnducks() {
+        voiceImmediate = false;
+        Candidate cand = cand();
+        when(executor.handle(anyString(), any()))
+                .thenReturn(new VoiceOutcome("Which one?", true, Arrays.asList(cand)));
+        c.startCommand();
+        say();
+        scheduled.get(0).run();
+        assertEquals(1, unducks);
+        assertEquals(VoiceState.REPLY, c.state());
+    }
+
+    @Test public void cancelDuringThinkingIgnoresLateResult() {
+        final List<Runnable> jobs = new ArrayList<>();
+        VoiceSessionController.Deps d0 = deferredDeps(jobs);
+        VoiceSessionController k = new VoiceSessionController(d0);
+        k.startCommand();
+        for (int i = 0; i < 10; i++) k.onFrame(speech());
+        for (int i = 0; i < 10; i++) k.onFrame(silence());
+        assertEquals(VoiceState.THINKING, k.state());
+        k.cancel();
+        jobs.get(0).run();
+        assertEquals(VoiceState.IDLE, k.state());
+        assertTrue(spoken.isEmpty());
+        verify(executor, never()).handle(anyString(), any());
+        assertEquals(1, unducks);
+    }
+
+    private VoiceSessionController.Deps deferredDeps(List<Runnable> jobs) {
+        return new VoiceSessionController.Deps(
+                new com.psthetech.swara.voice.stt.SpeechToText() {
+                    @Override public String transcribe(float[] a) { return "play x"; }
+                    @Override public void close() {}
+                },
+                executor, new SwaraVoice() {
+                    @Override public boolean isAvailable() { return true; }
+                    @Override public void speak(String t, Runnable r) { spoken.add(t); r.run(); }
+                    @Override public void shutdown() {}
+                }, () -> null, () -> ducks++, () -> unducks++,
+                jobs::add, Runnable::run, () -> true,
+                (r, ms) -> () -> { });
+    }
+
+    @Test public void onChoiceIgnoredWhenNotPending() {
+        c.onChoice(cand());
+        c.startCommand();
+        c.onChoice(cand());
+        verify(executor, never()).choose(any());
+        assertEquals(VoiceState.LISTENING, c.state());
+    }
+
+    @Test public void watchdogAfterCancelIsNoop() {
+        voiceImmediate = false;
+        c.startCommand();
+        say();
+        c.cancel();
+        int n = states.size();
+        scheduled.get(0).run();
+        assertEquals(n, states.size());
+        assertEquals(1, unducks);
+    }
+
+    @Test public void speakThrowingStillFinishes() {
+        SwaraVoice bad = new SwaraVoice() {
+            @Override public boolean isAvailable() { return true; }
+            @Override public void speak(String t, Runnable r) { throw new RuntimeException("tts"); }
+            @Override public void shutdown() {}
+        };
+        VoiceSessionController k = new VoiceSessionController(new VoiceSessionController.Deps(
+                new com.psthetech.swara.voice.stt.SpeechToText() {
+                    @Override public String transcribe(float[] a) { return "play x"; }
+                    @Override public void close() {}
+                }, executor, bad, () -> null, () -> ducks++, () -> unducks++,
+                Runnable::run, Runnable::run, () -> true, (r, ms) -> () -> { }));
+        k.startCommand();
+        for (int i = 0; i < 10; i++) k.onFrame(speech());
+        for (int i = 0; i < 10; i++) k.onFrame(silence());
+        assertEquals(VoiceState.IDLE, k.state());
+        assertEquals(1, unducks);
+    }
 }
