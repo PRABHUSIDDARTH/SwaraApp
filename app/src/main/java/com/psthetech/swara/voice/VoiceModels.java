@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.psthetech.swara.BuildConfig;
 import com.psthetech.swara.voice.stt.MoonshineStt;
 import com.psthetech.swara.voice.stt.SpeechToText;
 
@@ -12,12 +13,17 @@ import ai.onnxruntime.OrtEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
  * Process-wide holder of the on-device voice models (speech-to-text today). Models load once on
  * a background thread; {@link #release()} frees them so a later {@link #loadAsync} reloads.
+ *
+ * <p>A failed load is sticky: {@link #failed()} stays true and {@link #loadAsync} does not retry
+ * until {@link #release()} resets the holder. Do not keep or use an {@link #stt()} reference after
+ * {@link #release()}: the model it points to is closed.
  */
 public final class VoiceModels {
 
@@ -31,7 +37,18 @@ public final class VoiceModels {
         if (v == null) {
             synchronized (VoiceModels.class) {
                 v = instance;
-                if (v == null) instance = v = new VoiceModels(context.getApplicationContext());
+                if (v == null) {
+                    Context app = context.getApplicationContext();
+                    Handler main = new Handler(Looper.getMainLooper());
+                    instance = v = new VoiceModels(
+                            () -> new MoonshineStt(OrtEnvironment.getEnvironment(), app.getAssets(), MOONSHINE_DIR),
+                            Executors.newSingleThreadExecutor(r -> {
+                                Thread t = new Thread(r, "voice-models");
+                                t.setPriority(Thread.MIN_PRIORITY);
+                                return t;
+                            }),
+                            main::post);
+                }
             }
         }
         return v;
@@ -39,13 +56,9 @@ public final class VoiceModels {
 
     private enum State { IDLE, LOADING, READY, FAILED }
 
-    private final Context app;
-    private final Handler main = new Handler(Looper.getMainLooper());
-    private final ExecutorService loader = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "voice-models");
-        t.setPriority(Thread.MIN_PRIORITY);
-        return t;
-    });
+    private final Callable<SpeechToText> sttFactory;
+    private final Executor loader;
+    private final Executor mainThread;
     private final List<Runnable> waiting = new ArrayList<>();
 
     private State state = State.IDLE;
@@ -53,8 +66,11 @@ public final class VoiceModels {
     /** Bumped by {@link #release()} so a load that was in flight is discarded. */
     private int generation;
 
-    private VoiceModels(Context app) {
-        this.app = app;
+    /** For tests: {@code loader} runs loads and closes, {@code mainThread} runs callbacks. */
+    VoiceModels(Callable<SpeechToText> sttFactory, Executor loader, Executor mainThread) {
+        this.sttFactory = sttFactory;
+        this.loader = loader;
+        this.mainThread = mainThread;
     }
 
     /**
@@ -79,9 +95,11 @@ public final class VoiceModels {
     private void load(int gen) {
         SpeechToText loaded = null;
         try {
-            loaded = new MoonshineStt(OrtEnvironment.getEnvironment(), app.getAssets(), MOONSHINE_DIR);
-        } catch (Exception | OutOfMemoryError e) {
-            Log.e(TAG, "voice model load failed", e);
+            loaded = sttFactory.call();
+        } catch (Throwable t) {
+            // Includes UnsatisfiedLinkError / ExceptionInInitializerError from the ORT natives:
+            // a failed load must land in FAILED, never crash the process or stay LOADING.
+            if (BuildConfig.DEBUG) Log.e(TAG, "voice model load failed", t);
         }
         List<Runnable> callbacks;
         synchronized (this) {
@@ -101,16 +119,20 @@ public final class VoiceModels {
         return state == State.READY;
     }
 
+    /** True after a load failed; stays true until {@link #release()}. */
     public synchronized boolean failed() {
         return state == State.FAILED;
     }
 
-    /** The speech-to-text model, or null until {@link #isReady()}. */
+    /** The speech-to-text model, or null until {@link #isReady()}. Invalid after {@link #release()}. */
     public synchronized SpeechToText stt() {
         return stt;
     }
 
-    /** Frees the models; a later {@link #loadAsync} loads them again. Pending callbacks are dropped. */
+    /**
+     * Frees the models and clears a sticky failure; a later {@link #loadAsync} loads them again.
+     * Pending callbacks are dropped and any {@link #stt()} reference handed out becomes invalid.
+     */
     public void release() {
         SpeechToText old;
         synchronized (this) {
@@ -128,11 +150,11 @@ public final class VoiceModels {
         try {
             s.close();
         } catch (Exception e) {
-            Log.w(TAG, "closing voice models", e);
+            if (BuildConfig.DEBUG) Log.w(TAG, "closing voice models", e);
         }
     }
 
     private void post(Runnable r) {
-        if (r != null) main.post(r);
+        if (r != null) mainThread.execute(r);
     }
 }
