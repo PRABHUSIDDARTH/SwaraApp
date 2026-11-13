@@ -417,6 +417,33 @@ public class PlaybackViewModel extends AndroidViewModel {
                 args);
     }
 
+    /** Plays a voice-chosen artist/album queue; Vibe and Autoplay stay off until the user changes it. */
+    public void playVoiceQueue(@NonNull List<Song> songs) {
+        if (controller == null || songs.isEmpty()) return;
+        long[] ids = new long[songs.size()];
+        for (int i = 0; i < ids.length; i++) ids[i] = songs.get(i).getId();
+        android.os.Bundle args = new android.os.Bundle();
+        args.putLongArray(SwaraPlaybackService.EXTRA_VOICE_SONG_IDS, ids);
+        vibeActive.setValue(false);
+        controller.sendCustomCommand(
+                new androidx.media3.session.SessionCommand(SwaraPlaybackService.COMMAND_VOICE_QUEUE,
+                        android.os.Bundle.EMPTY),
+                args);
+        play(songs, 0);
+    }
+
+    /** Lowers playback volume while a voice command is being recorded. */
+    public void duckForVoice() { sendSimple(SwaraPlaybackService.COMMAND_VOICE_DUCK); }
+
+    public void unduckForVoice() { sendSimple(SwaraPlaybackService.COMMAND_VOICE_UNDUCK); }
+
+    private void sendSimple(String action) {
+        if (controller == null) return;
+        controller.sendCustomCommand(
+                new androidx.media3.session.SessionCommand(action, android.os.Bundle.EMPTY),
+                android.os.Bundle.EMPTY);
+    }
+
     private void applyVibeExtras(@Nullable android.os.Bundle extras) {
         if (extras == null) return;
         boolean active = extras.getBoolean(SwaraPlaybackService.SESSION_EXTRA_VIBE_ACTIVE, false);
