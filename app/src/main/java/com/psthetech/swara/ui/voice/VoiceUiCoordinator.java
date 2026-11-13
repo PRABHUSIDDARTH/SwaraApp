@@ -142,6 +142,7 @@ public final class VoiceUiCoordinator implements VoiceSessionController.Listener
         this.prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         this.models = VoiceModels.get(activity);
         this.mic = new MicSource(activity);
+        if (BuildConfig.DEBUG) com.psthetech.swara.voice.debug.VoiceDiag.init(activity.getCacheDir());
         this.voice = new SystemTtsVoice(activity);
         this.executor = new VoiceCommandExecutor(new ViewModelVoicePlayback(playback), new Random());
         refreshMicVisibility();

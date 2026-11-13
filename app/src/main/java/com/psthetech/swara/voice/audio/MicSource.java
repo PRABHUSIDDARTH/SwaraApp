@@ -7,6 +7,10 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.audiofx.AcousticEchoCanceler;
+import android.os.Build;
+
+import com.psthetech.swara.BuildConfig;
+import com.psthetech.swara.voice.debug.VoiceDiag;
 
 /** 16 kHz mono microphone capture delivering 1280-sample (80 ms) float frames on its own thread. */
 public final class MicSource {
@@ -61,6 +65,7 @@ public final class MicSource {
             if (current != null) return false;
             if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                     != PackageManager.PERMISSION_GRANTED) {
+                if (BuildConfig.DEBUG) VoiceDiag.d("mic start failed: RECORD_AUDIO not granted");
                 return false;
             }
             final Session s = new Session();
@@ -72,6 +77,7 @@ public final class MicSource {
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufBytes);
                 if (s.record.getState() != AudioRecord.STATE_INITIALIZED) {
                     s.release();
+                    if (BuildConfig.DEBUG) VoiceDiag.d("mic start failed: AudioRecord state != INITIALIZED");
                     return false;
                 }
                 if (AcousticEchoCanceler.isAvailable()) {
@@ -85,10 +91,13 @@ public final class MicSource {
                 s.record.startRecording();
                 if (s.record.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
                     s.release();
+                    if (BuildConfig.DEBUG) VoiceDiag.d("mic start failed: recordingState != RECORDING after startRecording");
                     return false;
                 }
+                if (BuildConfig.DEBUG) logStart(s, bufBytes, min);
             } catch (SecurityException | IllegalStateException | IllegalArgumentException e) {
                 s.release();
+                if (BuildConfig.DEBUG) VoiceDiag.d("mic start failed: " + e);
                 return false;
             }
             s.thread = new Thread(new Runnable() {
@@ -99,6 +108,26 @@ public final class MicSource {
             current = s;
             s.thread.start();
             return true;
+        }
+    }
+
+    private static void logStart(Session s, int bufBytes, int minBuf) {
+        try {
+            AudioRecord r = s.record;
+            String dev = "n/a";
+            if (Build.VERSION.SDK_INT >= 24) {
+                android.media.AudioDeviceInfo d = r.getRoutedDevice();
+                dev = d == null ? "null" : "type=" + d.getType() + " name=" + d.getProductName();
+            }
+            VoiceDiag.d("mic started: requestedSource=VOICE_RECOGNITION(" + MediaRecorder.AudioSource.VOICE_RECOGNITION
+                    + ") requestedRate=" + SAMPLE_RATE + " actualRate=" + r.getSampleRate()
+                    + " channels=" + r.getChannelCount() + " format=" + r.getAudioFormat()
+                    + " actualSource=" + r.getAudioSource() + " bufBytes=" + bufBytes + " (min=" + minBuf + ")"
+                    + " aecAvailable=" + AcousticEchoCanceler.isAvailable()
+                    + " aecEnabled=" + (s.aec != null && s.aec.getEnabled())
+                    + " routedDevice=" + dev + " sdk=" + Build.VERSION.SDK_INT);
+        } catch (RuntimeException e) {
+            VoiceDiag.d("mic start log failed: " + e);
         }
     }
 

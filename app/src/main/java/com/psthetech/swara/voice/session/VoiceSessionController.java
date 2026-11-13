@@ -4,6 +4,8 @@ import androidx.annotation.Nullable;
 
 import com.psthetech.swara.voice.audio.CommandRecorder;
 import com.psthetech.swara.voice.audio.EnergyVad;
+import com.psthetech.swara.voice.debug.VoiceDiag;
+import com.psthetech.swara.BuildConfig;
 import com.psthetech.swara.voice.exec.VoiceCommandExecutor;
 import com.psthetech.swara.voice.exec.VoiceOutcome;
 import com.psthetech.swara.voice.exec.VoiceReplies;
@@ -72,6 +74,7 @@ public final class VoiceSessionController {
         final int gen;
         final CommandRecorder recorder = new CommandRecorder(new EnergyVad(HOP), SAMPLE_RATE);
         boolean finished; // mic thread only
+        final VoiceDiag.Session diag = new VoiceDiag.Session();
         Capture(int gen) { this.gen = gen; }
     }
 
@@ -139,6 +142,13 @@ public final class VoiceSessionController {
             deps.main.execute(() -> reply(g, VoiceOutcome.spoken(VoiceReplies.didntCatch())));
             return;
         }
+        if (BuildConfig.DEBUG) {
+            cap.diag.onFrame(level, cap.recorder.debugFloor(), cap.recorder.debugLastSpeech(), rs.name());
+            if (rs == CommandRecorder.State.DONE || rs == CommandRecorder.State.TIMEOUT) {
+                cap.diag.summary(rs.name(), cap.recorder.debugWaitedFrames(),
+                        cap.recorder.debugRecordedSamples(), cap.recorder.debugFloor());
+            }
+        }
         if (rs == CommandRecorder.State.DONE) {
             cap.finished = true;
             final float[] audio = cap.recorder.audio();
@@ -191,13 +201,19 @@ public final class VoiceSessionController {
         try {
             deps.sttExecutor.execute(() -> {
                 String text;
+                final long diagT0 = BuildConfig.DEBUG ? System.nanoTime() : 0L;
                 try {
+                    if (BuildConfig.DEBUG) VoiceDiag.saveWav(audio);
                     text = deps.stt.transcribe(audio);
                 } catch (Throwable t) {
                     deps.main.execute(() -> reply(g, VoiceOutcome.spoken(VoiceReplies.didntCatch())));
                     return;
                 }
                 final String transcript = text == null ? "" : text;
+                if (BuildConfig.DEBUG) {
+                    VoiceDiag.logTranscript(transcript, audio.length / (float) SAMPLE_RATE,
+                            (System.nanoTime() - diagT0) / 1_000_000L);
+                }
                 deps.main.execute(() -> execute(g, transcript));
             });
         } catch (RuntimeException e) {
@@ -209,6 +225,7 @@ public final class VoiceSessionController {
         if (g != gen || state != VoiceState.THINKING) return;
         VoiceOutcome out;
         try {
+            if (BuildConfig.DEBUG) VoiceDiag.logMatch(transcript, deps.library.get());
             out = deps.executor.handle(transcript, deps.library.get());
         } catch (Throwable t) {
             out = VoiceOutcome.spoken(VoiceReplies.didntCatch());

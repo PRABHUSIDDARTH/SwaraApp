@@ -12,6 +12,7 @@ public final class EnergyVad {
 
     private final int hopSamples;
     private float floor = INITIAL_FLOOR;
+    private boolean lastSpeech; // diagnostics only
 
     public EnergyVad(int hopSamples) {
         this.hopSamples = hopSamples;
@@ -31,6 +32,13 @@ public final class EnergyVad {
         else if (!speech) floor += ALPHA_NOISE * (rms - floor);
         else floor += ALPHA_SPEECH * (rms - floor);
         if (floor < MIN_FLOOR) floor = MIN_FLOOR;
+        lastSpeech = speech;
         return speech;
     }
+
+    /** Read-only, for diagnostics. */
+    float debugFloor() { return floor; }
+
+    /** Read-only, for diagnostics. */
+    boolean debugLastSpeech() { return lastSpeech; }
 }

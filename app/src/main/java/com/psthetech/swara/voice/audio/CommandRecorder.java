@@ -47,6 +47,12 @@ public final class CommandRecorder {
         return state;
     }
 
+    /** Read-only diagnostics (public so the session controller can log them). */
+    public float debugFloor() { return vad.debugFloor(); }
+    public boolean debugLastSpeech() { return vad.debugLastSpeech(); }
+    public int debugWaitedFrames() { return waitedFrames; }
+    public int debugRecordedSamples() { return len; }
+
     public float[] audio() {
         return Arrays.copyOf(buf, len);
     }
