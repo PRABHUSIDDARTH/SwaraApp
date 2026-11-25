@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Title (hero) / artist (accent) / album (quiet) with the favourite heart. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/np_title_size"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02"
+            android:fontFamily="sans-serif"
+            android:textColor="@color/swara_text_primary"
+            android:maxLines="1"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/tvArtist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="@dimen/np_artist_size"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/swara_text_secondary"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvAlbum"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/swara_text_dim"
+            android:layout_marginTop="@dimen/dp_2"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btnFavorite"
+        android:layout_width="@dimen/btn_min_touch_target"
+        android:layout_height="@dimen/btn_min_touch_target"
+        android:layout_marginEnd="-10dp"
+        android:src="@drawable/ic_favorite_border"
+        android:scaleType="center"
+        android:background="@drawable/ripple_circle"
+        android:contentDescription="@string/cd_favorite_empty" />
+
+</LinearLayout>

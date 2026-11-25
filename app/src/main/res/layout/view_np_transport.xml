@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Transport: quiet shuffle/repeat, prominent skip, play/pause dominant on a frosted disc. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center">
+
+    <ImageView
+        android:id="@+id/btnShuffle"
+        android:layout_width="@dimen/np_side_size"
+        android:layout_height="@dimen/np_side_size"
+        android:src="@drawable/ic_shuffle"
+        android:scaleType="center"
+        android:background="@drawable/ripple_circle"
+        android:contentDescription="@string/shuffle" />
+
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/btnPrevious"
+        android:layout_width="@dimen/np_skip_size"
+        android:layout_height="@dimen/np_skip_size"
+        android:padding="@dimen/np_skip_pad"
+        android:src="@drawable/ic_skip_prev"
+        android:scaleType="fitCenter"
+        android:background="@drawable/ripple_circle"
+        android:contentDescription="@string/previous" />
+
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/btnPlayPause"
+        android:layout_width="@dimen/np_play_size"
+        android:layout_height="@dimen/np_play_size"
+        android:padding="@dimen/np_play_pad"
+        android:background="@drawable/bg_np_play"
+        android:src="@drawable/ic_play"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/play_pause" />
+
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/btnNext"
+        android:layout_width="@dimen/np_skip_size"
+        android:layout_height="@dimen/np_skip_size"
+        android:padding="@dimen/np_skip_pad"
+        android:src="@drawable/ic_skip_next"
+        android:scaleType="fitCenter"
+        android:background="@drawable/ripple_circle"
+        android:contentDescription="@string/next" />
+
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/btnRepeat"
+        android:layout_width="@dimen/np_side_size"
+        android:layout_height="@dimen/np_side_size"
+        android:src="@drawable/ic_repeat"
+        android:scaleType="center"
+        android:background="@drawable/ripple_circle"
+        android:contentDescription="@string/repeat" />
+
+</LinearLayout>

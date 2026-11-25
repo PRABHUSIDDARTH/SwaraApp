@@ -349,6 +349,24 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
     }
 
+    /** Subtle lift-and-fade of the title block on a real track change (skipped when animations are off). */
+    private void animateTrackChange() {
+        if (com.psthetech.swara.ui.glass.LiquidGlassRenderer.isReducedMotion(requireContext())) return;
+        float lift = 10 * getResources().getDisplayMetrics().density;
+        for (View v : new View[]{tvTitle, tvArtist}) {
+            v.animate().cancel();
+            v.setAlpha(0f);
+            v.setTranslationY(lift);
+            v.animate().alpha(1f).translationY(0f).setDuration(280)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        }
+        if (circularArtworkView != null) {
+            circularArtworkView.animate().cancel();
+            circularArtworkView.setAlpha(0.35f);
+            circularArtworkView.animate().alpha(1f).setDuration(380).start();
+        }
+    }
+
     private void observeViewModel() {
         playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
             boolean isSongChange = (song == null && currentSong != null)
@@ -357,8 +375,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             this.currentSong = song;
 
             if (song != null) {
+                boolean animateTexts = isSongChange && lastSongId != -1 && song.getId() != lastSongId;
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
+                if (animateTexts) animateTrackChange();
 
                 if (tvAlbum != null) {
                     String album = song.getAlbum();
@@ -585,7 +605,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         TextView header = getView().findViewById(R.id.nowPlayingHeader);
         if (header != null) header.setTextColor(secondary);
         tvTitle.setTextColor(primary);
-        tvArtist.setTextColor(secondary);
+        // Artist picks up the artwork hue: a light, softly saturated tone of it. The backdrop is
+        // always value <= 0.2, so a value of 0.95 keeps contrast well above 4.5:1.
+        float[] artistHsv = new float[3];
+        android.graphics.Color.colorToHSV(base, artistHsv);
+        artistHsv[1] = Math.min(artistHsv[1], 0.45f);
+        artistHsv[2] = 0.95f;
+        tvArtist.setTextColor(android.graphics.Color.HSVToColor(artistHsv));
         if (tvAlbum != null) tvAlbum.setTextColor(tertiary);
         tvCurrentTime.setTextColor(tertiary);
         tvTotalTime.setTextColor(tertiary);
@@ -606,7 +632,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         }
 
         btnPlayPause.setBackground(null);
-        btnPlayPause.setBackgroundResource(R.drawable.ripple_circle);
+        btnPlayPause.setBackgroundResource(R.drawable.bg_np_play);
         btnPlayPause.setColorFilter(primary);
         btnPrevious.setColorFilter(primary);
         btnNext.setColorFilter(primary);

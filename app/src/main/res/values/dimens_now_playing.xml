@@ -1,0 +1,12 @@
+<resources>
+    <!-- Now Playing metrics; values-land overrides them to fit short landscape heights. -->
+    <dimen name="np_play_size">76dp</dimen>
+    <dimen name="np_skip_size">60dp</dimen>
+    <dimen name="np_skip_pad">13dp</dimen>
+    <dimen name="np_play_pad">18dp</dimen>
+    <dimen name="np_side_size">44dp</dimen>
+    <dimen name="np_title_size">26sp</dimen>
+    <dimen name="np_artist_size">17sp</dimen>
+    <dimen name="np_gap_group">28dp</dimen>
+    <dimen name="np_gap_tight">8dp</dimen>
+</resources>
