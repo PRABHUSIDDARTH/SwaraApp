@@ -14,17 +14,28 @@
     android:layout_height="match_parent"
     android:orientation="horizontal">
 
-    <com.google.android.material.navigationrail.NavigationRailView
-        android:id="@+id/bottom_nav"
+    <!-- Scroll fallback: at extreme font scales the items grow taller than a landscape phone,
+         so the rail scrolls rather than clipping the last item. At normal sizes it fills. -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_marginVertical="8dp"
         android:layout_marginStart="8dp"
-        app:menu="@menu/menu_bottom_nav"
-        app:menuGravity="center"
-        app:labelVisibilityMode="unlabeled"
-        app:itemMinHeight="48dp"
-        android:elevation="@dimen/elevation_2" />
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <com.google.android.material.navigationrail.NavigationRailView
+            android:id="@+id/bottom_nav"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            app:menu="@menu/menu_bottom_nav"
+            app:menuGravity="center"
+            app:labelVisibilityMode="unlabeled"
+            app:itemMinHeight="48dp"
+            android:elevation="@dimen/elevation_2" />
+
+    </androidx.core.widget.NestedScrollView>
 
     <LinearLayout
         android:layout_width="0dp"
