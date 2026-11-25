@@ -77,16 +77,6 @@
             android:layout_height="24dp"
             android:layout_marginEnd="6dp" />
 
-        <!-- Voice command (tap-to-talk) -->
-        <ImageView
-            android:id="@+id/btnVoice"
-            android:layout_width="@dimen/btn_min_touch_target"
-            android:layout_height="@dimen/btn_min_touch_target"
-            android:src="@drawable/ic_mic"
-            android:scaleType="center"
-            android:background="@drawable/ripple_circle"
-            android:contentDescription="@string/voice_mic" />
-
         <!-- Play/Pause button -->
         <ImageView
             android:id="@+id/btnPlayPause"
