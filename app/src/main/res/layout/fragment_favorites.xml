@@ -8,8 +8,9 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="@dimen/page_header_height"
         android:orientation="horizontal"
-        android:padding="@dimen/dp_16"
+        android:paddingHorizontal="@dimen/page_pad_h"
         android:gravity="center_vertical">
 
         <TextView
@@ -24,9 +25,8 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPlayAllFavorites"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_weight="1"
             android:layout_marginEnd="8dp"
             android:text="@string/play_all"
             android:textSize="12sp"
@@ -36,9 +36,8 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnShuffleFavorites"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_weight="1"
             android:text="@string/shuffle_all"
             android:textSize="12sp"
             android:textAllCaps="false"

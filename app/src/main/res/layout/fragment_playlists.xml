@@ -6,12 +6,12 @@
     android:orientation="vertical">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:padding="@dimen/dp_16" android:gravity="center_vertical">
+        android:minHeight="@dimen/page_header_height" android:orientation="horizontal" android:paddingHorizontal="@dimen/page_pad_h" android:gravity="center_vertical">
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:text="@string/playlists" android:textSize="@dimen/text_headline_md"
             android:textColor="@color/swara_text_primary" android:fontFamily="sans-serif-medium"/>
-        <ImageView android:id="@+id/btnNewPlaylist" android:layout_width="@dimen/btn_min_touch_target"
-            android:layout_height="@dimen/btn_min_touch_target" android:src="@drawable/ic_add"
+        <ImageView android:id="@+id/btnNewPlaylist" android:layout_width="@dimen/header_icon_size"
+            android:layout_height="@dimen/header_icon_size" android:src="@drawable/ic_add"
             android:scaleType="center" android:background="@drawable/ripple_circle"
             app:tint="@color/swara_text_secondary" android:contentDescription="@string/new_playlist"/>
     </LinearLayout>

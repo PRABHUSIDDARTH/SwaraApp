@@ -71,6 +71,10 @@
     <dimen name="bottom_sheet_drag_handle_height">4dp</dimen>
     <dimen name="progress_bar_height">3dp</dimen>
     <dimen name="mini_player_progress_height">2dp</dimen>
+    <!-- Shared page-header spec for every top-level tab -->
+    <dimen name="page_pad_h">24dp</dimen>
+    <dimen name="page_header_height">56dp</dimen>
+    <dimen name="header_icon_size">40dp</dimen>
     <dimen name="bottom_content_padding">184dp</dimen>
     <dimen name="radius_artwork">10dp</dimen>
     <dimen name="playlist_top_bar_height">64dp</dimen>
