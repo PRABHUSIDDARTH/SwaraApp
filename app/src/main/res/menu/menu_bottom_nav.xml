@@ -7,7 +7,11 @@
     <item
         android:id="@+id/libraryFragment"
         android:icon="@drawable/ic_nav_library"
-        android:title="@string/nav_library" />
+        android:title="@string/nav_songs" />
+    <item
+        android:id="@+id/heySwaraItem"
+        android:icon="@drawable/ic_nav_hey_swara"
+        android:title="@string/nav_hey_swara" />
     <item
         android:id="@+id/searchFragment"
         android:icon="@drawable/ic_nav_search"

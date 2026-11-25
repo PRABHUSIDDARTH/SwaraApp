@@ -37,7 +37,7 @@
         android:layout_marginBottom="12dp"
         android:layout_gravity="bottom"
         app:menu="@menu/menu_bottom_nav"
-        app:labelVisibilityMode="labeled"
+        app:labelVisibilityMode="unlabeled"
         android:elevation="@dimen/elevation_2" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

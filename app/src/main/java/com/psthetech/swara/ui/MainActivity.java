@@ -138,6 +138,7 @@ public class MainActivity extends AppCompatActivity
                 getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
         NavigationUI.setupWithNavController(bottomNav, navController);
+        setupHeySwaraNavItem();
 
         // The activity-scoped PlaybackViewModel (shared by all fragments) was created above,
         // before setContentView, together with the voice coordinator.
@@ -158,6 +159,34 @@ public class MainActivity extends AppCompatActivity
         }
 
         checkIntentForNowPlaying(getIntent());
+    }
+
+    /**
+     * Hey Swara (centre nav item) is an action, not a destination. The selection listener
+     * returns false for it, so it can never become the checked tab (also after rotation or back
+     * navigation); every other item keeps the stock NavigationUI behaviour. When the voice
+     * models are unavailable the item stays visible but disabled.
+     */
+    private void setupHeySwaraNavItem() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.heySwaraItem) {
+                if (voiceCoordinator != null) voiceCoordinator.onMicTapped();
+                return false;
+            }
+            return NavigationUI.onNavDestinationSelected(item, navController);
+        });
+        if (voiceCoordinator != null) {
+            voiceCoordinator.micVisible().observe(this, visible -> {
+                boolean enabled = Boolean.TRUE.equals(visible);
+                android.view.MenuItem hey = bottomNav.getMenu().findItem(R.id.heySwaraItem);
+                if (hey != null) hey.setEnabled(enabled);
+                View heyView = bottomNav.findViewById(R.id.heySwaraItem);
+                if (heyView != null) heyView.setAlpha(enabled ? 1f : 0.4f);
+            });
+        } else {
+            android.view.MenuItem hey = bottomNav.getMenu().findItem(R.id.heySwaraItem);
+            if (hey != null) hey.setEnabled(false);
+        }
     }
 
     public static final String EXTRA_OPEN_NOW_PLAYING = "extra_open_now_playing";
