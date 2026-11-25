@@ -91,7 +91,7 @@
             android:layout_gravity="center"
             android:src="@drawable/ic_timer"
             android:scaleType="center"
-            android:background="@drawable/ripple_circle"
+            android:background="@drawable/bg_action_box"
             android:contentDescription="@string/sleep_timer"
             android:tooltipText="@string/sleep_timer" />
     </FrameLayout>
@@ -108,7 +108,7 @@
             android:layout_gravity="center"
             android:src="@drawable/ic_speaker"
             android:scaleType="center"
-            android:background="@drawable/ripple_circle"
+            android:background="@drawable/bg_action_box"
             android:contentDescription="@string/volume"
             android:tooltipText="@string/volume" />
     </FrameLayout>
@@ -125,7 +125,7 @@
             android:layout_gravity="center"
             android:src="@drawable/ic_equalizer"
             android:scaleType="center"
-            android:background="@drawable/ripple_circle"
+            android:background="@drawable/bg_action_box"
             android:contentDescription="@string/equalizer"
             android:tooltipText="@string/equalizer" />
     </FrameLayout>
