@@ -54,7 +54,7 @@ public class FavoritesFragment extends Fragment implements SongAdapter.Listener 
         btnShuffleFavorites  = view.findViewById(R.id.btnShuffleFavorites);
 
         songAdapter = new SongAdapter(this);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerView.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(getContext(), getResources().getInteger(R.integer.span_rows)));
         recyclerView.setAdapter(songAdapter);
 
         if (btnPlayAllFavorites != null) {
