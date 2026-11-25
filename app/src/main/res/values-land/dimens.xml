@@ -1,0 +1,4 @@
+<resources>
+    <!-- Landscape has little height: a slimmer mini player. -->
+    <dimen name="mini_player_height">56dp</dimen>
+</resources>

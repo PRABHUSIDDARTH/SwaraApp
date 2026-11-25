@@ -15,7 +15,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.psthetech.swara.R;
 import com.psthetech.swara.ui.miniplayer.MiniPlayerFragment;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity
 
     private NavController navController;
     private PlaybackViewModel playbackViewModel;
-    private BottomNavigationView bottomNav;
+    private NavigationBarView bottomNav;
     private View miniPlayerContainer;
 
     @Nullable private Song pendingArtworkSong;
@@ -115,7 +115,9 @@ public class MainActivity extends AppCompatActivity
 
         // Apply window insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            // Include the display cutout so a notch in landscape never clips the rail or content.
+            Insets systemBars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             // Keep the floating controls above both gesture and three-button navigation.
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets.inset(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -145,11 +147,16 @@ public class MainActivity extends AppCompatActivity
 
         // Show/hide mini-player based on active song
         playbackViewModel.getCurrentSong().observe(this, song -> {
-            if (song != null) {
-                showMiniPlayer();
-            } else {
-                hideMiniPlayer();
-            }
+            hasSong = song != null;
+            updateChrome();
+        });
+
+        // Landscape: the rail and mini player step aside on the expanded Now Playing screen.
+        // The listener fires immediately with the current destination, so this also restores the
+        // right state after rotation or Back.
+        navController.addOnDestinationChangedListener((controller, destination, args) -> {
+            onNowPlaying = destination.getId() == R.id.nowPlayingFragment;
+            updateChrome();
         });
 
         // Request audio permission if needed
@@ -327,6 +334,30 @@ public class MainActivity extends AppCompatActivity
             // Touch fragment view to trigger re-bind
             View view = navHostFragment.requireView();
             view.invalidate();
+        }
+    }
+
+    private boolean hasSong = false;
+    private boolean onNowPlaying = false;
+
+    private boolean isLandscape() {
+        return getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    /** Single place that decides whether the nav and the mini player are visible. */
+    private void updateChrome() {
+        boolean hideForNowPlaying = onNowPlaying && isLandscape();
+        if (bottomNav != null && isLandscape()) {
+            bottomNav.setVisibility(hideForNowPlaying ? View.GONE : View.VISIBLE);
+        }
+        if (hasSong && !hideForNowPlaying) {
+            showMiniPlayer();
+        } else if (hideForNowPlaying) {
+            miniPlayerContainer.animate().cancel();
+            miniPlayerContainer.setVisibility(View.GONE);
+        } else {
+            hideMiniPlayer();
         }
     }
 

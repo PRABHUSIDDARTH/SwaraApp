@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Landscape shell: navigation rail on the start side; content column on the right with the
+     mini player docked under the page (not floating over it) so it never hides content. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <com.google.android.material.navigationrail.NavigationRailView
+        android:id="@+id/bottom_nav"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginVertical="8dp"
+        android:layout_marginStart="8dp"
+        app:menu="@menu/menu_bottom_nav"
+        app:menuGravity="center"
+        app:labelVisibilityMode="unlabeled"
+        app:itemMinHeight="48dp"
+        android:elevation="@dimen/elevation_2" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/nav_host_fragment"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/nav_graph" />
+
+        <FrameLayout
+            android:id="@+id/mini_player_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:elevation="@dimen/elevation_2" />
+
+    </LinearLayout>
+
+</LinearLayout>

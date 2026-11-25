@@ -16,7 +16,7 @@ import androidx.core.view.ViewCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.shape.CornerFamily;
 import com.google.android.material.shape.ShapeAppearanceModel;
@@ -277,7 +277,7 @@ public class MorphismThemeManager {
      * Apply active design tokens to BottomNavigationView.
      * Uses Liquid Glass nav drawable — floating pill with TL→BR highlight gradient.
      */
-    public void applyToBottomNav(BottomNavigationView nav, @Nullable DesignTokens tokens) {
+    public void applyToBottomNav(NavigationBarView nav, @Nullable DesignTokens tokens) {
         if (nav == null) return;
         if (tokens == null) tokens = getCurrentTokens();
         if (tokens == null) return;
