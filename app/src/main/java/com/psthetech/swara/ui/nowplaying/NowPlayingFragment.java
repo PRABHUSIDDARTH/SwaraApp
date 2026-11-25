@@ -394,6 +394,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 boolean animateTexts = isSongChange && lastSongId != -1 && song.getId() != lastSongId;
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
+                if (circularArtworkView != null && isAdded()) {
+                    circularArtworkView.setContentDescription(
+                            getString(R.string.cd_album_art, song.getTitle()));
+                }
                 if (animateTexts) animateTrackChange();
 
                 if (tvAlbum != null) {
