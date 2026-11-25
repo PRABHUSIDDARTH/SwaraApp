@@ -24,10 +24,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.psthetech.swara.R;
-import com.psthetech.swara.util.AudioOutputManager;
 import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.ui.nowplaying.AudioOutputBottomSheet;
 import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.nowplaying.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
@@ -83,7 +81,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnShare;
     private ImageView btnShareCard;
     private ImageView btnEqualizer;
-    private ImageView btnAudioOutput;
+    private ImageView btnVolume;
 
     // ── Korokae Mode controls ──────────────────────────────────────────────────
     private View btnKorokae;
@@ -176,7 +174,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnShare      = view.findViewById(R.id.btnShare);
         btnShareCard  = view.findViewById(R.id.btnShareCard);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
-        btnAudioOutput = view.findViewById(R.id.btnAudioOutput);
+        btnVolume = view.findViewById(R.id.btnVolume);
         btnKorokae    = view.findViewById(R.id.btnKorokae);
         ivKorokaeIcon = view.findViewById(R.id.ivKorokaeIcon);
         tvKorokaeLabel = view.findViewById(R.id.tvKorokaeLabel);
@@ -224,7 +222,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
         if (btnVibe != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVibe);
         if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
-        if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
+        if (btnVolume != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVolume);
         if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
         if (btnShare != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShare);
         if (btnShareCard != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShareCard);
@@ -324,11 +322,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             });
         }
 
-        if (btnAudioOutput != null) {
-            btnAudioOutput.setOnClickListener(v -> {
-                AudioOutputBottomSheet sheet = AudioOutputBottomSheet.newInstance();
-                sheet.show(getParentFragmentManager(), AudioOutputBottomSheet.TAG);
-            });
+        if (btnVolume != null) {
+            // Media volume slider; output-device switching is reachable from inside the sheet.
+            btnVolume.setOnClickListener(v ->
+                    VolumeBottomSheet.newInstance().show(getParentFragmentManager(), VolumeBottomSheet.TAG));
         }
 
         scrubber.setOnScrubListener(new com.psthetech.swara.ui.widget.AppleScrubberView.OnScrubListener() {
@@ -455,14 +452,6 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             if (currentSong != null) checkIsFavorite(currentSong.getId());
         });
 
-        // Audio output
-        AudioOutputManager.getInstance(requireContext()).getCurrentOutput().observe(getViewLifecycleOwner(), device -> {
-            if (btnAudioOutput != null && device != null) {
-                btnAudioOutput.setImageResource(device.getIconResId());
-                btnAudioOutput.setContentDescription(device.getDisplayName());
-            }
-        });
-
         // Theme tokens → update circular artwork colors + all UI
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
@@ -487,14 +476,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (on) {
             android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
             bg.setColor(accent);
-            bg.setCornerRadius(20f * getResources().getDisplayMetrics().density);
+            bg.setCornerRadius(14f * getResources().getDisplayMetrics().density);
             btnVibe.setBackground(bg);
             ivVibeIcon.setColorFilter(0xFF1A1A1A);
             tvVibeLabel.setTextColor(0xFF1A1A1A);
             btnVibe.setAlpha(1.0f);
         } else {
             int inactive = android.graphics.Color.argb(200, 255, 255, 255);
-            btnVibe.setBackgroundResource(R.drawable.bg_korokae_pill);
+            btnVibe.setBackgroundResource(R.drawable.bg_action_box);
             ivVibeIcon.setColorFilter(inactive);
             tvVibeLabel.setTextColor(inactive);
             btnVibe.setAlpha(0.7f);
@@ -627,7 +616,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnShare != null) btnShare.setColorFilter(secondary);
         if (btnShareCard != null) btnShareCard.setColorFilter(secondary);
         if (btnCollapse != null) btnCollapse.setColorFilter(secondary);
-        if (btnAudioOutput != null) btnAudioOutput.setColorFilter(secondary);
+        if (btnVolume != null) btnVolume.setColorFilter(secondary);
         if (btnEqualizer != null) btnEqualizer.setColorFilter(secondary);
         if (btnVibe != null) {
             updateVibeUi();

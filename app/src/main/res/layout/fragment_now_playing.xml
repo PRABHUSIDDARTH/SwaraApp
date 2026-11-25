@@ -282,7 +282,8 @@
 
         </LinearLayout>
 
-        <!-- Utility row: Korokae | Sleep | Output | EQ -->
+        <!-- Action row: Karaoke | Vibe | Sleep | Volume | EQ — five equal slots, icons only
+             (labels would clip at 320dp / large font scale); each has a content description. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -290,98 +291,127 @@
             android:gravity="center_vertical"
             android:layout_marginTop="@dimen/dp_24">
 
-            <LinearLayout
-                android:id="@+id/btnKorokae"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:minWidth="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:background="@drawable/bg_korokae_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/korokae_mode">
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="@dimen/btn_min_touch_target"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:id="@+id/btnKorokae"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:background="@drawable/bg_action_box"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/korokae_mode">
+
+                    <ImageView
+                        android:id="@+id/ivKorokaeIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_mic"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@null" />
+
+                    <!-- Kept (hidden) so the Korokae state code can keep setting its text. -->
+                    <TextView
+                        android:id="@+id/tvKorokaeLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/korokae_mode"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="@dimen/btn_min_touch_target"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:id="@+id/btnVibe"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:background="@drawable/bg_action_box"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_vibe_mode">
+
+                    <ImageView
+                        android:id="@+id/ivVibeIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_vibe"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:id="@+id/tvVibeLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/vibe_mode"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="@dimen/btn_min_touch_target"
+                android:layout_weight="1">
 
                 <ImageView
-                    android:id="@+id/ivKorokaeIcon"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_mic"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
+                    android:id="@+id/btnSleepTimer"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_timer"
+                    android:scaleType="center"
+                    android:background="@drawable/ripple_circle"
+                    android:contentDescription="@string/sleep_timer"
+                    android:tooltipText="@string/sleep_timer" />
+            </FrameLayout>
 
-                <TextView
-                    android:id="@+id/tvKorokaeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/korokae_mode"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium" />
-
-            </LinearLayout>
-
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-
-            <LinearLayout
-                android:id="@+id/btnVibe"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:background="@drawable/bg_korokae_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_vibe_mode">
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="@dimen/btn_min_touch_target"
+                android:layout_weight="1">
 
                 <ImageView
-                    android:id="@+id/ivVibeIcon"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_vibe"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
+                    android:id="@+id/btnVolume"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_speaker"
+                    android:scaleType="center"
+                    android:background="@drawable/ripple_circle"
+                    android:contentDescription="@string/volume"
+                    android:tooltipText="@string/volume" />
+            </FrameLayout>
 
-                <TextView
-                    android:id="@+id/tvVibeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/vibe_mode"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium" />
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="@dimen/btn_min_touch_target"
+                android:layout_weight="1">
 
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/btnSleepTimer"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_timer"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/sleep_timer" />
-
-            <ImageView
-                android:id="@+id/btnAudioOutput"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_speaker"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/audio_output" />
-
-            <ImageView
-                android:id="@+id/btnEqualizer"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="-10dp"
-                android:src="@drawable/ic_equalizer"
-                android:scaleType="center"
-                android:background="@drawable/ripple_circle"
-                android:contentDescription="@string/equalizer" />
+                <ImageView
+                    android:id="@+id/btnEqualizer"
+                    android:layout_width="@dimen/btn_min_touch_target"
+                    android:layout_height="@dimen/btn_min_touch_target"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_equalizer"
+                    android:scaleType="center"
+                    android:background="@drawable/ripple_circle"
+                    android:contentDescription="@string/equalizer"
+                    android:tooltipText="@string/equalizer" />
+            </FrameLayout>
 
         </LinearLayout>
 
