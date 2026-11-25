@@ -11,10 +11,10 @@
     <LinearLayout
         android:id="@+id/headerBar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/page_header_height"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="@dimen/page_pad_h">
 
         <TextView
             android:id="@+id/tvHeaderTitle"
@@ -22,47 +22,47 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/songs"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textColor="@color/swara_text_primary"
+            android:textSize="@dimen/text_headline_md"
+            android:fontFamily="sans-serif-medium" />
 
         <!-- Shuffle all — plays all songs in random order -->
         <ImageView
             android:id="@+id/btnShuffle"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
+            android:layout_width="@dimen/header_icon_size"
+            android:layout_height="@dimen/header_icon_size"
+            android:padding="8dp"
             android:src="@drawable/ic_shuffle"
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/shuffle"
             android:clickable="true"
             android:focusable="true"
             android:layout_marginEnd="4dp"
-            app:tint="?attr/colorSecondary" />
+            app:tint="@color/swara_text_secondary" />
 
         <!-- View mode toggle: compact list vs expanded cards -->
         <ImageView
             android:id="@+id/btnViewMode"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
+            android:layout_width="@dimen/header_icon_size"
+            android:layout_height="@dimen/header_icon_size"
+            android:padding="8dp"
             android:src="@drawable/ic_view_expanded"
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/view_mode"
             android:clickable="true"
             android:focusable="true"
             android:layout_marginEnd="4dp"
-            app:tint="?attr/colorSecondary" />
+            app:tint="@color/swara_text_secondary" />
 
         <ImageView
             android:id="@+id/btnSort"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
+            android:layout_width="@dimen/header_icon_size"
+            android:layout_height="@dimen/header_icon_size"
+            android:padding="8dp"
             android:src="@drawable/ic_sort"
             android:background="@drawable/ripple_circle"
             android:contentDescription="@string/sort"
-            app:tint="?attr/colorSecondary" />
+            app:tint="@color/swara_text_secondary" />
 
     </LinearLayout>
 

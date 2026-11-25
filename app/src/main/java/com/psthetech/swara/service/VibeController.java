@@ -224,6 +224,13 @@ final class VibeController {
         }
     }
 
+    private java.util.function.BooleanSupplier autoplaySuppressed;
+
+    /** While the supplier returns true, Autoplay refills are skipped (voice-started queues). */
+    void setAutoplaySuppressed(java.util.function.BooleanSupplier supplier) {
+        this.autoplaySuppressed = supplier;
+    }
+
     void release() {
         released = true;
         generation++;
@@ -302,6 +309,7 @@ final class VibeController {
             for (int i = 0; i < needed; i++) targets.add(plan.nextTarget());
         } else {
             if (!LibraryPreferences.autoplayEnabled(context)) return;
+            if (autoplaySuppressed != null && autoplaySuppressed.getAsBoolean()) return;
             // Last item: covers shuffle and repeat-all (where a "next" item still exists).
             if (player.hasNextMediaItem()) return;
             needed = AUTOPLAY_PICKS;

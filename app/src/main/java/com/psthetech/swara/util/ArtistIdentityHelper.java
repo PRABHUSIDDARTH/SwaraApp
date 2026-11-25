@@ -50,11 +50,6 @@ public final class ArtistIdentityHelper {
     // Regex for ampersand separator when flanked by spaces: "Artist A & Artist B"
     private static final Pattern AMPERSAND_PATTERN = Pattern.compile("\\s+&\\s+");
 
-    // Common junk suffix tags like " - MassTamilan.com", " - MassTa...", " [MassTamilan]", web URLs, etc.
-    private static final Pattern JUNK_TAGS_PATTERN = Pattern.compile(
-            "(?i)\\s*-\\s*(?:masstamilan|massta|sensongs|starmusiq|isaimini|tamiltunes|songspk|www\\.[^,]+|[^,]+\\.com|[^,]+\\.net|[^,]+\\.org)[^,]*"
-    );
-
     private ArtistIdentityHelper() {}
 
     /**
@@ -77,7 +72,7 @@ public final class ArtistIdentityHelper {
         }
 
         // Clean website promotion suffixes (e.g. " - MassTamilan...")
-        cleaned = JUNK_TAGS_PATTERN.matcher(cleaned).replaceAll("");
+        cleaned = TagNoise.JUNK_TAGS_PATTERN.matcher(cleaned).replaceAll("");
 
         // Check for parenthetical featuring credits: "Artist A (feat. Artist B)"
         List<String> extractedFromParens = new ArrayList<>();
@@ -252,17 +247,27 @@ public final class ArtistIdentityHelper {
      */
     @NonNull
     public static List<Song> getSongsForArtist(@Nullable String artistOrKey, @Nullable List<Song> songs) {
+        return getSongsForArtist(artistOrKey, songs, ArtistAliasResolver.identity());
+    }
+
+    /** Alias-aware: every song with any credit that resolves to the same merged artist. */
+    @NonNull
+    public static List<Song> getSongsForArtist(@Nullable String artistOrKey, @Nullable List<Song> songs,
+                                               @NonNull ArtistAliasResolver resolver) {
         if (artistOrKey == null || songs == null || songs.isEmpty()) {
             return Collections.emptyList();
         }
 
-        String targetKey = getCanonicalKey(artistOrKey);
+        String targetKey = resolver.resolve(getCanonicalKey(artistOrKey));
         Map<Long, Song> matched = new LinkedHashMap<>();
 
         for (Song song : songs) {
             if (song == null) continue;
-            if (containsArtist(song.getArtist(), targetKey)) {
-                matched.putIfAbsent(song.getId(), song);
+            for (String credit : extractArtists(song.getArtist())) {
+                if (resolver.resolve(getCanonicalKey(credit)).equals(targetKey)) {
+                    matched.putIfAbsent(song.getId(), song);
+                    break;
+                }
             }
         }
 
@@ -277,6 +282,12 @@ public final class ArtistIdentityHelper {
      */
     @NonNull
     public static List<Artist> buildArtists(@Nullable List<Song> songs) {
+        return buildArtists(songs, ArtistAliasResolver.identity());
+    }
+
+    /** Alias-aware: credits group by the resolver's merged key; the name is its display name. */
+    @NonNull
+    public static List<Artist> buildArtists(@Nullable List<Song> songs, @NonNull ArtistAliasResolver resolver) {
         if (songs == null || songs.isEmpty()) {
             return Collections.emptyList();
         }
@@ -288,7 +299,7 @@ public final class ArtistIdentityHelper {
             if (song == null) continue;
             List<String> individualArtists = extractArtists(song.getArtist());
             for (String artistName : individualArtists) {
-                String canonicalKey = getCanonicalKey(artistName);
+                String canonicalKey = resolver.resolve(getCanonicalKey(artistName));
 
                 Map<Long, Song> songMap = artistSongsMap.computeIfAbsent(canonicalKey, k -> new LinkedHashMap<>());
                 songMap.putIfAbsent(song.getId(), song);
@@ -315,6 +326,8 @@ public final class ArtistIdentityHelper {
             long distinctAlbums = artistSongList.stream().map(Song::getAlbumId).distinct().count();
             long repAlbumId = artistSongList.isEmpty() ? -1L : artistSongList.get(0).getAlbumId();
             String displayName = displayNames.getOrDefault(key, "Unknown Artist");
+            String resolvedName = resolver.displayName(key);
+            if (!resolvedName.equals(key) && !resolvedName.isEmpty()) displayName = resolvedName;
 
             result.add(new Artist(displayName, key, artistSongList.size(), (int) distinctAlbums, repAlbumId, artistSongList));
         }

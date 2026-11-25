@@ -1,0 +1,5 @@
+<resources>
+    <!-- Column counts; values-land widens them so landscape width is used. -->
+    <integer name="span_cards">2</integer>
+    <integer name="span_rows">1</integer>
+</resources>

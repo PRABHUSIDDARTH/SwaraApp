@@ -324,6 +324,11 @@
     <string name="available_outputs">Available outputs</string>
     <string name="cd_seek_bar">Playback position</string>
     <string name="audio_output">Audio output</string>
+    <string name="volume">Volume</string>
+    <string name="volume_percent">%1$d%%</string>
+    <string name="volume_change_output">Change</string>
+    <string name="nav_songs">Songs</string>
+    <string name="nav_hey_swara">Hey Swara</string>
     <string name="share_nearby">Share song</string>
     <string name="share_card">Share as card</string>
     <string name="share_card_title">Share card</string>
@@ -452,4 +457,31 @@
     <string name="wrapped_period_all_time">All time</string>
     <string name="wrapped_play">Play my Wrapped</string>
     <string name="wrapped_channel_name">Wrapped recaps</string>
+    <!-- Swara Voice -->
+    <string name="voice_mic">Voice command</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_thinking">Thinking…</string>
+    <string name="voice_getting_ready">Getting voice ready…</string>
+    <string name="voice_title">Swara Voice</string>
+    <string name="voice_hint">Say \"play\" and a song, artist or movie, or \"pause\".</string>
+    <string name="voice_yes">Yes</string>
+    <string name="voice_permission_title">Microphone access</string>
+    <string name="voice_permission_rationale">Swara listens only when you tap this or say \'Hey Swara\', and nothing leaves your phone.</string>
+    <string name="voice_permission_settings">Microphone access is off for Swara. To use voice commands, open Settings → Permissions → Microphone and choose Allow.</string>
+    <string name="voice_permission_allow">Allow microphone</string>
+    <string name="voice_unavailable">Voice commands aren\'t available on this device.</string>
+    <string name="voice_debug_title">Voice test (debug)</string>
+    <string name="voice_debug_hint">Type a command, e.g. play kaavaalaa</string>
+    <string name="voice_debug_run">Run</string>
+    <plurals name="artist_picker_songs">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+    <string name="artist_merge_with">Merge with…</string>
+    <string name="artist_unmerge">Unmerge %1$s</string>
+    <string name="artist_merged_snackbar">Merged %1$s into %2$s</string>
+    <string name="artist_unmerged_snackbar">%1$s is now a separate artist</string>
+    <string name="artist_picker_title">Merge with…</string>
+    <string name="artist_picker_search_hint">Search artists</string>
+    <string name="artist_picker_row_cd">%1$s, %2$d songs. Merge into this artist.</string>
 </resources>

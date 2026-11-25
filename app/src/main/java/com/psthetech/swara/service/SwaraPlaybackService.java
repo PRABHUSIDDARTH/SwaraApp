@@ -79,6 +79,13 @@ public class SwaraPlaybackService extends MediaSessionService {
     /** Session extras key: ExoPlayer's audio session ID, for the system equalizer. */
     public static final String SESSION_EXTRA_AUDIO_SESSION_ID = "audio_session_id";
     /** Custom session command: turn Vibe Mode on/off, optionally starting from a song. */
+    public static final String COMMAND_VOICE_QUEUE = "com.psthetech.swara.VOICE_QUEUE";
+    public static final String EXTRA_VOICE_SONG_IDS = "voice_song_ids";
+    public static final String COMMAND_VOICE_DUCK = "com.psthetech.swara.VOICE_DUCK";
+    public static final String COMMAND_VOICE_UNDUCK = "com.psthetech.swara.VOICE_UNDUCK";
+    private static final float VOICE_DUCK_VOLUME = 0.15f;
+    private static final long VOICE_DUCK_TIMEOUT_MS = 8000L;
+
     public static final String COMMAND_SET_VIBE = "com.psthetech.swara.SET_VIBE";
     /** Vibe on (from the current song) or off; used by the widget. */
     public static final String COMMAND_TOGGLE_VIBE = "com.psthetech.swara.TOGGLE_VIBE";
@@ -110,6 +117,10 @@ public class SwaraPlaybackService extends MediaSessionService {
     private KorokaeModelProvider korokaeModelProvider;
     private KorokaeAudioProcessor korokaeProcessor;
     private VibeController vibeController;
+    private final VoiceQueueGuard voiceQueueGuard = new VoiceQueueGuard();
+    private boolean voiceDucked;
+    private float preDuckVolume = 1f;
+    private final Runnable voiceUnduck = this::voiceUnduckNow;
     /** Swara Wrapped: real listening time and play counts into never-trimmed aggregates. */
     private com.psthetech.swara.wrapped.ListenTracker listenTracker;
     /** The current item has not yet logged its TYPE_PLAY listen event. */
@@ -183,8 +194,22 @@ public class SwaraPlaybackService extends MediaSessionService {
             pushWidgetUpdateNow();
         });
 
+        vibeController.setAutoplaySuppressed(voiceQueueGuard::isActive);
+
         // Notify SleepTimerManager when the song changes, and push widget updates
         player.addListener(new Player.Listener() {
+
+            @Override
+            public void onTimelineChanged(@NonNull androidx.media3.common.Timeline timeline, int reason) {
+                if (reason != Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) return;
+                if (!voiceQueueGuard.isActive()) return;
+                java.util.List<Long> ids = new java.util.ArrayList<>();
+                for (int i = 0; i < player.getMediaItemCount(); i++) {
+                    long id = songIdOf(player.getMediaItemAt(i));
+                    ids.add(id);
+                }
+                voiceQueueGuard.onPlaylistChanged(ids);
+            }
 
             @Override
             public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
@@ -478,12 +503,19 @@ public class SwaraPlaybackService extends MediaSessionService {
         return mediaSession;
     }
 
+    private void voiceUnduckNow() {
+        mainHandler.removeCallbacks(voiceUnduck);
+        if (voiceDucked && player != null) player.setVolume(preDuckVolume);
+        voiceDucked = false;
+    }
+
     @Override
     public void onDestroy() {
         Log.d(TAG, "SwaraPlaybackService destroying");
         if (favoritesLive != null) favoritesLive.removeObserver(favoritesObserver);
         mainHandler.removeCallbacks(widgetTicker);
         mainHandler.removeCallbacks(periodicStateSave);
+        mainHandler.removeCallbacks(voiceUnduck);
         if (player != null) {
             recordPlay(player.getCurrentMediaItem(), player.getCurrentPosition());
             saveState();
@@ -587,6 +619,9 @@ public class SwaraPlaybackService extends MediaSessionService {
                     .add(new SessionCommand(COMMAND_TOGGLE_KOROKAE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_SET_VIBE, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_VOICE_QUEUE, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_VOICE_DUCK, Bundle.EMPTY))
+                    .add(new SessionCommand(COMMAND_VOICE_UNDUCK, Bundle.EMPTY))
                     .add(new SessionCommand(COMMAND_TOGGLE_VIBE, Bundle.EMPTY))
                     .build();
             return new MediaSession.ConnectionResult.AcceptedResultBuilder(session)
@@ -616,6 +651,26 @@ public class SwaraPlaybackService extends MediaSessionService {
                 if (enable) korokaeModelProvider.loadAsync();
                 publishKorokaeState();
                 pushWidgetUpdateNow();
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_VOICE_QUEUE.equals(customCommand.customAction)) {
+                vibeController.setEnabled(false);
+                player.setShuffleModeEnabled(false);
+                voiceQueueGuard.activate(args.getLongArray(EXTRA_VOICE_SONG_IDS));
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_VOICE_DUCK.equals(customCommand.customAction)) {
+                if (!voiceDucked) {
+                    preDuckVolume = player.getVolume();
+                    voiceDucked = true;
+                }
+                player.setVolume(VOICE_DUCK_VOLUME);
+                mainHandler.removeCallbacks(voiceUnduck);
+                mainHandler.postDelayed(voiceUnduck, VOICE_DUCK_TIMEOUT_MS);
+                return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
+            }
+            if (COMMAND_VOICE_UNDUCK.equals(customCommand.customAction)) {
+                voiceUnduckNow();
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }
             if (COMMAND_SET_VIBE.equals(customCommand.customAction)) {

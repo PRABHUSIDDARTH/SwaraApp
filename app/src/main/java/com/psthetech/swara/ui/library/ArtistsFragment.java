@@ -41,7 +41,7 @@ public class ArtistsFragment extends Fragment implements ArtistAdapter.OnArtistC
         layoutEmpty = view.findViewById(R.id.layoutEmpty);
 
         artistAdapter = new ArtistAdapter(this);
-        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), getResources().getInteger(R.integer.span_cards)));
         recyclerView.setAdapter(artistAdapter);
 
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()

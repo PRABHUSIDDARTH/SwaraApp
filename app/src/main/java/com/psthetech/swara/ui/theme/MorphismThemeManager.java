@@ -16,7 +16,7 @@ import androidx.core.view.ViewCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.shape.CornerFamily;
 import com.google.android.material.shape.ShapeAppearanceModel;
@@ -277,7 +277,7 @@ public class MorphismThemeManager {
      * Apply active design tokens to BottomNavigationView.
      * Uses Liquid Glass nav drawable — floating pill with TL→BR highlight gradient.
      */
-    public void applyToBottomNav(BottomNavigationView nav, @Nullable DesignTokens tokens) {
+    public void applyToBottomNav(NavigationBarView nav, @Nullable DesignTokens tokens) {
         if (nav == null) return;
         if (tokens == null) tokens = getCurrentTokens();
         if (tokens == null) return;
@@ -323,6 +323,28 @@ public class MorphismThemeManager {
         );
         nav.setItemIconTintList(stateList);
         nav.setItemTextColor(stateList);
+
+        // Hey Swara (centre) is an action, never a tab: always accent-coloured, on a soft round
+        // highlight, regardless of which tab is selected.
+        View hey = nav.findViewById(com.psthetech.swara.R.id.heySwaraItem);
+        if (hey instanceof com.google.android.material.navigation.NavigationBarItemView) {
+            ((com.google.android.material.navigation.NavigationBarItemView) hey)
+                    .setIconTintList(ColorStateList.valueOf(tokens.getAccentColor()));
+            android.graphics.drawable.GradientDrawable disc = new android.graphics.drawable.GradientDrawable();
+            disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            disc.setColor(Color.argb(tokens.isNightMode() ? 70 : 45,
+                    Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()),
+                    Color.blue(tokens.getAccentColor())));
+            disc.setStroke((int) Math.max(1, density), Color.argb(120,
+                    Color.red(tokens.getAccentColor()), Color.green(tokens.getAccentColor()),
+                    Color.blue(tokens.getAccentColor())));
+            android.graphics.drawable.LayerDrawable layer =
+                    new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{disc});
+            int size = (int) (46 * density);
+            layer.setLayerSize(0, size, size);
+            layer.setLayerGravity(0, android.view.Gravity.CENTER);
+            hey.setBackground(layer);
+        }
     }
 
     /**

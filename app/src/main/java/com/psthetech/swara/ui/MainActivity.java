@@ -15,7 +15,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.psthetech.swara.R;
 import com.psthetech.swara.ui.miniplayer.MiniPlayerFragment;
 import com.psthetech.swara.ui.viewmodel.PlaybackViewModel;
@@ -49,11 +49,12 @@ import com.psthetech.swara.data.repository.SongDeletionManager;
 import com.psthetech.swara.ui.viewmodel.LibraryViewModel;
 import com.psthetech.swara.ui.viewmodel.PlaylistViewModel;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements com.psthetech.swara.ui.voice.VoiceUiCoordinator.Host {
 
     private NavController navController;
     private PlaybackViewModel playbackViewModel;
-    private BottomNavigationView bottomNav;
+    private NavigationBarView bottomNav;
     private View miniPlayerContainer;
 
     @Nullable private Song pendingArtworkSong;
@@ -63,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<IntentSenderRequest> deleteRequestLauncher;
     private SongDeletionManager songDeletionManager;
     private boolean hadAudioPermission;
+
+    @Nullable private com.psthetech.swara.ui.voice.VoiceUiCoordinator voiceCoordinator;
+    private ActivityResultLauncher<String> micPermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,15 +93,51 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
+        micPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (voiceCoordinator != null) voiceCoordinator.onPermissionResult(granted);
+                }
+        );
+
         // Initialize Morphism & Theme engine
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().init(this);
 
         EdgeToEdge.enable(this);
+        // Activity-scoped PlaybackViewModel (shared by all fragments) and tap-to-talk voice
+        // commands (mic, listening sheet, permission flow). Created before
+        // setContentView so fragments restored during inflation can already reach it.
+        playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
+        voiceCoordinator = new com.psthetech.swara.ui.voice.VoiceUiCoordinator(
+                this, playbackViewModel, micPermissionLauncher);
+
         setContentView(R.layout.activity_main);
+
+        // Landscape is short: bottom sheets must open fully expanded or their controls sit below
+        // the fold (the default peek height is a fraction of the width). Applies to every sheet
+        // after rotation too, because the fragment restarts with the new configuration.
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(
+                new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    @Override
+                    public void onFragmentStarted(@androidx.annotation.NonNull androidx.fragment.app.FragmentManager fm,
+                                                  @androidx.annotation.NonNull androidx.fragment.app.Fragment f) {
+                        if (!isLandscape()) return;
+                        if (!(f instanceof com.google.android.material.bottomsheet.BottomSheetDialogFragment)) return;
+                        android.app.Dialog d = ((androidx.fragment.app.DialogFragment) f).getDialog();
+                        if (d instanceof com.google.android.material.bottomsheet.BottomSheetDialog) {
+                            com.google.android.material.bottomsheet.BottomSheetBehavior<?> b =
+                                    ((com.google.android.material.bottomsheet.BottomSheetDialog) d).getBehavior();
+                            b.setSkipCollapsed(true);
+                            b.setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+                        }
+                    }
+                }, true);
 
         // Apply window insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            // Include the display cutout so a notch in landscape never clips the rail or content.
+            Insets systemBars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             // Keep the floating controls above both gesture and three-button navigation.
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets.inset(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -120,17 +160,23 @@ public class MainActivity extends AppCompatActivity {
                 getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
         NavigationUI.setupWithNavController(bottomNav, navController);
+        setupHeySwaraNavItem();
 
-        // Initialize activity-scoped PlaybackViewModel (shared by all fragments)
-        playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
+        // The activity-scoped PlaybackViewModel (shared by all fragments) was created above,
+        // before setContentView, together with the voice coordinator.
 
         // Show/hide mini-player based on active song
         playbackViewModel.getCurrentSong().observe(this, song -> {
-            if (song != null) {
-                showMiniPlayer();
-            } else {
-                hideMiniPlayer();
-            }
+            hasSong = song != null;
+            updateChrome();
+        });
+
+        // Landscape: the rail and mini player step aside on the expanded Now Playing screen.
+        // The listener fires immediately with the current destination, so this also restores the
+        // right state after rotation or Back.
+        navController.addOnDestinationChangedListener((controller, destination, args) -> {
+            onNowPlaying = destination.getId() == R.id.nowPlayingFragment;
+            updateChrome();
         });
 
         // Request audio permission if needed
@@ -140,6 +186,34 @@ public class MainActivity extends AppCompatActivity {
         }
 
         checkIntentForNowPlaying(getIntent());
+    }
+
+    /**
+     * Hey Swara (centre nav item) is an action, not a destination. The selection listener
+     * returns false for it, so it can never become the checked tab (also after rotation or back
+     * navigation); every other item keeps the stock NavigationUI behaviour. When the voice
+     * models are unavailable the item stays visible but disabled.
+     */
+    private void setupHeySwaraNavItem() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.heySwaraItem) {
+                if (voiceCoordinator != null) voiceCoordinator.onMicTapped();
+                return false;
+            }
+            return NavigationUI.onNavDestinationSelected(item, navController);
+        });
+        if (voiceCoordinator != null) {
+            voiceCoordinator.micVisible().observe(this, visible -> {
+                boolean enabled = Boolean.TRUE.equals(visible);
+                android.view.MenuItem hey = bottomNav.getMenu().findItem(R.id.heySwaraItem);
+                if (hey != null) hey.setEnabled(enabled);
+                View heyView = bottomNav.findViewById(R.id.heySwaraItem);
+                if (heyView != null) heyView.setAlpha(enabled ? 1f : 0.4f);
+            });
+        } else {
+            android.view.MenuItem hey = bottomNav.getMenu().findItem(R.id.heySwaraItem);
+            if (hey != null) hey.setEnabled(false);
+        }
     }
 
     public static final String EXTRA_OPEN_NOW_PLAYING = "extra_open_now_playing";
@@ -283,6 +357,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean hasSong = false;
+    private boolean onNowPlaying = false;
+
+    private boolean isLandscape() {
+        return getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    /** Single place that decides whether the nav and the mini player are visible. */
+    private void updateChrome() {
+        boolean hideForNowPlaying = onNowPlaying && isLandscape();
+        if (bottomNav != null && isLandscape()) {
+            bottomNav.setVisibility(hideForNowPlaying ? View.GONE : View.VISIBLE);
+        }
+        if (hasSong && !hideForNowPlaying) {
+            showMiniPlayer();
+        } else if (hideForNowPlaying) {
+            miniPlayerContainer.animate().cancel();
+            miniPlayerContainer.setVisibility(View.GONE);
+        } else {
+            hideMiniPlayer();
+        }
+    }
+
     private void showMiniPlayer() {
         if (miniPlayerContainer.getVisibility() == View.VISIBLE) return;
         // Add MiniPlayerFragment if not already added
@@ -335,6 +433,28 @@ public class MainActivity extends AppCompatActivity {
             com.psthetech.swara.vibe.android.MoodAnalysisWorker.enqueueNow(this);
         }
         hadAudioPermission = has;
+        if (voiceCoordinator != null) voiceCoordinator.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (voiceCoordinator != null) voiceCoordinator.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (voiceCoordinator != null) {
+            voiceCoordinator.onDestroy();
+            voiceCoordinator = null;
+        }
+        super.onDestroy();
+    }
+
+    @Nullable
+    @Override
+    public com.psthetech.swara.ui.voice.VoiceUiCoordinator getVoiceCoordinator() {
+        return voiceCoordinator;
     }
 
     private void showPermissionDeniedDialog() {

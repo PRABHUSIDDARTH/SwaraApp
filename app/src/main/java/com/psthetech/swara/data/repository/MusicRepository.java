@@ -52,6 +52,10 @@ public class MusicRepository {
 
     /** True once a full-library MediaStore query has populated the cache in this process. */
     private static volatile boolean fullLibraryCached = false;
+    /** Bumped each time a full-library query refreshes the cache (voice rebuilds its index on change). */
+    private static volatile int libraryCacheVersion = 0;
+    /** The resolver canonicalArtistIndex was built with; a different one means the index is stale. */
+    private static volatile com.psthetech.swara.util.ArtistAliasResolver artistIndexResolver;
 
     public static Song getCanonicalSong(long songId) {
         return canonicalSongMap.get(songId);
@@ -64,6 +68,22 @@ public class MusicRepository {
     public static List<Song> getCachedLibrarySongs() {
         if (!fullLibraryCached) return Collections.emptyList();
         return new ArrayList<>(canonicalSongMap.values());
+    }
+
+    /** Bumped on each full-library load; voice rebuilds its LibraryIndex when it changes. */
+    public static int getLibraryCacheVersion() {
+        return libraryCacheVersion;
+    }
+
+    /** True when the artist index was built with exactly this resolver (and is non-empty). */
+    static boolean isArtistIndexCurrent(com.psthetech.swara.util.ArtistAliasResolver resolver) {
+        return artistIndexResolver == resolver && !canonicalArtistIndex.isEmpty();
+    }
+
+    /** Songs for a resolved artist key from the index, or null when the index is stale/missing. */
+    static List<Song> artistSongsFromIndex(String resolvedKey,
+                                           com.psthetech.swara.util.ArtistAliasResolver resolver) {
+        return artistIndexResolver == resolver ? canonicalArtistIndex.get(resolvedKey) : null;
     }
 
     public static List<Song> getSongsForArtistFromCache(String artistName) {
@@ -176,17 +196,18 @@ public class MusicRepository {
     public void loadSongsForArtist(String artistName, Callback<List<Song>> callback) {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
-                String canonicalKey = Artist.getCanonicalKey(artistName);
-                List<Song> cached = canonicalArtistIndex.get(canonicalKey);
+                com.psthetech.swara.util.ArtistAliasResolver resolver = aliasResolver();
+                String canonicalKey = resolver.resolve(Artist.getCanonicalKey(artistName));
+                List<Song> cached = artistSongsFromIndex(canonicalKey, resolver);
                 if (cached != null && !cached.isEmpty()) {
                     mainHandler.post(() -> callback.onResult(new ArrayList<>(cached)));
                     return;
                 }
                 List<Song> allSongs = querySongs(null, null, null);
-                buildArtists(allSongs);
-                List<Song> songs = canonicalArtistIndex.get(canonicalKey);
+                buildArtists(allSongs, resolver);
+                List<Song> songs = artistSongsFromIndex(canonicalKey, resolver);
                 if (songs == null) {
-                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs);
+                    songs = com.psthetech.swara.util.ArtistIdentityHelper.getSongsForArtist(canonicalKey, allSongs, resolver);
                 }
                 final List<Song> result = songs != null ? songs : Collections.emptyList();
                 mainHandler.post(() -> callback.onResult(result));
@@ -202,7 +223,7 @@ public class MusicRepository {
         SwaraApplication.getInstance().getIoExecutor().execute(() -> {
             try {
                 List<Song> allSongs = querySongs(null, null, null);
-                List<Artist> artists = buildArtists(allSongs);
+                List<Artist> artists = buildArtists(allSongs, aliasResolver());
                 mainHandler.post(() -> callback.onResult(artists));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load artists", e);
@@ -302,18 +323,19 @@ public class MusicRepository {
 
                 // Artist results show each artist's full song list, which needs the library-wide
                 // index. Build it now if the Artists tab hasn't been opened yet this session.
-                if (canonicalArtistIndex.isEmpty()) {
-                    buildArtists(querySongs(null, null, null));
+                final com.psthetech.swara.util.ArtistAliasResolver searchResolver = aliasResolver();
+                if (!isArtistIndexCurrent(searchResolver)) {
+                    buildArtists(querySongs(null, null, null), searchResolver);
                 }
 
                 // Artists: distinct canonical artists whose name matches query, containing all their songs
-                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching);
+                List<Artist> allArtistsFromMatching = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(allMatching, searchResolver);
                 List<Artist> artistResults = new ArrayList<>();
                 String canonicalQuery = com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(q);
                 for (Artist a : allArtistsFromMatching) {
                     if (a.getName().toLowerCase(Locale.getDefault()).contains(q)
                             || com.psthetech.swara.util.ArtistIdentityHelper.getCanonicalKey(a.getName()).contains(canonicalQuery)) {
-                        List<Song> fullSongs = canonicalArtistIndex.get(a.getCanonicalKey());
+                        List<Song> fullSongs = artistSongsFromIndex(a.getCanonicalKey(), searchResolver);
                         if (fullSongs != null && !fullSongs.isEmpty()) {
                             long distinctAlbums = fullSongs.stream().map(Song::getAlbumId).distinct().count();
                             long repAlbumId = fullSongs.get(0).getAlbumId();
@@ -416,6 +438,7 @@ public class MusicRepository {
             for (Song s : songs) present.add(s.getId());
             canonicalSongMap.keySet().retainAll(present);
             fullLibraryCached = true;
+            libraryCacheVersion++;
         }
 
         Log.d(TAG, "Loaded " + songs.size() + " songs from MediaStore");
@@ -448,12 +471,21 @@ public class MusicRepository {
         return albums;
     }
 
+    private com.psthetech.swara.util.ArtistAliasResolver aliasResolver() {
+        return com.psthetech.swara.data.repository.ArtistAliasRepository.get(context).resolver();
+    }
+
     public static List<Artist> buildArtists(List<Song> songs) {
-        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs);
+        return buildArtists(songs, com.psthetech.swara.util.ArtistAliasResolver.identity());
+    }
+
+    public static List<Artist> buildArtists(List<Song> songs, com.psthetech.swara.util.ArtistAliasResolver resolver) {
+        List<Artist> artists = com.psthetech.swara.util.ArtistIdentityHelper.buildArtists(songs, resolver);
         canonicalArtistIndex.clear();
         for (Artist a : artists) {
             canonicalArtistIndex.put(a.getCanonicalKey(), a.getSongs());
         }
+        artistIndexResolver = resolver;
         return artists;
     }
 }

@@ -24,10 +24,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.psthetech.swara.R;
-import com.psthetech.swara.util.AudioOutputManager;
 import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
-import com.psthetech.swara.ui.nowplaying.AudioOutputBottomSheet;
 import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.nowplaying.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
@@ -83,7 +81,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private ImageView btnShare;
     private ImageView btnShareCard;
     private ImageView btnEqualizer;
-    private ImageView btnAudioOutput;
+    private ImageView btnVolume;
 
     // ── Korokae Mode controls ──────────────────────────────────────────────────
     private View btnKorokae;
@@ -114,6 +112,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 bottomSheet.setLayoutParams(lp);
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                // Don't cap the sheet at 640dp: in landscape it must use the full width.
+                behavior.setMaxWidth(android.view.ViewGroup.LayoutParams.MATCH_PARENT);
                 behavior.setSkipCollapsed(true);
                 behavior.setHideable(true);
                 behavior.setDraggable(true);
@@ -131,6 +131,20 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Landscape: keep content clear of the notch / cutout and side system bars.
+        View npContent = view.findViewById(R.id.npContent);
+        final int basePadStart = npContent != null ? npContent.getPaddingLeft() : 0;
+        final int basePadEnd = npContent != null ? npContent.getPaddingRight() : 0;
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                            | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            if (npContent != null) {
+                npContent.setPadding(basePadStart + bars.left, npContent.getPaddingTop(),
+                        basePadEnd + bars.right, npContent.getPaddingBottom());
+            }
+            return insets;
+        });
 
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
         favoritesViewModel = new ViewModelProvider(requireActivity()).get(FavoritesViewModel.class);
@@ -176,7 +190,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         btnShare      = view.findViewById(R.id.btnShare);
         btnShareCard  = view.findViewById(R.id.btnShareCard);
         btnEqualizer  = view.findViewById(R.id.btnEqualizer);
-        btnAudioOutput = view.findViewById(R.id.btnAudioOutput);
+        btnVolume = view.findViewById(R.id.btnVolume);
         btnKorokae    = view.findViewById(R.id.btnKorokae);
         ivKorokaeIcon = view.findViewById(R.id.ivKorokaeIcon);
         tvKorokaeLabel = view.findViewById(R.id.tvKorokaeLabel);
@@ -224,7 +238,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
         if (btnVibe != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVibe);
         if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
-        if (btnAudioOutput != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnAudioOutput);
+        if (btnVolume != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVolume);
         if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
         if (btnShare != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShare);
         if (btnShareCard != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShareCard);
@@ -324,11 +338,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             });
         }
 
-        if (btnAudioOutput != null) {
-            btnAudioOutput.setOnClickListener(v -> {
-                AudioOutputBottomSheet sheet = AudioOutputBottomSheet.newInstance();
-                sheet.show(getParentFragmentManager(), AudioOutputBottomSheet.TAG);
-            });
+        if (btnVolume != null) {
+            // Media volume slider; output-device switching is reachable from inside the sheet.
+            btnVolume.setOnClickListener(v ->
+                    VolumeBottomSheet.newInstance().show(getParentFragmentManager(), VolumeBottomSheet.TAG));
         }
 
         scrubber.setOnScrubListener(new com.psthetech.swara.ui.widget.AppleScrubberView.OnScrubListener() {
@@ -352,6 +365,24 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         });
     }
 
+    /** Subtle lift-and-fade of the title block on a real track change (skipped when animations are off). */
+    private void animateTrackChange() {
+        if (com.psthetech.swara.ui.glass.LiquidGlassRenderer.isReducedMotion(requireContext())) return;
+        float lift = 10 * getResources().getDisplayMetrics().density;
+        for (View v : new View[]{tvTitle, tvArtist}) {
+            v.animate().cancel();
+            v.setAlpha(0f);
+            v.setTranslationY(lift);
+            v.animate().alpha(1f).translationY(0f).setDuration(280)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        }
+        if (circularArtworkView != null) {
+            circularArtworkView.animate().cancel();
+            circularArtworkView.setAlpha(0.35f);
+            circularArtworkView.animate().alpha(1f).setDuration(380).start();
+        }
+    }
+
     private void observeViewModel() {
         playbackViewModel.getCurrentSong().observe(getViewLifecycleOwner(), song -> {
             boolean isSongChange = (song == null && currentSong != null)
@@ -360,8 +391,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             this.currentSong = song;
 
             if (song != null) {
+                boolean animateTexts = isSongChange && lastSongId != -1 && song.getId() != lastSongId;
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
+                if (animateTexts) animateTrackChange();
 
                 if (tvAlbum != null) {
                     String album = song.getAlbum();
@@ -455,14 +488,6 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             if (currentSong != null) checkIsFavorite(currentSong.getId());
         });
 
-        // Audio output
-        AudioOutputManager.getInstance(requireContext()).getCurrentOutput().observe(getViewLifecycleOwner(), device -> {
-            if (btnAudioOutput != null && device != null) {
-                btnAudioOutput.setImageResource(device.getIconResId());
-                btnAudioOutput.setContentDescription(device.getDisplayName());
-            }
-        });
-
         // Theme tokens → update circular artwork colors + all UI
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
@@ -487,14 +512,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (on) {
             android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
             bg.setColor(accent);
-            bg.setCornerRadius(20f * getResources().getDisplayMetrics().density);
+            bg.setCornerRadius(14f * getResources().getDisplayMetrics().density);
             btnVibe.setBackground(bg);
             ivVibeIcon.setColorFilter(0xFF1A1A1A);
             tvVibeLabel.setTextColor(0xFF1A1A1A);
             btnVibe.setAlpha(1.0f);
         } else {
             int inactive = android.graphics.Color.argb(200, 255, 255, 255);
-            btnVibe.setBackgroundResource(R.drawable.bg_korokae_pill);
+            btnVibe.setBackgroundResource(R.drawable.bg_action_box);
             ivVibeIcon.setColorFilter(inactive);
             tvVibeLabel.setTextColor(inactive);
             btnVibe.setAlpha(0.7f);
@@ -596,7 +621,13 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         TextView header = getView().findViewById(R.id.nowPlayingHeader);
         if (header != null) header.setTextColor(secondary);
         tvTitle.setTextColor(primary);
-        tvArtist.setTextColor(secondary);
+        // Artist picks up the artwork hue: a light, softly saturated tone of it. The backdrop is
+        // always value <= 0.2, so a value of 0.95 keeps contrast well above 4.5:1.
+        float[] artistHsv = new float[3];
+        android.graphics.Color.colorToHSV(base, artistHsv);
+        artistHsv[1] = Math.min(artistHsv[1], 0.45f);
+        artistHsv[2] = 0.95f;
+        tvArtist.setTextColor(android.graphics.Color.HSVToColor(artistHsv));
         if (tvAlbum != null) tvAlbum.setTextColor(tertiary);
         tvCurrentTime.setTextColor(tertiary);
         tvTotalTime.setTextColor(tertiary);
@@ -617,7 +648,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         }
 
         btnPlayPause.setBackground(null);
-        btnPlayPause.setBackgroundResource(R.drawable.ripple_circle);
+        btnPlayPause.setBackgroundResource(R.drawable.bg_np_play);
         btnPlayPause.setColorFilter(primary);
         btnPrevious.setColorFilter(primary);
         btnNext.setColorFilter(primary);
@@ -627,7 +658,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         if (btnShare != null) btnShare.setColorFilter(secondary);
         if (btnShareCard != null) btnShareCard.setColorFilter(secondary);
         if (btnCollapse != null) btnCollapse.setColorFilter(secondary);
-        if (btnAudioOutput != null) btnAudioOutput.setColorFilter(secondary);
+        if (btnVolume != null) btnVolume.setColorFilter(secondary);
         if (btnEqualizer != null) btnEqualizer.setColorFilter(secondary);
         if (btnVibe != null) {
             updateVibeUi();

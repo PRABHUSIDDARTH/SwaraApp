@@ -42,5 +42,11 @@ ml/korokae_v2/data/
 ml/korokae_v2/checkpoints/
 ml/korokae_v2/out/
 app/src/androidTest/assets/korokae_v2_*
+# Wake-word ML: local env, datasets, checkpoints, outputs
+ml/wakeword/.venv/
+ml/wakeword/data/
+ml/wakeword/checkpoints/
+ml/wakeword/out/
+
 # Plan-execution scratch workspace
 .superpowers/

@@ -1,0 +1,4 @@
+<resources>
+    <integer name="span_cards">4</integer>
+    <integer name="span_rows">2</integer>
+</resources>

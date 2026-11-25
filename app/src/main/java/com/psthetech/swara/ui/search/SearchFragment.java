@@ -104,6 +104,18 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
             });
         }
 
+        // Mic in the search field's end slot: tap-to-talk voice commands.
+        com.psthetech.swara.ui.voice.VoiceUiCoordinator voice =
+                com.psthetech.swara.ui.voice.VoiceUiCoordinator.from(this);
+        if (voice == null) {
+            tilSearch.setEndIconVisible(false);
+        } else {
+            tilSearch.setEndIconOnClickListener(v -> voice.onMicTapped());
+            tilSearch.setEndIconOnLongClickListener(v -> voice.onMicLongPressed());
+            voice.micVisible().observe(getViewLifecycleOwner(), visible ->
+                    tilSearch.setEndIconVisible(Boolean.TRUE.equals(visible)));
+        }
+
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()
                 .getDesignTokens().observe(getViewLifecycleOwner(), tokens -> {
                     if (tokens == null || getView() == null) return;

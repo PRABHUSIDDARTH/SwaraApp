@@ -1,0 +1,11 @@
+<resources>
+    <dimen name="np_play_size">64dp</dimen>
+    <dimen name="np_skip_size">48dp</dimen>
+    <dimen name="np_skip_pad">11dp</dimen>
+    <dimen name="np_play_pad">15dp</dimen>
+    <dimen name="np_side_size">40dp</dimen>
+    <dimen name="np_title_size">22sp</dimen>
+    <dimen name="np_artist_size">15sp</dimen>
+    <dimen name="np_gap_group">12dp</dimen>
+    <dimen name="np_gap_tight">4dp</dimen>
+</resources>

@@ -1,0 +1,141 @@
+package com.psthetech.swara.voice.exec;
+
+import androidx.annotation.Nullable;
+
+import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.voice.intent.IntentParser;
+import com.psthetech.swara.voice.intent.VoiceIntent;
+import com.psthetech.swara.voice.match.Candidate;
+import com.psthetech.swara.voice.match.Confidence;
+import com.psthetech.swara.voice.match.LibraryIndex;
+import com.psthetech.swara.voice.match.LibraryVoiceMatcher;
+import com.psthetech.swara.voice.match.MatchKind;
+import com.psthetech.swara.voice.match.MatchResult;
+import com.psthetech.swara.voice.match.PhoneticKey;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+
+/** Parses a transcript, matches it against the library and drives playback. Pure Java. */
+public final class VoiceCommandExecutor {
+    private static final double AMBIGUOUS_BAND = 0.10;
+    private static final int MAX_CHOICES = 4;
+
+    private final VoicePlayback playback;
+    private final Random random;
+
+    public VoiceCommandExecutor(VoicePlayback playback, Random random) {
+        this.playback = playback;
+        this.random = random;
+    }
+
+    public VoiceOutcome handle(String transcript, @Nullable LibraryIndex index) {
+        VoiceIntent intent = IntentParser.parse(transcript);
+        if (intent.getType() == VoiceIntent.Type.UNKNOWN) return unknownFallback(transcript, index);
+        return handle(intent, index);
+    }
+
+    private static final java.util.Set<String> PLAY_LIKE = new java.util.HashSet<>(java.util.Arrays.asList(
+            "player", "played", "plays", "pray", "flay", "plate", "clay", "blay",
+            "there", "their", "they", "three", "the"));
+    private static final java.util.Set<String> STOP_SINGLES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "one", "it", "this", "up", "down", "please", "song", "songs", "music", "that", "you", "me"));
+
+    private static boolean soundsLikePlay(String w) {
+        if (PLAY_LIKE.contains(w)) return true;
+        String a = PhoneticKey.of(w), b = PhoneticKey.of("play");
+        return LibraryVoiceMatcher.levenshtein(a, b) <= 1;
+    }
+
+    /**
+     * The first word is often a misheard "play" (or noise), so retry the rest as PLAY_ANY
+     * (also trying with the first two words dropped). Acts only on a HIGH match; never plays on chatter.
+     */
+    private VoiceOutcome unknownFallback(String transcript, @Nullable LibraryIndex index) {
+        if (transcript == null || index == null || index.isEmpty()) {
+            return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        }
+        String s = IntentParser.stripLeading(transcript);
+        if (s.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        String[] words = s.split(" ");
+        if (!soundsLikePlay(words[0])) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        for (int drop = 1; drop <= 2 && drop < words.length; drop++) {
+            StringBuilder q = new StringBuilder();
+            for (int i = drop; i < words.length; i++) {
+                if (q.length() > 0) q.append(' ');
+                q.append(words[i]);
+            }
+            String rest = q.toString();
+            if (!rest.contains(" ") && STOP_SINGLES.contains(rest)) continue;
+            // Intentional: remainders under 5 phonetic chars (short one-word titles) are never played from the fallback.
+            if (PhoneticKey.joined(PhoneticKey.of(rest)).length() < 5) continue;
+            MatchResult r = LibraryVoiceMatcher.match(new VoiceIntent(VoiceIntent.Type.PLAY_ANY, rest), index);
+            if (r.confidence == Confidence.HIGH) return choose(r.ranked.get(0));
+        }
+        return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+    }
+
+    /** Entry point taking an already-parsed intent. Transport commands work without a library. */
+    public VoiceOutcome handle(VoiceIntent intent, @Nullable LibraryIndex index) {
+        switch (intent.getType()) {
+            case PAUSE:
+                playback.pause();
+                return VoiceOutcome.result(VoiceReplies.PAUSED, false);
+            case RESUME:
+                playback.resume();
+                return VoiceOutcome.result(VoiceReplies.PLAYING, false);
+            case NEXT:
+                playback.next();
+                return VoiceOutcome.result(VoiceReplies.NEXT, false);
+            case PREVIOUS:
+                playback.previous();
+                return VoiceOutcome.result(VoiceReplies.PREVIOUS, false);
+            case UNKNOWN:
+                return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+            default:
+                break;
+        }
+        if (index == null || index.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.libraryLoading());
+        if (intent.getQuery().trim().isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        MatchResult r = LibraryVoiceMatcher.match(intent, index);
+        switch (r.confidence) {
+            case HIGH:
+                return choose(r.ranked.get(0));
+            case MEDIUM: {
+                List<Candidate> choices = new ArrayList<>(r.ranked.subList(0, Math.min(MAX_CHOICES, r.ranked.size())));
+                return new VoiceOutcome(VoiceOutcome.Kind.CONFIRM, VoiceReplies.didYouMean(r.ranked.get(0).display), true, choices);
+            }
+            case AMBIGUOUS: {
+                double top = r.ranked.get(0).score;
+                List<Candidate> choices = new ArrayList<>();
+                for (Candidate c : r.ranked) {
+                    if (top - c.score <= AMBIGUOUS_BAND + 1e-9) choices.add(c);
+                }
+                return new VoiceOutcome(VoiceOutcome.Kind.CHOOSE, VoiceReplies.whichOne(), true, choices);
+            }
+            default:
+                return VoiceOutcome.spoken(VoiceReplies.notFound(intent.getQuery()));
+        }
+    }
+
+    public VoiceOutcome choose(Candidate c) {
+        if (c.songs.isEmpty()) return VoiceOutcome.spoken(VoiceReplies.didntCatch());
+        if (c.kind == MatchKind.SONG) {
+            playback.playSong(c.songs.get(0));
+            return VoiceOutcome.result(VoiceReplies.playingSong(c.display), true);
+        }
+        List<Song> songs = new ArrayList<>(c.songs);
+        if (c.kind == MatchKind.ARTIST) {
+            Collections.shuffle(songs, random);
+            playback.playQueue(songs);
+            return VoiceOutcome.result(VoiceReplies.playingArtist(songs.size(), c.display), true);
+        }
+        Collections.sort(songs, Comparator.comparingInt(Song::getTrackNumber)
+                .thenComparing(Song::getTitle, Comparator.nullsFirst(Comparator.naturalOrder())));
+        playback.playQueue(songs);
+        return VoiceOutcome.result(VoiceReplies.playingAlbum(c.display, songs.size()), true);
+    }
+}

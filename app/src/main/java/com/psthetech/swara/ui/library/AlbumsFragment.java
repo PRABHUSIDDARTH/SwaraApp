@@ -41,7 +41,7 @@ public class AlbumsFragment extends Fragment implements AlbumAdapter.OnAlbumClic
         layoutEmpty = view.findViewById(R.id.layoutEmpty);
 
         albumAdapter = new AlbumAdapter(this);
-        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), getResources().getInteger(R.integer.span_cards)));
         recyclerView.setAdapter(albumAdapter);
 
         com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance()

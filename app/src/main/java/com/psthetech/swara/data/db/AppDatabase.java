@@ -9,6 +9,7 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+import com.psthetech.swara.data.db.dao.ArtistAliasDao;
 import com.psthetech.swara.data.db.dao.FavoriteDao;
 import com.psthetech.swara.data.db.dao.ListenEventDao;
 import com.psthetech.swara.data.db.dao.MixDao;
@@ -17,6 +18,7 @@ import com.psthetech.swara.data.db.dao.MoodOverrideDao;
 import com.psthetech.swara.data.db.dao.PlayHistoryDao;
 import com.psthetech.swara.data.db.dao.PlaylistDao;
 import com.psthetech.swara.data.db.dao.WrappedDao;
+import com.psthetech.swara.data.db.entity.ArtistAlias;
 import com.psthetech.swara.data.db.entity.ListenDaily;
 import com.psthetech.swara.data.db.entity.ListenHourly;
 import com.psthetech.swara.data.db.entity.Recap;
@@ -40,6 +42,7 @@ import com.psthetech.swara.data.db.entity.SongMood;
  *  4  — Added song_mood, listen_events and mixes tables (Vibe Mode recommender).
  *  5  — Added mood_override table (user mood corrections).
  *  6  — Added listen_daily, listen_hourly, song_snapshot and recap tables (Swara Wrapped).
+ *  7  — Added artist_alias table (manual artist-credit merge overrides).
  *
  * NO allowMainThreadQueries — all access must be on a background thread via ExecutorService.
  *
@@ -48,8 +51,8 @@ import com.psthetech.swara.data.db.entity.SongMood;
 @Database(
     entities = {FavoriteSong.class, Playlist.class, PlaylistSong.class, PlayHistory.class,
             SongMood.class, ListenEvent.class, Mix.class, MoodOverride.class,
-            ListenDaily.class, ListenHourly.class, SongSnapshot.class, Recap.class},
-    version = 6,
+            ListenDaily.class, ListenHourly.class, SongSnapshot.class, Recap.class, ArtistAlias.class},
+    version = 7,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -62,6 +65,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract MixDao mixDao();
     public abstract MoodOverrideDao moodOverrideDao();
     public abstract WrappedDao wrappedDao();
+    public abstract ArtistAliasDao artistAliasDao();
 
     // ===== Migrations =====
 
@@ -121,6 +125,14 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** V6 -> V7: manual artist alias overrides. */
+    public static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `artist_alias` (`from_key` TEXT NOT NULL, `to_key` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`from_key`))");
+        }
+    };
+
     // ===== Singleton =====
 
     private static volatile AppDatabase INSTANCE;
@@ -134,7 +146,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "swara_v2.db"
                             )
-                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                             // Destructive fallback only for schema versions before v2
                             .fallbackToDestructiveMigrationFrom(1)
                             .fallbackToDestructiveMigrationOnDowngrade()
