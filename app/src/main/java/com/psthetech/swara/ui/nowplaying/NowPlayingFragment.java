@@ -112,6 +112,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 bottomSheet.setLayoutParams(lp);
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                // Don't cap the sheet at 640dp: in landscape it must use the full width.
+                behavior.setMaxWidth(android.view.ViewGroup.LayoutParams.MATCH_PARENT);
                 behavior.setSkipCollapsed(true);
                 behavior.setHideable(true);
                 behavior.setDraggable(true);
@@ -129,6 +131,20 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Landscape: keep content clear of the notch / cutout and side system bars.
+        View npContent = view.findViewById(R.id.npContent);
+        final int basePadStart = npContent != null ? npContent.getPaddingLeft() : 0;
+        final int basePadEnd = npContent != null ? npContent.getPaddingRight() : 0;
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                            | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            if (npContent != null) {
+                npContent.setPadding(basePadStart + bars.left, npContent.getPaddingTop(),
+                        basePadEnd + bars.right, npContent.getPaddingBottom());
+            }
+            return insets;
+        });
 
         playbackViewModel = new ViewModelProvider(requireActivity()).get(PlaybackViewModel.class);
         favoritesViewModel = new ViewModelProvider(requireActivity()).get(FavoritesViewModel.class);
