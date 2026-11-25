@@ -324,6 +324,11 @@
     <string name="available_outputs">Available outputs</string>
     <string name="cd_seek_bar">Playback position</string>
     <string name="audio_output">Audio output</string>
+    <string name="volume">Volume</string>
+    <string name="volume_percent">%1$d%%</string>
+    <string name="volume_change_output">Change</string>
+    <string name="nav_songs">Songs</string>
+    <string name="nav_hey_swara">Hey Swara</string>
     <string name="share_nearby">Share song</string>
     <string name="share_card">Share as card</string>
     <string name="share_card_title">Share card</string>
