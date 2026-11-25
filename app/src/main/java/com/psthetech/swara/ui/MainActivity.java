@@ -113,6 +113,26 @@ public class MainActivity extends AppCompatActivity
 
         setContentView(R.layout.activity_main);
 
+        // Landscape is short: bottom sheets must open fully expanded or their controls sit below
+        // the fold (the default peek height is a fraction of the width). Applies to every sheet
+        // after rotation too, because the fragment restarts with the new configuration.
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(
+                new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    @Override
+                    public void onFragmentStarted(@androidx.annotation.NonNull androidx.fragment.app.FragmentManager fm,
+                                                  @androidx.annotation.NonNull androidx.fragment.app.Fragment f) {
+                        if (!isLandscape()) return;
+                        if (!(f instanceof com.google.android.material.bottomsheet.BottomSheetDialogFragment)) return;
+                        android.app.Dialog d = ((androidx.fragment.app.DialogFragment) f).getDialog();
+                        if (d instanceof com.google.android.material.bottomsheet.BottomSheetDialog) {
+                            com.google.android.material.bottomsheet.BottomSheetBehavior<?> b =
+                                    ((com.google.android.material.bottomsheet.BottomSheetDialog) d).getBehavior();
+                            b.setSkipCollapsed(true);
+                            b.setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+                        }
+                    }
+                }, true);
+
         // Apply window insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             // Include the display cutout so a notch in landscape never clips the rail or content.
