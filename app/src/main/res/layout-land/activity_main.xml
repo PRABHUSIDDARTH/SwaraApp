@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Landscape shell: navigation rail on the start side; content column on the right with the
      mini player docked under the page (not floating over it) so it never hides content. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- The root must be the same view class as in portrait (CoordinatorLayout): the same id with a
+     different class makes saved view state fail to restore on rotation. -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal">
@@ -47,3 +53,5 @@
     </LinearLayout>
 
 </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
