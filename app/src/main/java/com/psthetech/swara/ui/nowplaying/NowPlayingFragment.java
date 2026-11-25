@@ -331,9 +331,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnEqualizer != null) {
             btnEqualizer.setOnClickListener(v -> {
-                if (getActivity() != null) {
-                    EqualizerManager.openSystemEqualizer(
-                            getActivity(), playbackViewModel.getAudioSessionId());
+                androidx.fragment.app.FragmentManager fm = getParentFragmentManager();
+                if (fm.findFragmentByTag(EqualizerBottomSheet.TAG) == null) {
+                    EqualizerBottomSheet.newInstance().show(fm, EqualizerBottomSheet.TAG);
                 }
             });
         }

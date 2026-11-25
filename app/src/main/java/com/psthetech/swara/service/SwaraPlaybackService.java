@@ -428,10 +428,12 @@ public class SwaraPlaybackService extends MediaSessionService {
                 android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC);
         sendBroadcast(open);
         openedEqSessionId = sessionId;
+        com.psthetech.swara.audio.SwaraEqualizer.get(this).attach(sessionId);
     }
 
     private void closeEqualizerSession() {
         if (openedEqSessionId == C.AUDIO_SESSION_ID_UNSET) return;
+        com.psthetech.swara.audio.SwaraEqualizer.get(this).release();
         Intent close = new Intent(android.media.audiofx.AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
         close.putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, openedEqSessionId);
         close.putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, getPackageName());
@@ -522,6 +524,7 @@ public class SwaraPlaybackService extends MediaSessionService {
         }
         if (listenTracker != null) listenTracker.checkpoint();
         if (vibeController != null) vibeController.release();
+        com.psthetech.swara.audio.SwaraEqualizer.get(this).release();
         SleepTimerManager.getInstance().setPlaybackHooks(null);
         closeEqualizerSession();
         if (korokaeModelProvider != null) {
