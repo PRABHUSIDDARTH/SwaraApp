@@ -25,6 +25,7 @@ public class DeckReelView extends View {
 
     private static final int DEFAULT_SIZE_DP = 220;
     private static final float WINDOW_SWEEP_DEG = 78f;
+    private static final float SPINDLE_RING_DP = 1.75f;
 
     private final float density;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -75,9 +76,9 @@ public class DeckReelView extends View {
         cx = w / 2f;
         cy = h / 2f;
         radius = Math.max(0f, Math.min(w, h) / 2f - 6f * density);
-        labelRadius = radius * 0.43f;
-        windowRadius = radius * 0.695f;
-        windowWidth = radius * 0.27f;
+        labelRadius = radius * 0.63f;
+        windowRadius = radius * 0.795f;
+        windowWidth = radius * 0.13f;
         windowArc.set(cx - windowRadius, cy - windowRadius, cx + windowRadius, cy + windowRadius);
         fitArt();
     }
@@ -140,13 +141,19 @@ public class DeckReelView extends View {
             canvas.drawCircle(cx, cy, labelRadius, paint);
         }
 
-        // Spindle with three small pin holes.
+        // Spindle with three small pin holes. It sits on the cover art, so it gets two rings of
+        // opposite tones (text and cap colour): whatever the art, one of them stands out.
+        float spindle = radius * 0.085f;
+        fill(p.text);
+        canvas.drawCircle(cx, cy, spindle + 2f * SPINDLE_RING_DP * density, paint);
+        fill(p.cap);
+        canvas.drawCircle(cx, cy, spindle + SPINDLE_RING_DP * density, paint);
         fill(p.metal);
-        canvas.drawCircle(cx, cy, radius * 0.105f, paint);
-        fill(p.well);
-        canvas.drawCircle(cx, cy, radius * 0.032f, paint);
+        canvas.drawCircle(cx, cy, spindle, paint);
+        fill(p.textTertiary);
+        canvas.drawCircle(cx, cy, radius * 0.026f, paint);
         for (int i = 0; i < 3; i++) {
-            canvas.drawCircle(cx, cy - radius * 0.068f, radius * 0.016f, paint);
+            canvas.drawCircle(cx, cy - radius * 0.055f, radius * 0.013f, paint);
             canvas.rotate(120f, cx, cy);
         }
 
