@@ -19,7 +19,10 @@ phone is not in use. Android offers apps no public way to draw on the Always On 
 
 ## Widget
 
-A third widget, "Swara Deck". The two existing widget looks are unchanged.
+A second widget, "Swara Deck". The existing size-adaptive widget is unchanged. (Correction: the
+design discussion said there were two existing widgets; only one provider is registered. A
+duplicate vertical one was removed earlier, and the test guarding that now allows exactly these
+two.)
 
 - Matte body with screws, the reel with a still cover, title and artist, self-ticking elapsed
   time, a progress bar, and keys: previous, play/pause, next, favourite, Karaoke, standby.

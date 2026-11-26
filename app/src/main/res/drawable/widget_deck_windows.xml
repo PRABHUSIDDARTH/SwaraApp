@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The reel windows; turned by widget_deck_spin_windows. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="112dp"
+    android:height="112dp"
+    android:viewportWidth="112"
+    android:viewportHeight="112">
+    <path
+        android:pathData="M81.02,86.89 A39.75,39.75 0 0 1 30.98,86.89"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6.50"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M16.74,62.22 A39.75,39.75 0 0 1 41.75,18.89"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6.50"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M70.25,18.89 A39.75,39.75 0 0 1 95.26,62.22"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6.50"
+        android:strokeLineCap="round" />
+</vector>

@@ -4,7 +4,7 @@
 
 **Goal:** A "Swara Deck" home-screen widget and a dim Deck standby screen over the lock screen.
 
-**Architecture:** The widget is a third `AppWidgetProvider` fed by the existing
+**Architecture:** The widget is a second `AppWidgetProvider` fed by the existing
 `SwaraWidgetUpdater` pushes, drawing the Deck reel into bitmaps and spinning vector overlays in
 indeterminate `ProgressBar`s. Standby is one activity reusing the Deck views and
 `PlaybackViewModel`; its timing and burn-in rules are pure Java.
@@ -16,7 +16,7 @@ indeterminate `ProgressBar`s. Standby is one activity reusing the Deck views and
 ## Global Constraints
 
 - Java only, minSdk 24, no new libraries, no new permissions.
-- Colours from `DesignTokens`; existing two widget looks and the standard player unchanged.
+- Colours from `DesignTokens`; the existing widget and the standard player unchanged.
 - No fake spectrum. No allocations in `onDraw`. Respect "remove animations".
 - Standby: playback controls only; 10% brightness; close after 15 min untouched or 1 min paused.
 - Gates: `testDebugUnitTest assembleDebug lintDebug`, no new lint errors or warnings.
@@ -58,7 +58,7 @@ boolean favorite, boolean korokae, long durationMs, int artKey, int paletteKey)`
 SwaraWidgetUpdater.State, Bitmap)`, `hasPlaced(Context)`.
 
 - [ ] Tests: spin only with a song, playing, SDK 31+; progress clamps and is 0 without duration; `onlyTheProgressMovingNeedsNoFullRedraw` (equal signatures), and each other input changes the signature. Fail, implement, pass.
-- [ ] Renderer, layout, provider, manifest. Overlay geometry (120dp square): radius 54, window radius 0.795r, width 0.13r, sweep 78° centred 90/210/330°, marker r 0.045r at 12 o'clock.
+- [ ] Renderer, layout, provider, manifest. Overlay geometry (112dp square): radius 50, window radius 0.795r, width 0.13r, sweep 78° centred 90/210/330°, marker r 0.045r at 12 o'clock.
 - [ ] Updater: push the Deck widget even when no other widget is placed; `hasPlacedWidgets` counts it.
 - [ ] Gates, commit.
 

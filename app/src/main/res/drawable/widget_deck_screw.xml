@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A screw head; tinted to the theme metal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="10dp"
+    android:height="10dp"
+    android:viewportWidth="10"
+    android:viewportHeight="10">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M0,5 a5,5 0 1 0 10,0 a5,5 0 1 0 -10,0 Z" />
+</vector>

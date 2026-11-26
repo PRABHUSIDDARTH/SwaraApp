@@ -150,7 +150,7 @@ public final class SwaraWidgetUpdater {
         try {
             int[] ids = AppWidgetManager.getInstance(context)
                     .getAppWidgetIds(new ComponentName(context, SwaraWidgetProvider.class));
-            return ids != null && ids.length > 0;
+            return (ids != null && ids.length > 0) || DeckWidgetRenderer.hasPlaced(context);
         } catch (RuntimeException e) {
             return false;
         }
@@ -215,7 +215,9 @@ public final class SwaraWidgetUpdater {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         ComponentName provider = new ComponentName(context, SwaraWidgetProvider.class);
         int[] ids = manager.getAppWidgetIds(provider);
-        if (ids == null || ids.length == 0) return; // no widgets placed
+        if ((ids == null || ids.length == 0) && !DeckWidgetRenderer.hasPlaced(context)) {
+            return; // no widgets placed
+        }
 
         if (song == null) {
             clearArtworkCache();
@@ -254,10 +256,8 @@ public final class SwaraWidgetUpdater {
                     // Skip if the track changed while decoding
                     Song now = lastSong;
                     if (now == null || now.getId() != songSnapshot.getId()) return;
-                    int[] sIds = manager.getAppWidgetIds(provider);
-                    if (sIds != null && sIds.length > 0) {
-                        renderAndPush(appContext, manager, sIds, songSnapshot, currentState(), decoded);
-                    }
+                    renderAndPush(appContext, manager, manager.getAppWidgetIds(provider),
+                            songSnapshot, currentState(), decoded);
                 });
             });
         }
@@ -265,6 +265,7 @@ public final class SwaraWidgetUpdater {
 
     private static void renderAndPush(Context context, AppWidgetManager manager, int[] ids,
                                       Song song, State state, Bitmap art) {
+        DeckWidgetRenderer.push(context, song, state, art);
         if (ids == null || ids.length == 0) return;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             manager.updateAppWidget(ids, buildResponsiveViews(context, song, state, art));
@@ -332,7 +333,7 @@ public final class SwaraWidgetUpdater {
     }
 
     @androidx.annotation.Nullable
-    private static Bitmap cachedArtFor(@androidx.annotation.Nullable Song song) {
+    static Bitmap cachedArtFor(@androidx.annotation.Nullable Song song) {
         if (song == null) return null;
         synchronized (CACHE_LOCK) {
             if (cachedSongId != null && cachedSongId == song.getId()
@@ -644,7 +645,7 @@ public final class SwaraWidgetUpdater {
 
     /** Create a broadcast PendingIntent for a widget button action. */
     @OptIn(markerClass = UnstableApi.class)
-    private static PendingIntent makeBroadcastPI(Context context, String action, int requestCode) {
+    static PendingIntent makeBroadcastPI(Context context, String action, int requestCode) {
         Intent intent = new Intent(action);
         intent.setClass(context, SwaraWidgetReceiver.class);
         return PendingIntent.getBroadcast(

@@ -326,6 +326,9 @@
     <string name="available_outputs">Available outputs</string>
     <string name="cd_seek_bar">Playback position</string>
     <string name="cd_deck_reel">Tape reel</string>
+    <string name="deck_standby">Standby screen</string>
+    <string name="widget_deck_label">Swara Deck</string>
+    <string name="widget_deck_description">A tape deck for your home screen. Follows your in-app theme.</string>
     <string name="cd_deck_reel_song">Tape reel with album art for %1$s</string>
     <string name="cd_deck_change_artwork">Change artwork</string>
     <string name="cd_deck_seek_forward">Skip forward 5 seconds</string>
