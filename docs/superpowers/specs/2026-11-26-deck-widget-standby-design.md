@@ -34,8 +34,9 @@ two.)
   animations" the system does not animate it. **This must be checked on the phone's launcher.**
 - No wave or spectrum. A once-a-second sound wave was tried and removed after testing.
 - Reuses the existing widget broadcast actions and the service's one-second tick.
-- One layout, 3x3 cells (changed after testing): reel on top, then title, time and progress, then
-  two rows of three keys. Only the width can be resized. The panel is only as tall as its content.
+- One layout, 4x2 cells, matching the other Swara widget (changed after testing). The panel fills
+  its slot; the reel shrinks to fit shorter slots. Not resizable. The provider's size values are
+  copied from the other widget, which One UI is known to place at 4x2.
 
 ## Standby screen
 

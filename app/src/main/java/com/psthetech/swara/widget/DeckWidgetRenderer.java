@@ -33,7 +33,7 @@ import java.util.Arrays;
 /** Builds and pushes the Deck widget. Colours come from {@link DeckPalette}. */
 final class DeckWidgetRenderer {
 
-    private static final int REEL_DP = 112;
+    private static final int REEL_DP = 132;
 
     private static final int[] SCREWS = {R.id.deck_screw_tl, R.id.deck_screw_tr,
             R.id.deck_screw_bl, R.id.deck_screw_br};
