@@ -134,6 +134,48 @@
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
 
+            <!-- Player skin: separate from the colour themes above -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPlayerSkin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:layout_marginTop="@dimen/dp_8"
+                app:cardBackgroundColor="@color/swara_surface_2"
+                app:cardCornerRadius="@dimen/radius_md"
+                app:strokeColor="@color/swara_glass_stroke"
+                app:strokeWidth="@dimen/border_regular">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchDeckPlayer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="@dimen/dp_16"
+                        android:paddingTop="@dimen/dp_16"
+                        android:minHeight="48dp"
+                        android:text="@string/settings_deck_player"
+                        android:textColor="@color/swara_text_primary"
+                        android:textSize="@dimen/text_body_md" />
+
+                    <TextView
+                        android:id="@+id/tvDeckPlayerSummary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="@dimen/dp_16"
+                        android:paddingBottom="@dimen/dp_16"
+                        android:text="@string/settings_deck_player_summary"
+                        android:textColor="@color/swara_text_secondary"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Section 3: Library -->
             <TextView
                 android:id="@+id/tvLibraryHeader"

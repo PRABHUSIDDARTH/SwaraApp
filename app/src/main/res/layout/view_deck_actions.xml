@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deck action keys: Karaoke | Vibe | Sleep | Volume | EQ. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:baselineAligned="false">
+
+    <com.psthetech.swara.ui.deck.DeckKeyLayout
+        android:id="@+id/btnKorokae"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_action_height"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:contentDescription="@string/korokae_mode">
+
+        <ImageView
+            android:id="@+id/ivKorokaeIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_mic"
+            android:importantForAccessibility="no" />
+
+        <!-- Hidden: the state code keeps setting its text. -->
+        <TextView
+            android:id="@+id/tvKorokaeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/korokae_mode"
+            android:visibility="gone" />
+    </com.psthetech.swara.ui.deck.DeckKeyLayout>
+
+    <com.psthetech.swara.ui.deck.DeckKeyLayout
+        android:id="@+id/btnVibe"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_action_height"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:contentDescription="@string/cd_vibe_mode">
+
+        <ImageView
+            android:id="@+id/ivVibeIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_vibe"
+            android:importantForAccessibility="no" />
+
+        <!-- Hidden: the state code keeps setting its text. -->
+        <TextView
+            android:id="@+id/tvVibeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/vibe_mode"
+            android:visibility="gone" />
+    </com.psthetech.swara.ui.deck.DeckKeyLayout>
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnSleepTimer"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_action_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_timer"
+        android:contentDescription="@string/sleep_timer" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnVolume"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_action_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_speaker"
+        android:contentDescription="@string/volume" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnEqualizer"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_action_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_equalizer"
+        android:contentDescription="@string/equalizer" />
+</LinearLayout>
