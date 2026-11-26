@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="deck_key_height">58dp</dimen>
+    <dimen name="deck_action_height">52dp</dimen>
+    <dimen name="deck_window_height">76dp</dimen>
+    <dimen name="deck_fader_height">52dp</dimen>
+</resources>

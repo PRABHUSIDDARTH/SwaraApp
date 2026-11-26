@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deck transport keys. Same ids as view_np_transport. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:baselineAligned="false">
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnShuffle"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_key_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_shuffle"
+        android:contentDescription="@string/shuffle" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnPrevious"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_key_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_skip_prev"
+        android:contentDescription="@string/previous" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnPlayPause"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_key_height"
+        android:layout_weight="1.35"
+        android:src="@drawable/ic_play"
+        android:contentDescription="@string/play_pause" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnNext"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_key_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_skip_next"
+        android:contentDescription="@string/next" />
+
+    <com.psthetech.swara.ui.deck.DeckKeyView
+        android:id="@+id/btnRepeat"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/deck_key_height"
+        android:layout_weight="1"
+        android:src="@drawable/ic_repeat"
+        android:contentDescription="@string/repeat" />
+</LinearLayout>

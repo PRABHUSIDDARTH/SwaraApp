@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deck readout window (dot-matrix time, spectrum) over the seek fader. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/deckWindow"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/deck_window_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:baselineAligned="false">
+
+        <com.psthetech.swara.ui.deck.DeckTimeView
+            android:id="@+id/deckTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:focusable="true" />
+
+        <com.psthetech.swara.ui.deck.DeckSpectrumView
+            android:id="@+id/deckSpectrum"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:importantForAccessibility="no" />
+    </LinearLayout>
+
+    <com.psthetech.swara.ui.deck.DeckFaderView
+        android:id="@+id/scrubber"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/deck_fader_height"
+        android:layout_marginTop="@dimen/np_gap_tight"
+        android:contentDescription="@string/cd_seek_bar" />
+</LinearLayout>
