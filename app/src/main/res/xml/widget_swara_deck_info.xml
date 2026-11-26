@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Swara Deck widget. The sizes are copied from widget_swara_player_info, which One UI places
-     at 4x2; sizes of our own made it offer more rows. It is not resizable, because the six keys
-     and the reel need this much room. -->
+<!-- The Swara Deck widget, 4x2. One UI ignores targetCell* and works the size out from minWidth and
+     minHeight: 250x110 is Android's documented 4x2 minimum. Check the size shown in the widget
+     picker after changing them. Not resizable: the layout needs the full 4x2. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:targetApi="31"
-    android:minWidth="180dp"
-    android:minHeight="160dp"
-    android:minResizeWidth="110dp"
-    android:minResizeHeight="50dp"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="110dp"
     android:maxResizeWidth="500dp"
     android:maxResizeHeight="400dp"
     android:targetCellWidth="4"

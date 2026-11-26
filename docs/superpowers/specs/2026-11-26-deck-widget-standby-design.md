@@ -35,8 +35,8 @@ two.)
 - No wave or spectrum. A once-a-second sound wave was tried and removed after testing.
 - Reuses the existing widget broadcast actions and the service's one-second tick.
 - One layout, 4x2 cells, matching the other Swara widget (changed after testing). The panel fills
-  its slot; the reel shrinks to fit shorter slots. Not resizable. The provider's size values are
-  copied from the other widget, which One UI is known to place at 4x2.
+  its slot; the reel shrinks to fit shorter slots. Not resizable. One UI ignores
+  `targetCell*` and sizes from the minimums: 250x110dp is listed as 4x2 on the SM-G996B.
 
 ## Standby screen
 
