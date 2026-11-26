@@ -12,6 +12,15 @@ final class DeckWidgetModel {
         return hasSong && playing && sdk >= 31;
     }
 
+    /**
+     * Whether the widget's wave should read the audio: only while it can be seen and there is
+     * something to hear, and never with animations removed.
+     */
+    static boolean listens(boolean hasSong, boolean playing, boolean screenOn,
+                           boolean reducedMotion) {
+        return hasSong && playing && screenOn && !reducedMotion;
+    }
+
     static int progress(long positionMs, long durationMs) {
         if (durationMs <= 0) return 0;
         double fraction = Math.max(0d, Math.min(1d, (double) positionMs / (double) durationMs));
@@ -23,9 +32,9 @@ final class DeckWidgetModel {
      * the one-second tick only needs to move the progress bar: re-sending the whole widget would
      * ship the reel bitmap every second and could restart the spin.
      */
-    static String signature(long songId, boolean playing, boolean favorite, boolean korokae,
+    static String signature(long songId, boolean playing, boolean favorite, boolean vibe,
                             long durationMs, int artKey, int paletteKey) {
-        return songId + "|" + playing + "|" + favorite + "|" + korokae + "|" + durationMs
+        return songId + "|" + playing + "|" + favorite + "|" + vibe + "|" + durationMs
                 + "|" + artKey + "|" + paletteKey;
     }
 }

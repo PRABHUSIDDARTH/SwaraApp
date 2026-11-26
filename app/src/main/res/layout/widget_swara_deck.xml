@@ -203,7 +203,18 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="6dp"
                             android:fontFamily="monospace"
+                            android:maxLines="1"
                             android:textSize="12sp" />
+
+                        <!-- Sound wave: takes whatever room the times leave. -->
+                        <ImageView
+                            android:id="@+id/deck_wave"
+                            android:layout_width="0dp"
+                            android:layout_height="24dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:scaleType="fitXY"
+                            android:importantForAccessibility="no" />
                     </LinearLayout>
                 </FrameLayout>
 
@@ -371,15 +382,15 @@
                 android:importantForAccessibility="no" />
         </FrameLayout>
         <FrameLayout
-            android:id="@+id/deck_korokae"
+            android:id="@+id/deck_vibe"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:contentDescription="@string/korokae_mode"
+            android:contentDescription="@string/cd_vibe_mode"
             android:focusable="true">
 
             <ImageView
-                android:id="@+id/deck_korokae_side"
+                android:id="@+id/deck_vibe_side"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="2dp"
@@ -390,7 +401,7 @@
                 android:importantForAccessibility="no" />
 
             <ImageView
-                android:id="@+id/deck_korokae_cap"
+                android:id="@+id/deck_vibe_cap"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginHorizontal="2dp"
@@ -399,11 +410,11 @@
                 android:importantForAccessibility="no" />
 
             <ImageView
-                android:id="@+id/deck_korokae_icon"
+                android:id="@+id/deck_vibe_icon"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:scaleType="center"
-                android:src="@drawable/ic_mic"
+                android:src="@drawable/ic_vibe"
                 android:importantForAccessibility="no" />
         </FrameLayout>
         <FrameLayout

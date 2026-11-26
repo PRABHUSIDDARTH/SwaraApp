@@ -18,6 +18,15 @@ public class DeckWidgetModelTest {
     }
 
     @Test
+    public void listensToAudioOnlyWhileTheWaveCanBeSeenAndHeard() {
+        assertTrue(DeckWidgetModel.listens(true, true, true, false));
+        assertFalse("no song", DeckWidgetModel.listens(false, true, true, false));
+        assertFalse("paused", DeckWidgetModel.listens(true, false, true, false));
+        assertFalse("screen off", DeckWidgetModel.listens(true, true, false, false));
+        assertFalse("animations removed", DeckWidgetModel.listens(true, true, true, true));
+    }
+
+    @Test
     public void progressIsClampedAndEmptyWithoutADuration() {
         assertEquals(0, DeckWidgetModel.progress(5000, 0));
         assertEquals(0, DeckWidgetModel.progress(5000, -1));
@@ -27,9 +36,9 @@ public class DeckWidgetModelTest {
         assertEquals(500, DeckWidgetModel.progress(Long.MAX_VALUE / 4, Long.MAX_VALUE / 2));
     }
 
-    private static String signature(long song, boolean playing, boolean favorite, boolean korokae,
+    private static String signature(long song, boolean playing, boolean favorite, boolean vibe,
                                     long duration, int art, int palette) {
-        return DeckWidgetModel.signature(song, playing, favorite, korokae, duration, art, palette);
+        return DeckWidgetModel.signature(song, playing, favorite, vibe, duration, art, palette);
     }
 
     @Test

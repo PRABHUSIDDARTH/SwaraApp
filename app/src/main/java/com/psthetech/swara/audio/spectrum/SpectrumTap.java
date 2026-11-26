@@ -17,6 +17,7 @@ public final class SpectrumTap {
 
     private final PcmRing ring = new PcmRing(RING_BYTES);
     private volatile boolean enabled;
+    private volatile boolean widgetListening;
     private volatile int lagMs = DEFAULT_LAG_MS;
 
     SpectrumTap() { }
@@ -31,13 +32,19 @@ public final class SpectrumTap {
         return ring;
     }
 
-    /** Turns copying on the audio thread on or off. */
+    /** Turns copying on or off for the on-screen bars. */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
+    /** The Deck widget's own switch, so closing a screen does not silence its wave. */
+    public void setWidgetListening(boolean listening) {
+        widgetListening = listening;
+    }
+
+    /** True while anyone wants audio copied. */
     public boolean isEnabled() {
-        return enabled;
+        return enabled || widgetListening;
     }
 
     /**
