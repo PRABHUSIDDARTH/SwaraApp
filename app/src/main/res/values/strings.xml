@@ -326,6 +326,14 @@
     <string name="available_outputs">Available outputs</string>
     <string name="cd_seek_bar">Playback position</string>
     <string name="cd_deck_reel">Tape reel</string>
+    <string name="cd_deck_reel_song">Tape reel with album art for %1$s</string>
+    <string name="cd_deck_change_artwork">Change artwork</string>
+    <string name="cd_deck_seek_forward">Skip forward 5 seconds</string>
+    <string name="cd_deck_seek_back">Skip back 5 seconds</string>
+    <string name="deck_state_on">On</string>
+    <string name="deck_state_off">Off</string>
+    <string name="settings_deck_player">Deck player</string>
+    <string name="settings_deck_player_summary">Makes Now Playing look and feel like a tape deck. Applies the next time you open it.</string>
     <string name="cd_deck_time">%1$s played of %2$s</string>
     <string name="audio_output">Audio output</string>
     <string name="volume">Volume</string>
