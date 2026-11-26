@@ -121,22 +121,16 @@
             android:paddingHorizontal="10dp"
             android:paddingVertical="10dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:baselineAligned="false">
+            <FrameLayout
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:layout_gravity="center_horizontal">
 
-                <FrameLayout
+                <ImageView
+                    android:id="@+id/deck_reel"
                     android:layout_width="112dp"
-                    android:layout_height="112dp">
-
-                    <ImageView
-                        android:id="@+id/deck_reel"
-                        android:layout_width="112dp"
-                        android:layout_height="112dp"
-                        android:contentDescription="@string/cd_deck_reel" />
+                    android:layout_height="112dp"
+                    android:contentDescription="@string/cd_deck_reel" />
 
                 <ProgressBar
                     android:id="@+id/deck_spin_windows"
@@ -149,6 +143,7 @@
                     android:indeterminateOnly="true"
                     android:importantForAccessibility="no"
                     android:visibility="gone" />
+
                 <ProgressBar
                     android:id="@+id/deck_spin_marker"
                     android:layout_width="112dp"
@@ -160,82 +155,77 @@
                     android:indeterminateOnly="true"
                     android:importantForAccessibility="no"
                     android:visibility="gone" />
-                </FrameLayout>
+
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/deck_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/deck_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="12sp" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp">
+
+                <ImageView
+                    android:id="@+id/deck_window"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_deck_key"
+                    android:importantForAccessibility="no" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="10dp"
-                    android:orientation="vertical">
+                    android:minHeight="30dp"
+                    android:orientation="horizontal"
+                    android:gravity="center">
 
-                    <TextView
-                        android:id="@+id/deck_title"
-                        android:layout_width="match_parent"
+                    <Chronometer
+                        android:id="@+id/deck_elapsed"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:maxLines="1"
-                        android:ellipsize="end"
+                        android:fontFamily="monospace"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/deck_artist"
-                        android:layout_width="match_parent"
+                        android:id="@+id/deck_total"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="monospace"
                         android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textSize="13sp" />
-
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
-
-                        <ImageView
-                            android:id="@+id/deck_window"
-                            android:layout_width="match_parent"
-                            android:layout_height="34dp"
-                            android:scaleType="fitXY"
-                            android:src="@drawable/widget_deck_key"
-                            android:importantForAccessibility="no" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="34dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingHorizontal="10dp">
-
-                            <Chronometer
-                                android:id="@+id/deck_elapsed"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="monospace"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/deck_total"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:fontFamily="monospace"
-                                android:maxLines="1"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </FrameLayout>
-
-                    <ProgressBar
-                        android:id="@+id/deck_progress"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="8dp"
-                        android:layout_marginTop="8dp"
-                        android:max="1000"
-                        android:progressDrawable="@drawable/widget_deck_progress"
-                        android:importantForAccessibility="no" />
+                        android:textSize="12sp" />
                 </LinearLayout>
-            </LinearLayout>
+            </FrameLayout>
+
+            <ProgressBar
+                android:id="@+id/deck_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="6dp"
+                android:max="1000"
+                android:progressDrawable="@drawable/widget_deck_progress"
+                android:importantForAccessibility="no" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -244,222 +234,235 @@
                 android:orientation="horizontal"
                 android:baselineAligned="false">
 
-            <FrameLayout
-                android:id="@+id/deck_favorite"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/cd_widget_favorite"
-                android:focusable="true">
+                    <FrameLayout
+                        android:id="@+id/deck_prev"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:contentDescription="@string/previous"
+                        android:focusable="true">
 
-                <ImageView
-                    android:id="@+id/deck_favorite_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_prev_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_favorite_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_prev_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_favorite_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_favorite_border"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
-            <FrameLayout
-                android:id="@+id/deck_prev"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/previous"
-                android:focusable="true">
+                        <ImageView
+                            android:id="@+id/deck_prev_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_skip_prev"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
-                <ImageView
-                    android:id="@+id/deck_prev_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                    <FrameLayout
+                        android:id="@+id/deck_play"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1.2"
+                        android:contentDescription="@string/play_pause"
+                        android:focusable="true">
 
-                <ImageView
-                    android:id="@+id/deck_prev_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_play_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_prev_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_skip_prev"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
-            <FrameLayout
-                android:id="@+id/deck_play"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1.2"
-                android:contentDescription="@string/play_pause"
-                android:focusable="true">
+                        <ImageView
+                            android:id="@+id/deck_play_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_play_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_play_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_play"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
-                <ImageView
-                    android:id="@+id/deck_play_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                    <FrameLayout
+                        android:id="@+id/deck_next"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:contentDescription="@string/next"
+                        android:focusable="true">
 
-                <ImageView
-                    android:id="@+id/deck_play_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_play"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
-            <FrameLayout
-                android:id="@+id/deck_next"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/next"
-                android:focusable="true">
+                        <ImageView
+                            android:id="@+id/deck_next_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_next_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_next_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_next_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_next_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_skip_next"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+            </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/deck_next_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_skip_next"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
-            <FrameLayout
-                android:id="@+id/deck_vibe"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/cd_vibe_mode"
-                android:focusable="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
 
-                <ImageView
-                    android:id="@+id/deck_vibe_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                    <FrameLayout
+                        android:id="@+id/deck_favorite"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:contentDescription="@string/cd_widget_favorite"
+                        android:focusable="true">
 
-                <ImageView
-                    android:id="@+id/deck_vibe_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_favorite_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_vibe_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_vibe"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
-            <FrameLayout
-                android:id="@+id/deck_standby"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/deck_standby"
-                android:focusable="true">
+                        <ImageView
+                            android:id="@+id/deck_favorite_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
 
-                <ImageView
-                    android:id="@+id/deck_standby_side"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="2dp"
-                    android:paddingTop="4dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:cropToPadding="true"
-                    android:importantForAccessibility="no" />
+                        <ImageView
+                            android:id="@+id/deck_favorite_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_favorite_border"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
 
-                <ImageView
-                    android:id="@+id/deck_standby_cap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_deck_key"
-                    android:importantForAccessibility="no" />
+                    <FrameLayout
+                        android:id="@+id/deck_vibe"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:contentDescription="@string/cd_vibe_mode"
+                        android:focusable="true">
 
-                <ImageView
-                    android:id="@+id/deck_standby_icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_standby"
-                    android:importantForAccessibility="no" />
-            </FrameLayout>
+                        <ImageView
+                            android:id="@+id/deck_vibe_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
+
+                        <ImageView
+                            android:id="@+id/deck_vibe_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
+
+                        <ImageView
+                            android:id="@+id/deck_vibe_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_vibe"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/deck_standby"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:contentDescription="@string/deck_standby"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/deck_standby_side"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="2dp"
+                            android:paddingTop="4dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:cropToPadding="true"
+                            android:importantForAccessibility="no" />
+
+                        <ImageView
+                            android:id="@+id/deck_standby_cap"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginHorizontal="2dp"
+                            android:scaleType="fitXY"
+                            android:src="@drawable/widget_deck_key"
+                            android:importantForAccessibility="no" />
+
+                        <ImageView
+                            android:id="@+id/deck_standby_icon"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_standby"
+                            android:importantForAccessibility="no" />
+                    </FrameLayout>
             </LinearLayout>
         </LinearLayout>
     </RelativeLayout>

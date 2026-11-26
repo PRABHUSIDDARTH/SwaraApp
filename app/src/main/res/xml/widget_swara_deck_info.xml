@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Swara Deck widget. Six 48dp keys need about 320dp of width. -->
+<!-- The Swara Deck widget, 3x3. The minimum sizes are Android's three-cell values (70n - 30):
+     larger ones made One UI offer 4x3. The layout needs a full three rows, so only the width
+     can be resized. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:targetApi="31"
-    android:minWidth="320dp"
-    android:minHeight="188dp"
-    android:minResizeWidth="320dp"
-    android:minResizeHeight="188dp"
+    android:minWidth="180dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="180dp"
     android:maxResizeWidth="500dp"
-    android:maxResizeHeight="400dp"
-    android:targetCellWidth="4"
-    android:targetCellHeight="2"
+    android:maxResizeHeight="500dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="3"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_swara_deck"
     android:previewImage="@mipmap/ic_launcher"
-    android:resizeMode="horizontal|vertical"
+    android:resizeMode="horizontal"
     android:widgetCategory="home_screen"
     android:description="@string/widget_deck_description" />

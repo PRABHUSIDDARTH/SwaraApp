@@ -34,8 +34,8 @@ two.)
   animations" the system does not animate it. **This must be checked on the phone's launcher.**
 - No wave or spectrum. A once-a-second sound wave was tried and removed after testing.
 - Reuses the existing widget broadcast actions and the service's one-second tick.
-- One layout, 4x2 cells by default, resizable. The panel is only as tall as its content; spare
-  height in a taller slot stays see-through.
+- One layout, 3x3 cells (changed after testing): reel on top, then title, time and progress, then
+  two rows of three keys. Only the width can be resized. The panel is only as tall as its content.
 
 ## Standby screen
 
