@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.psthetech.swara.R;
 import com.psthetech.swara.data.repository.ArtworkRepository;
 import com.psthetech.swara.domain.model.Song;
+import com.psthetech.swara.ui.deck.DeckBinder;
 import com.psthetech.swara.ui.queue.QueueFragment;
 import com.psthetech.swara.ui.nowplaying.SleepTimerDialog;
 import com.psthetech.swara.ui.viewmodel.FavoritesViewModel;
@@ -89,6 +90,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     private TextView tvKorokaeLabel;
     @Nullable private android.animation.ValueAnimator korokaeAnimator;
 
+    // ── Deck skin (null with the standard player) ─────────────────────────────────
+    @Nullable private DeckBinder deck;
+
     // ── State ─────────────────────────────────────────────────────────────────────
     private boolean isUserSeeking = false;
     private Song currentSong;
@@ -125,7 +129,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_now_playing, container, false);
+        int layout = com.psthetech.swara.data.preference.PlayerSkinPreferences
+                .deckEnabled(inflater.getContext())
+                ? R.layout.fragment_now_playing_deck : R.layout.fragment_now_playing;
+        return inflater.inflate(layout, container, false);
     }
 
     @Override
@@ -159,6 +166,8 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             }
         });
         view.setClipToOutline(true);
+
+        deck = DeckBinder.from(view);
 
         circularArtworkView = view.findViewById(R.id.circularArtworkView);
         ivBackdrop = view.findViewById(R.id.ivBackdrop);
@@ -196,30 +205,23 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         tvKorokaeLabel = view.findViewById(R.id.tvKorokaeLabel);
 
         if (btnKorokae != null) {
-            com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnKorokae);
+            attachPress(btnKorokae);
             btnKorokae.setOnClickListener(v -> playbackViewModel.toggleKorokaeMode());
         }
 
         if (btnCollapse != null) btnCollapse.setOnClickListener(v -> dismiss());
 
         // Artwork tap = edit artwork; dragging around the ring seeks (retro "scratch").
+        if (deck != null) {
+            deck.reel().setOnClickListener(v -> promptEditArtwork());
+            deck.reel().setSeekListener(this::seekBy);
+        }
         if (circularArtworkView != null) {
-            circularArtworkView.setOnClickListener(v -> {
-                if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
-                    ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
-                }
-            });
+            circularArtworkView.setOnClickListener(v -> promptEditArtwork());
             circularArtworkView.setSeekListener(new com.psthetech.swara.ui.widget.CircularArtworkView.SeekListener() {
                 @Override
                 public void onSeekDelta(float deltaSeconds) {
-                    Long currentPos = playbackViewModel.getCurrentPositionMs().getValue();
-                    Long duration = playbackViewModel.getDurationMs().getValue();
-                    if (currentPos == null || duration == null || duration <= 0) return;
-                    long newPos = Math.max(0, Math.min(currentPos + (long) (deltaSeconds * 1000f), duration));
-                    playbackViewModel.seekTo(newPos);
-                    tvCurrentTime.setText(TimeFormatter.formatMs(newPos));
-                    if (scrubber != null) scrubber.setProgress(newPos);
-                    circularArtworkView.setProgress((float) newPos / (float) duration);
+                    seekBy(deltaSeconds);
                 }
 
                 @Override
@@ -228,29 +230,85 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         }
 
         // Attach micro-interaction animations to all buttons
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnPlayPause);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnPrevious);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnNext);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShuffle);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnRepeat);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnFavorite);
-        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnQueue);
-        if (btnSleepTimer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnSleepTimer);
-        if (btnVibe != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVibe);
-        if (btnEqualizer != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnEqualizer);
-        if (btnVolume != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnVolume);
-        if (btnCollapse != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnCollapse);
-        if (btnShare != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShare);
-        if (btnShareCard != null) com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(btnShareCard);
+        attachPress(btnPlayPause);
+        attachPress(btnPrevious);
+        attachPress(btnNext);
+        attachPress(btnShuffle);
+        attachPress(btnRepeat);
+        attachPress(btnFavorite);
+        attachPress(btnQueue);
+        attachPress(btnSleepTimer);
+        attachPress(btnVibe);
+        attachPress(btnEqualizer);
+        attachPress(btnVolume);
+        attachPress(btnCollapse);
+        attachPress(btnShare);
+        attachPress(btnShareCard);
 
         setupListeners();
         observeViewModel();
     }
 
+    private void promptEditArtwork() {
+        if (currentSong != null && getActivity() instanceof com.psthetech.swara.ui.MainActivity) {
+            ((com.psthetech.swara.ui.MainActivity) getActivity()).promptEditArtwork(currentSong);
+        }
+    }
+
+    /** Seeking by dragging the disc or the Deck reel. */
+    private void seekBy(float deltaSeconds) {
+        Long currentPos = playbackViewModel.getCurrentPositionMs().getValue();
+        Long duration = playbackViewModel.getDurationMs().getValue();
+        if (currentPos == null || duration == null || duration <= 0) return;
+        long newPos = Math.max(0, Math.min(currentPos + (long) (deltaSeconds * 1000f), duration));
+        userSeekTo(newPos);
+        showPosition(newPos);
+        if (scrubber != null) scrubber.setProgress(newPos);
+        if (circularArtworkView != null) {
+            circularArtworkView.setProgress((float) newPos / (float) duration);
+        }
+    }
+
+    private void userSeekTo(long positionMs) {
+        if (deck != null) deck.onUserSeek();
+        playbackViewModel.seekTo(positionMs);
+    }
+
+    private void showPosition(long ms) {
+        if (deck != null) {
+            deck.setPosition(ms);
+        } else {
+            tvCurrentTime.setText(TimeFormatter.formatMs(ms));
+        }
+    }
+
+    private void showDuration(long ms) {
+        if (deck != null) {
+            deck.setDuration(ms);
+        } else {
+            tvTotalTime.setText(TimeFormatter.formatMs(ms));
+        }
+    }
+
+    /** Deck keys move when pressed, so they skip the scale animation. */
+    private static void attachPress(@Nullable View view) {
+        if (view == null || view instanceof com.psthetech.swara.ui.deck.DeckKeyView
+                || view instanceof com.psthetech.swara.ui.deck.DeckKeyLayout) {
+            return;
+        }
+        com.psthetech.swara.ui.glass.LiquidGlassRenderer.attachPressAnimation(view);
+    }
+
     private void setupListeners() {
         btnPlayPause.setOnClickListener(v -> playbackViewModel.togglePlayPause());
-        btnPrevious.setOnClickListener(v -> playbackViewModel.skipToPrevious());
-        btnNext.setOnClickListener(v -> playbackViewModel.skipToNext());
+        btnPrevious.setOnClickListener(v -> {
+            if (deck != null) deck.onUserSeek();
+            playbackViewModel.skipToPrevious();
+        });
+        btnNext.setOnClickListener(v -> {
+            if (deck != null) deck.onUserSeek();
+            playbackViewModel.skipToNext();
+        });
         btnShuffle.setOnClickListener(v -> playbackViewModel.toggleShuffle());
         btnRepeat.setOnClickListener(v -> playbackViewModel.toggleRepeatMode());
 
@@ -316,7 +374,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
             // Highlight the button when a timer is active
             SleepTimerManager.getInstance().getActive().observe(getViewLifecycleOwner(), isActive -> {
-                if (isActive != null) {
+                if (deck != null) {
+                    deck.setSleepTimer(Boolean.TRUE.equals(isActive));
+                } else if (isActive != null) {
                     com.psthetech.swara.ui.theme.DesignTokens tokens =
                             com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
                     if (tokens != null) {
@@ -352,7 +412,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
             @Override
             public void onScrubMove(com.psthetech.swara.ui.widget.AppleScrubberView view, long positionMs) {
-                tvCurrentTime.setText(TimeFormatter.formatMs(positionMs));
+                showPosition(positionMs);
             }
 
             @Override
@@ -360,7 +420,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 isUserSeeking = false;
                 long max = view.getMax();
                 long target = Math.max(0, max > 0 ? Math.min(positionMs, max) : positionMs);
-                playbackViewModel.seekTo(target);
+                userSeekTo(target);
             }
         });
     }
@@ -398,6 +458,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     circularArtworkView.setContentDescription(
                             getString(R.string.cd_album_art, song.getTitle()));
                 }
+                if (deck != null) deck.setSongTitle(song.getTitle());
                 if (animateTexts) animateTrackChange();
 
                 if (tvAlbum != null) {
@@ -412,11 +473,12 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
                 if (song.getDuration() > 0 && scrubber != null) {
                     scrubber.setMax(song.getDuration());
-                    tvTotalTime.setText(TimeFormatter.formatMs(song.getDuration()));
+                    showDuration(song.getDuration());
                 }
 
                 if (isSongChange) {
                     lastSongId = song.getId();
+                    if (deck != null) deck.onTrackChanged();
                     if (circularArtworkView != null) circularArtworkView.resetRotation();
                     loadArtwork(song);
                     if (circularArtworkView != null) {
@@ -431,7 +493,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         playbackViewModel.getDurationMs().observe(getViewLifecycleOwner(), duration -> {
             if (duration != null && duration > 0 && scrubber != null) {
                 scrubber.setMax(duration);
-                tvTotalTime.setText(TimeFormatter.formatMs(duration));
+                showDuration(duration);
             }
         });
 
@@ -441,6 +503,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             btnPlayPause.setContentDescription(getString(playing ? R.string.pause : R.string.play));
 
             if (circularArtworkView != null) circularArtworkView.setPlaying(playing);
+            if (deck != null) deck.setPlaying(playing);
         });
 
         playbackViewModel.getCurrentPosition().observe(getViewLifecycleOwner(), position -> {
@@ -451,7 +514,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                     pos = Math.min(pos, max);
                 }
                 scrubber.setProgress(pos);
-                tvCurrentTime.setText(TimeFormatter.formatMs(pos));
+                showPosition(pos);
                 if (circularArtworkView != null && max > 0) {
                     circularArtworkView.setProgress((float) pos / (float) max);
                 }
@@ -460,7 +523,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         playbackViewModel.getShuffleMode().observe(getViewLifecycleOwner(), enabled -> {
             boolean active = Boolean.TRUE.equals(enabled);
-            btnShuffle.setAlpha(active ? 1.0f : 0.45f);
+            if (deck != null) {
+                deck.setShuffle(active);
+            } else {
+                btnShuffle.setAlpha(active ? 1.0f : 0.45f);
+            }
             btnShuffle.setContentDescription(getString(active ? R.string.shuffle_on : R.string.shuffle_off));
         });
 
@@ -483,6 +550,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                         btnRepeat.setAlpha(1.0f);
                         btnRepeat.setContentDescription(getString(R.string.repeat_all));
                         break;
+                }
+                if (deck != null) {
+                    btnRepeat.setAlpha(1.0f); // the lamp shows the state, not a faded key
+                    deck.setRepeat(mode != 0);
                 }
             }
         });
@@ -513,7 +584,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
         int accent = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
         boolean on = Boolean.TRUE.equals(playbackViewModel.getVibeActive().getValue());
-        if (on) {
+        if (deck != null) {
+            deck.setVibe(on);
+        } else if (on) {
             android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
             bg.setColor(accent);
             bg.setCornerRadius(14f * getResources().getDisplayMetrics().density);
@@ -532,6 +605,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private void updateKorokaeUi(@Nullable com.psthetech.swara.domain.model.KorokaeState state) {
         if (btnKorokae == null || ivKorokaeIcon == null || tvKorokaeLabel == null || getContext() == null) return;
+        if (deck != null) {
+            deck.setKorokae(state != null ? state.getStatus() : null);
+            if (state != null
+                    && state.getStatus() == com.psthetech.swara.domain.model.KorokaeState.Status.FAILED) {
+                showKorokaeFailure(state);
+            }
+            return;
+        }
         com.psthetech.swara.ui.theme.DesignTokens tokens =
                 com.psthetech.swara.ui.theme.MorphismThemeManager.getInstance().getCurrentTokens();
 
@@ -585,11 +666,14 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             tvKorokaeLabel.setTextColor(inactiveColor);
             tvKorokaeLabel.setText(R.string.karaoke_unavailable);
             btnKorokae.setAlpha(0.6f);
+            showKorokaeFailure(state);
+        }
+    }
 
-            String msg = state.getMessage();
-            if (msg != null && !msg.isEmpty() && isResumed()) {
-                com.google.android.material.snackbar.Snackbar.make(requireView(), msg, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
-            }
+    private void showKorokaeFailure(@NonNull com.psthetech.swara.domain.model.KorokaeState state) {
+        String msg = state.getMessage();
+        if (msg != null && !msg.isEmpty() && isResumed()) {
+            com.google.android.material.snackbar.Snackbar.make(requireView(), msg, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
         }
     }
 
@@ -601,6 +685,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
      */
     private void applyNowPlayingColors(@NonNull com.psthetech.swara.ui.theme.DesignTokens tokens) {
         if (getView() == null) return;
+        if (deck != null) {
+            // Deck has its own colours from the tokens; none of the dark-material tints apply.
+            deck.applyTokens(tokens);
+            return;
+        }
         int base = artworkTint != android.graphics.Color.TRANSPARENT ? artworkTint : tokens.getAccentColor();
         // Deep, desaturated tint of the artwork colour; keeps white text >= 7:1.
         float[] hsv = new float[3];
@@ -679,6 +768,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     private void tintFavorite(@Nullable com.psthetech.swara.ui.theme.DesignTokens tokens) {
         if (btnFavorite == null) return;
+        if (deck != null) {
+            deck.setFavorite(isFavoriteState);
+            return;
+        }
         int active = tokens != null ? tokens.getAccentColor() : 0xFFD4AF5A;
         btnFavorite.setColorFilter(isFavoriteState ? active : android.graphics.Color.argb(166, 255, 255, 255));
     }
@@ -692,7 +785,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
     /** Loads artwork through the same priority pipeline used elsewhere (custom > MediaStore > fallback). */
     private void loadArtwork(Song song) {
-        if (getContext() == null || circularArtworkView == null) return;
+        if (getContext() == null || (circularArtworkView == null && deck == null)) return;
 
         if (artworkTarget != null) {
             try {
@@ -718,18 +811,25 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                                         @Nullable Transition<? super Bitmap> transition) {
                 if (circularArtworkView != null) circularArtworkView.setArtworkBitmap(resource);
                 if (ivBackdrop != null) ivBackdrop.setImageBitmap(resource);
-                extractArtworkTint();
+                if (deck != null) {
+                    deck.setArtwork(resource);
+                } else {
+                    extractArtworkTint();
+                }
             }
 
             @Override
             public void onLoadFailed(@Nullable android.graphics.drawable.Drawable errorDrawable) {
                 if (circularArtworkView != null) circularArtworkView.setArtworkBitmap(null);
                 if (ivBackdrop != null) ivBackdrop.setImageDrawable(null);
+                if (deck != null) deck.setArtwork(null);
             }
 
             @Override
             public void onLoadCleared(@Nullable android.graphics.drawable.Drawable placeholder) {
-                // Glide cleared the resource; leave the views as they are.
+                // Glide cleared the resource; leave the views as they are. The Deck reel draws
+                // the bitmap every frame, so it must let go before Glide reuses it.
+                if (deck != null) deck.setArtwork(null);
             }
         };
 
@@ -772,7 +872,24 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
     // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
     @Override
+    public void onStart() {
+        super.onStart();
+        if (deck != null) deck.setHostStarted(true);
+    }
+
+    @Override
+    public void onStop() {
+        // Also runs when the screen turns off: stops the reel, the bars and the audio tap.
+        if (deck != null) deck.setHostStarted(false);
+        super.onStop();
+    }
+
+    @Override
     public void onDestroyView() {
+        if (deck != null) {
+            deck.setHostStarted(false);
+            deck.setArtwork(null);
+        }
         // Cancel Glide load to avoid bitmap delivery to a destroyed view
         if (artworkTarget != null && getContext() != null) {
             try {
@@ -785,6 +902,7 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
             korokaeAnimator.cancel();
             korokaeAnimator = null;
         }
+        deck = null;
         super.onDestroyView();
     }
 }

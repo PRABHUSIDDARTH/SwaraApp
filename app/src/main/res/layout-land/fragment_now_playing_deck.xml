@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Deck skin, landscape: reel on the left, panel on the right. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nowPlayingRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Kept inside the root, as in the other Now Playing layouts: the fragment pads npContent
+         for the cutout while the root draws the body edge to edge. -->
     <LinearLayout
+        tools:ignore="UselessParent"
         android:id="@+id/npContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

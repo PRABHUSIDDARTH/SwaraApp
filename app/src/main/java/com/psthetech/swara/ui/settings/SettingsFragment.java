@@ -142,6 +142,14 @@ public class SettingsFragment extends Fragment {
         switchAutoplay.setOnCheckedChangeListener((b, checked) ->
                 com.psthetech.swara.data.preference.LibraryPreferences.setAutoplayEnabled(requireContext(), checked));
 
+        com.google.android.material.materialswitch.MaterialSwitch switchDeckPlayer =
+                view.findViewById(R.id.switchDeckPlayer);
+        switchDeckPlayer.setChecked(
+                com.psthetech.swara.data.preference.PlayerSkinPreferences.deckEnabled(requireContext()));
+        switchDeckPlayer.setOnCheckedChangeListener((b, checked) ->
+                com.psthetech.swara.data.preference.PlayerSkinPreferences.setDeckEnabled(
+                        requireContext(), checked));
+
         tvHistoryHeader = view.findViewById(R.id.tvHistoryHeader);
         tvHistoryBody = view.findViewById(R.id.tvHistoryBody);
         cardHistoryContainer = view.findViewById(R.id.cardHistoryContainer);
@@ -257,6 +265,12 @@ public class SettingsFragment extends Fragment {
         rbThemeLight.setButtonTintList(radioTint);
 
         MorphismThemeManager.getInstance().applyToCard(cardThemeContainer, tokens);
+        MorphismThemeManager.getInstance().applyToCard(
+                getView().findViewById(R.id.cardPlayerSkin), tokens);
+        ((TextView) getView().findViewById(R.id.switchDeckPlayer))
+                .setTextColor(tokens.getTextPrimaryColor());
+        ((TextView) getView().findViewById(R.id.tvDeckPlayerSummary))
+                .setTextColor(tokens.getTextSecondaryColor());
         if (tvLibraryHeader != null) tvLibraryHeader.setTextColor(tokens.getAccentColor());
         if (cardLibraryContainer != null) MorphismThemeManager.getInstance().applyToCard(cardLibraryContainer, tokens);
         if (switchHideShortClips != null) switchHideShortClips.setTextColor(tokens.getTextPrimaryColor());
