@@ -19,6 +19,7 @@ public final class DeckPalette {
     public final int capSide;
     public final int capEdge;
     public final int metal;
+    public final int labelRim;
     public final int well;
     public final int tape;
     public final int tapeLine;
@@ -45,6 +46,9 @@ public final class DeckPalette {
         capSide = night ? mix(cap, dark, 0.75f) : mix(t.getStrokeColor(), dark, 0.14f);
         capEdge = mix(t.getStrokeColor(), t.getTextPrimaryColor(), night ? 0.12f : 0.04f);
         metal = mix(t.getStrokeColor(), t.getSurfaceColor(), night ? 0.15f : 0.35f);
+        // The ring round the cover. By day it must still separate a white cover from the white
+        // reel (at least 3:1 against white); at night the metal already does.
+        labelRim = night ? metal : mix(t.getStrokeColor(), t.getTextTertiaryColor(), 0.75f);
         well = night ? t.getBackgroundColor() : t.getBackgroundSecondaryColor();
         tape = mix(well, t.getTextPrimaryColor(), night ? 0.02f : 0.10f);
         tapeLine = alpha(t.getTextPrimaryColor(), night ? 28 : 40);

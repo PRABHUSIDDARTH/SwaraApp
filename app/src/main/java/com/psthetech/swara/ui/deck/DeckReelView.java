@@ -132,7 +132,7 @@ public class DeckReelView extends View {
         paint.setStrokeCap(Paint.Cap.BUTT);
 
         // Hub label with the cover art.
-        fill(p.metal);
+        fill(p.labelRim);
         canvas.drawCircle(cx, cy, labelRadius + 5f * density, paint);
         if (artPaint.getShader() != null) {
             canvas.drawCircle(cx, cy, labelRadius, artPaint);
