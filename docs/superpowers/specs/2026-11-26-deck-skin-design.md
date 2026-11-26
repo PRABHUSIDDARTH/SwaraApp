@@ -55,17 +55,22 @@ One writer (audio thread), one reader (UI thread), one preallocated ring of raw 
 
 ### Never show old audio
 
-- Seek, skip and format change flush the audio sink. `onFlush` starts a new epoch; the reader
-  rejects anything written before it. Bars reset to zero.
-- Gapless auto-advance does not flush, and the ring already holds the *next* track's start
-  (written ahead of playback). On a track-change event the UI raises a floor to the audible
-  position and resets the bars: everything older is discarded, queued new audio is kept.
+- A flush (seek, skip, format change) starts a new epoch in `onFlush`; the reader rejects
+  anything written before it. The new format is published there too, not in `onConfigure`,
+  because the old audio is still draining then. Right after a flush less than a playback buffer
+  has been written, so the reader shows the start of the epoch instead of going blank.
+- If audio passes while the tap is off, the writer starts a new epoch when copying resumes.
+  That audio is a playback buffer ahead of the speaker, so the bars wait for it (about one
+  buffer). A pause with no audio in between keeps the ring.
+- An on-screen seek or skip also hides everything already written, before the flush arrives.
+- Gapless auto-advance does not flush, and the ring may already hold the next track's start.
+  On a track change the UI hides only what it has already shown, and resets the bars.
 
 ### Format changes
 
-16-bit PCM with any channel count and sample rate. Mono and stereo, and a rate change between
+16-bit PCM with 1 to 8 channels and any sample rate. Mono and stereo, and a rate change between
 tracks, are covered by unit tests; band edges are recomputed when the rate changes. Other
-encodings leave the tap inactive and the bars flat.
+encodings pass through untouched and leave the bars flat; the processor stays in the chain.
 
 ## Stopping
 
