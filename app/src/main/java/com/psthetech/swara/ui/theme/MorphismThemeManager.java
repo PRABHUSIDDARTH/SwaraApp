@@ -274,6 +274,23 @@ public class MorphismThemeManager {
     }
 
     /**
+     * Tints one bottom-bar item's icon; returns false if {@code item} is not such a view.
+     *
+     * Suppresses RestrictedApi: NavigationBarItemView is internal to Material, but the library
+     * (written against 1.12.0) can only tint all items at once through its public API.
+     * Recheck this on any Material upgrade; the internal class or method may change.
+     */
+    @android.annotation.SuppressLint("RestrictedApi")
+    private static boolean tintBottomNavItem(@androidx.annotation.NonNull View item, int color) {
+        if (!(item instanceof com.google.android.material.navigation.NavigationBarItemView)) {
+            return false;
+        }
+        ((com.google.android.material.navigation.NavigationBarItemView) item)
+                .setIconTintList(ColorStateList.valueOf(color));
+        return true;
+    }
+
+    /**
      * Apply active design tokens to BottomNavigationView.
      * Uses Liquid Glass nav drawable — floating pill with TL→BR highlight gradient.
      */
@@ -327,9 +344,7 @@ public class MorphismThemeManager {
         // Hey Swara (centre) is an action, never a tab: always accent-coloured, on a soft round
         // highlight, regardless of which tab is selected.
         View hey = nav.findViewById(com.psthetech.swara.R.id.heySwaraItem);
-        if (hey instanceof com.google.android.material.navigation.NavigationBarItemView) {
-            ((com.google.android.material.navigation.NavigationBarItemView) hey)
-                    .setIconTintList(ColorStateList.valueOf(tokens.getAccentColor()));
+        if (hey != null && tintBottomNavItem(hey, tokens.getAccentColor())) {
             android.graphics.drawable.GradientDrawable disc = new android.graphics.drawable.GradientDrawable();
             disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
             disc.setColor(Color.argb(tokens.isNightMode() ? 70 : 45,
