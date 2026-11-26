@@ -76,9 +76,7 @@ final class DeckWidgetRenderer {
                 31 * tokens.getAccentColor() + tokens.getBackgroundColor())
                 + "|" + Arrays.toString(ids);
         if (signature.equals(lastSignature)) {
-            RemoteViews tick = new RemoteViews(context.getPackageName(), R.layout.widget_swara_deck);
-            bindPosition(tick, song != null, state);
-            manager.partiallyUpdateAppWidget(ids, tick);
+            manager.partiallyUpdateAppWidget(ids, tick(context, song != null, state));
         } else {
             manager.updateAppWidget(ids, build(context, song, state, art));
             lastSignature = signature;
@@ -90,6 +88,14 @@ final class DeckWidgetRenderer {
         DesignTokens tokens = MorphismThemeManager.getInstance().getCurrentTokens();
         return tokens != null ? tokens
                 : new DesignTokens(context, ColorTheme.SWARA, MorphismStyle.LIQUID_GLASS, true);
+    }
+
+    /** The partial update sent each second: the position and nothing else. */
+    @NonNull
+    static RemoteViews tick(Context context, boolean hasSong, SwaraWidgetUpdater.State state) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_swara_deck);
+        bindPosition(views, hasSong, state);
+        return views;
     }
 
     private static void bindPosition(RemoteViews views, boolean hasSong,

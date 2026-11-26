@@ -318,7 +318,10 @@ public class DeckStandbyActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        clearArtwork();
+        // Only let go of the bitmap. Glide cancels this activity's loads itself, and
+        // Glide.with() throws here because the activity already counts as destroyed.
+        reel.setArtworkBitmap(null);
+        artworkTarget = null;
         super.onDestroy();
     }
 }
