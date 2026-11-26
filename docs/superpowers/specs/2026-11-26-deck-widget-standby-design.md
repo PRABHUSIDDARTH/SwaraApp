@@ -25,19 +25,17 @@ duplicate vertical one was removed earlier, and the test guarding that now allow
 two.)
 
 - Matte body with screws, the reel with a still cover, title and artist, self-ticking elapsed
-  time, a sound wave, a progress bar, and keys: previous, play/pause, next, favourite, Vibe,
-  standby. (Changed after the first test: Vibe replaced Karaoke, and the wave was added.)
+  time, a progress bar, and keys: previous, play/pause, next, favourite, Vibe,
+  standby. (Changed after the first test: Vibe replaced Karaoke.)
 - Colours from `DesignTokens`. Rendering reuses the Deck views drawn into bitmaps.
 - **Spin:** `RemoteViews` cannot run custom views. While playing, two indeterminate
   `ProgressBar`s with rotating drawables (tape windows, marker dot) turn over a still reel and
   cover. Needs Android 12 for theme tinting; older versions show a still reel. With "remove
   animations" the system does not animate it. **This must be checked on the phone's launcher.**
-- **Sound wave:** the Deck's segmented bars from one real reading of the audio tap per
-  one-second update. It is not smooth animation, and never invented data. The widget has its own
-  tap switch, on only while a Deck widget is placed, playing, the screen is on and animations are
-  allowed.
+- No wave or spectrum. A once-a-second sound wave was tried and removed after testing.
 - Reuses the existing widget broadcast actions and the service's one-second tick.
-- One layout, 4x3 cells by default, resizable **(builder's call)**.
+- One layout, 4x2 cells by default, resizable. The panel is only as tall as its content; spare
+  height in a taller slot stays see-through.
 
 ## Standby screen
 

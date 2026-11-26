@@ -12,15 +12,6 @@ final class DeckWidgetModel {
         return hasSong && playing && sdk >= 31;
     }
 
-    /**
-     * Whether the widget's wave should read the audio: only while it can be seen and there is
-     * something to hear, and never with animations removed.
-     */
-    static boolean listens(boolean hasSong, boolean playing, boolean screenOn,
-                           boolean reducedMotion) {
-        return hasSong && playing && screenOn && !reducedMotion;
-    }
-
     static int progress(long positionMs, long durationMs) {
         if (durationMs <= 0) return 0;
         double fraction = Math.max(0d, Math.min(1d, (double) positionMs / (double) durationMs));

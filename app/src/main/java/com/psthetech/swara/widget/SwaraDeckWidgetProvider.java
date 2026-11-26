@@ -18,12 +18,6 @@ public class SwaraDeckWidgetProvider extends AppWidgetProvider {
         redraw(context, manager, new int[]{id});
     }
 
-    @Override
-    public void onDisabled(Context context) {
-        // The last Deck widget is gone: nothing needs the audio for it any more.
-        DeckWidgetRenderer.stopListening();
-    }
-
     private static void redraw(Context context, AppWidgetManager manager, int[] ids) {
         DeckWidgetRenderer.invalidate();
         com.psthetech.swara.domain.model.Song song = SwaraWidgetUpdater.getLastSong();

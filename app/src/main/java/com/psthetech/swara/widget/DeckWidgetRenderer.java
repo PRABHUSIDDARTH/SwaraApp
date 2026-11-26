@@ -9,7 +9,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Build;
-import android.os.PowerManager;
 import android.os.SystemClock;
 import android.text.format.DateUtils;
 import android.view.View;
@@ -19,17 +18,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.psthetech.swara.R;
-import com.psthetech.swara.audio.spectrum.SpectrumAnalyzer;
-import com.psthetech.swara.audio.spectrum.SpectrumTap;
 import com.psthetech.swara.domain.model.ColorTheme;
 import com.psthetech.swara.domain.model.MorphismStyle;
 import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.MainActivity;
 import com.psthetech.swara.ui.deck.DeckPalette;
 import com.psthetech.swara.ui.deck.DeckReelView;
-import com.psthetech.swara.ui.deck.DeckSpectrumView;
 import com.psthetech.swara.ui.deck.DeckStandbyActivity;
-import com.psthetech.swara.ui.glass.LiquidGlassRenderer;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
 
@@ -39,13 +34,6 @@ import java.util.Arrays;
 final class DeckWidgetRenderer {
 
     private static final int REEL_DP = 112;
-    private static final int WAVE_WIDTH_DP = 80;
-    private static final int WAVE_HEIGHT_DP = 24;
-
-    // Reused each second. All widget updates run on the main thread.
-    private static final float[] WAVE_SAMPLES = new float[SpectrumAnalyzer.SIZE];
-    private static final float[] SILENCE = new float[SpectrumAnalyzer.BANDS];
-    @Nullable private static SpectrumAnalyzer analyzer;
 
     private static final int[] SCREWS = {R.id.deck_screw_tl, R.id.deck_screw_tr,
             R.id.deck_screw_bl, R.id.deck_screw_br};
@@ -54,8 +42,6 @@ final class DeckWidgetRenderer {
 
     /** What the last full update showed; while it matches, a tick only moves the position. */
     @Nullable private static String lastSignature;
-    /** True once the widget shows a flat wave, so ticks need not send it again. */
-    private static boolean waveIsFlat;
 
     private DeckWidgetRenderer() { }
 
@@ -79,27 +65,22 @@ final class DeckWidgetRenderer {
                                   @NonNull SwaraWidgetUpdater.State state, @Nullable Bitmap art) {
         if (!hasPlaced(context)) {
             lastSignature = null;
-            stopListening();
             return;
         }
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         int[] ids = placedIds(context);
         DesignTokens tokens = tokens(context);
-        float[] wave = listen(context, song != null, state.isPlaying);
         String signature = DeckWidgetModel.signature(song != null ? song.getId() : -1,
                 state.isPlaying, state.favorite, state.vibe, state.durationMs,
                 System.identityHashCode(art),
                 31 * tokens.getAccentColor() + tokens.getBackgroundColor())
                 + "|" + Arrays.toString(ids);
         if (signature.equals(lastSignature)) {
-            boolean unchanged = wave == SILENCE && waveIsFlat;
-            manager.partiallyUpdateAppWidget(ids,
-                    tick(context, song != null, state, unchanged ? null : wave));
+            manager.partiallyUpdateAppWidget(ids, tick(context, song != null, state));
         } else {
-            manager.updateAppWidget(ids, build(context, song, state, art, wave));
+            manager.updateAppWidget(ids, build(context, song, state, art));
             lastSignature = signature;
         }
-        waveIsFlat = wave == SILENCE;
     }
 
     @NonNull
@@ -114,61 +95,11 @@ final class DeckWidgetRenderer {
         lastSignature = null;
     }
 
-    static void stopListening() {
-        SpectrumTap.shared().setWidgetListening(false);
-    }
-
-    /**
-     * One real reading of the audio for this update, as band levels; flat when the wave should
-     * not listen. A widget can only show this about once a second.
-     */
+    /** The partial update sent each second: the position and nothing else. */
     @NonNull
-    private static float[] listen(Context context, boolean hasSong, boolean playing) {
-        PowerManager power = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        boolean listening = DeckWidgetModel.listens(hasSong, playing,
-                power == null || power.isInteractive(),
-                LiquidGlassRenderer.isReducedMotion(context));
-        SpectrumTap tap = SpectrumTap.shared();
-        tap.setWidgetListening(listening);
-        if (!listening) return SILENCE;
-        int rate = tap.ring().lastSampleRate() > 0 ? tap.ring().lastSampleRate() : 44_100;
-        if (!tap.ring().read(WAVE_SAMPLES, tap.lagFrames(rate))) return SILENCE;
-        if (analyzer == null) analyzer = new SpectrumAnalyzer();
-        float[] levels = new float[SpectrumAnalyzer.BANDS];
-        analyzer.analyze(WAVE_SAMPLES, tap.ring().lastSampleRate(), levels);
-        return levels;
-    }
-
-    /** The app's segmented bars, drawn off screen. */
-    private static Bitmap wave(Context context, DeckPalette p, float[] levels) {
-        float density = context.getResources().getDisplayMetrics().density;
-        int width = Math.round(WAVE_WIDTH_DP * density);
-        int height = Math.round(WAVE_HEIGHT_DP * density);
-        DeckSpectrumView view = new DeckSpectrumView(context);
-        view.setPalette(p);
-        view.setLevels(levels);
-        view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-        view.layout(0, 0, width, height);
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        view.draw(new Canvas(bitmap));
-        return bitmap;
-    }
-
-    /**
-     * The partial update sent each second: the position and the wave, nothing else.
-     *
-     * @param levels the new wave, or null to leave the one on screen
-     */
-    @NonNull
-    static RemoteViews tick(Context context, boolean hasSong, SwaraWidgetUpdater.State state,
-                            @Nullable float[] levels) {
+    static RemoteViews tick(Context context, boolean hasSong, SwaraWidgetUpdater.State state) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_swara_deck);
         bindPosition(views, hasSong, state);
-        if (levels != null) {
-            views.setImageViewBitmap(R.id.deck_wave,
-                    wave(context, new DeckPalette(tokens(context)), levels));
-        }
         return views;
     }
 
@@ -180,17 +111,9 @@ final class DeckWidgetRenderer {
                 hasSong ? DeckWidgetModel.progress(state.positionMs, state.durationMs) : 0, false);
     }
 
-    /** A full widget with a flat wave: placement and resizing, before the next update. */
     @NonNull
     static RemoteViews build(@NonNull Context context, @Nullable Song song,
                              @NonNull SwaraWidgetUpdater.State state, @Nullable Bitmap art) {
-        return build(context, song, state, art, SILENCE);
-    }
-
-    @NonNull
-    static RemoteViews build(@NonNull Context context, @Nullable Song song,
-                             @NonNull SwaraWidgetUpdater.State state, @Nullable Bitmap art,
-                             @NonNull float[] levels) {
         DeckPalette p = new DeckPalette(tokens(context));
         boolean hasSong = song != null;
         boolean spinning = DeckWidgetModel.spins(hasSong, state.isPlaying, Build.VERSION.SDK_INT);
@@ -230,7 +153,6 @@ final class DeckWidgetRenderer {
                     ColorStateList.valueOf(p.capEdge));
         }
         bindPosition(views, hasSong, state);
-        views.setImageViewBitmap(R.id.deck_wave, wave(context, p, levels));
 
         key(views, p, R.id.deck_favorite_side, R.id.deck_favorite_cap, R.id.deck_favorite_icon,
                 false, state.favorite);
@@ -267,7 +189,8 @@ final class DeckWidgetRenderer {
         Intent open = new Intent(context, MainActivity.class)
                 .putExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING, true)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        views.setOnClickPendingIntent(R.id.deck_widget_root, PendingIntent.getActivity(context, 0,
+        // On the panel, not the root: the see-through space around it should not open the app.
+        views.setOnClickPendingIntent(R.id.deck_widget_panel, PendingIntent.getActivity(context, 0,
                 open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         return views;
     }

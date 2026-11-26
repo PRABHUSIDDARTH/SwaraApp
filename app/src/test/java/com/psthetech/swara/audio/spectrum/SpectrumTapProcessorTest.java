@@ -167,27 +167,6 @@ public class SpectrumTapProcessorTest {
     }
 
     @Test
-    public void theWidgetKeepsCopyingWhenTheScreenBarsStop() throws Exception {
-        format(44100, 1, C.ENCODING_PCM_16BIT);
-        tap.setWidgetListening(true);
-        tap.setEnabled(true);
-        tap.setEnabled(false); // Now Playing closed
-        assertTrue(tap.isEnabled());
-        push(constant(64, 9));
-        assertEquals(9, firstSample());
-        tap.setWidgetListening(false);
-        assertFalse(tap.isEnabled());
-    }
-
-    @Test
-    public void theWidgetStoppingLeavesTheScreenBarsRunning() {
-        tap.setEnabled(true);
-        tap.setWidgetListening(true);
-        tap.setWidgetListening(false);
-        assertTrue(tap.isEnabled());
-    }
-
-    @Test
     public void lagComesFromTheAudioTrackBuffer() {
         assertEquals(SpectrumTap.DEFAULT_LAG_MS, tap.lagMs());
         tap.setOutputBuffer(48000, 2, 96_000); // half a second of 16-bit stereo

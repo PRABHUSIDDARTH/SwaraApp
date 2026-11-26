@@ -18,15 +18,6 @@ public class DeckWidgetModelTest {
     }
 
     @Test
-    public void listensToAudioOnlyWhileTheWaveCanBeSeenAndHeard() {
-        assertTrue(DeckWidgetModel.listens(true, true, true, false));
-        assertFalse("no song", DeckWidgetModel.listens(false, true, true, false));
-        assertFalse("paused", DeckWidgetModel.listens(true, false, true, false));
-        assertFalse("screen off", DeckWidgetModel.listens(true, true, false, false));
-        assertFalse("animations removed", DeckWidgetModel.listens(true, true, true, true));
-    }
-
-    @Test
     public void progressIsClampedAndEmptyWithoutADuration() {
         assertEquals(0, DeckWidgetModel.progress(5000, 0));
         assertEquals(0, DeckWidgetModel.progress(5000, -1));
