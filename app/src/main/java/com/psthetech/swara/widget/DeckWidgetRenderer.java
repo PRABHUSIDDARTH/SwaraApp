@@ -54,6 +54,8 @@ final class DeckWidgetRenderer {
 
     /** What the last full update showed; while it matches, a tick only moves the position. */
     @Nullable private static String lastSignature;
+    /** True once the widget shows a flat wave, so ticks need not send it again. */
+    private static boolean waveIsFlat;
 
     private DeckWidgetRenderer() { }
 
@@ -90,11 +92,14 @@ final class DeckWidgetRenderer {
                 31 * tokens.getAccentColor() + tokens.getBackgroundColor())
                 + "|" + Arrays.toString(ids);
         if (signature.equals(lastSignature)) {
-            manager.partiallyUpdateAppWidget(ids, tick(context, song != null, state, wave));
+            boolean unchanged = wave == SILENCE && waveIsFlat;
+            manager.partiallyUpdateAppWidget(ids,
+                    tick(context, song != null, state, unchanged ? null : wave));
         } else {
             manager.updateAppWidget(ids, build(context, song, state, art, wave));
             lastSignature = signature;
         }
+        waveIsFlat = wave == SILENCE;
     }
 
     @NonNull
@@ -150,14 +155,20 @@ final class DeckWidgetRenderer {
         return bitmap;
     }
 
-    /** The partial update sent each second: the position and the wave, nothing else. */
+    /**
+     * The partial update sent each second: the position and the wave, nothing else.
+     *
+     * @param levels the new wave, or null to leave the one on screen
+     */
     @NonNull
     static RemoteViews tick(Context context, boolean hasSong, SwaraWidgetUpdater.State state,
-                            @NonNull float[] levels) {
+                            @Nullable float[] levels) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_swara_deck);
         bindPosition(views, hasSong, state);
-        views.setImageViewBitmap(R.id.deck_wave,
-                wave(context, new DeckPalette(tokens(context)), levels));
+        if (levels != null) {
+            views.setImageViewBitmap(R.id.deck_wave,
+                    wave(context, new DeckPalette(tokens(context)), levels));
+        }
         return views;
     }
 
