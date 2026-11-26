@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Deck standby, portrait. The content moves a little each minute, so its padding is wider than that shift. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MergeRootFrame"
     android:id="@+id/standbyRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Kept inside the still root: only this part moves for burn-in. -->
     <LinearLayout
+        tools:ignore="UselessParent"
         android:id="@+id/standbyContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
