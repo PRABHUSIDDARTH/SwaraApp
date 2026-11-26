@@ -2,6 +2,10 @@
 <resources>
 
     <!-- ===== BASE APPLICATION THEME ===== -->
+    <style name="Theme.Swara.Standby" parent="Theme.Swara">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
     <style name="Theme.Swara" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Color system -->
         <item name="colorPrimary">@color/swara_purple</item>

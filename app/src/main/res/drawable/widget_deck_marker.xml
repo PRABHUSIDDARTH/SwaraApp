@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The reel marker dot; turned by widget_deck_spin_marker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="132dp"
+    android:height="132dp"
+    android:viewportWidth="132"
+    android:viewportHeight="132">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M63.30,18.30 a2.70,2.70 0 1 0 5.40,0 a2.70,2.70 0 1 0 -5.40,0 Z" />
+</vector>

@@ -52,6 +52,7 @@ public class DeckReelView extends View {
     }
 
     @Nullable private SeekListener seekListener;
+    private boolean rotatingParts = true;
     @Nullable private TimeAnimator spin;
     private float spinVelocity; // degrees per ms, positive = clockwise
     private boolean playing;
@@ -85,6 +86,15 @@ public class DeckReelView extends View {
 
     public void setSeekListener(@Nullable SeekListener listener) {
         seekListener = listener;
+    }
+
+    /**
+     * Off for the widget's still base while it spins: the launcher then draws the windows and
+     * marker as separate rotating layers on top.
+     */
+    public void setRotatingParts(boolean shown) {
+        rotatingParts = shown;
+        invalidate();
     }
 
     public void setPlaying(boolean playing) {
@@ -238,9 +248,12 @@ public class DeckReelView extends View {
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
-                AccessibilityNodeInfo.ACTION_CLICK,
-                getResources().getString(R.string.cd_deck_change_artwork)));
+        // Only where a tap does something: the standby screen has no artwork editing.
+        if (hasOnClickListeners()) {
+            info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
+                    AccessibilityNodeInfo.ACTION_CLICK,
+                    getResources().getString(R.string.cd_deck_change_artwork)));
+        }
         info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
                 AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,
                 getResources().getString(R.string.cd_deck_seek_forward)));
@@ -330,7 +343,7 @@ public class DeckReelView extends View {
 
         // Windows: a rim, then the dark tape pack seen through them.
         paint.setStrokeCap(Paint.Cap.ROUND);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; rotatingParts && i < 3; i++) {
             // Window centres at 90, 210 and 330 degrees leave a solid spoke at 12 o'clock.
             float start = i * 120f + 90f - WINDOW_SWEEP_DEG / 2f;
             stroke(p.capEdge, windowWidth + 3f * density);
@@ -375,8 +388,10 @@ public class DeckReelView extends View {
         }
 
         // Marker dot, on the solid spoke at 12 o'clock.
-        fill(p.accent);
-        canvas.drawCircle(cx, cy - windowRadius, radius * 0.045f, paint);
+        if (rotatingParts) {
+            fill(p.accent);
+            canvas.drawCircle(cx, cy - windowRadius, radius * 0.045f, paint);
+        }
 
         canvas.restore();
     }

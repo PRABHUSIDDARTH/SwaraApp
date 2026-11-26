@@ -22,19 +22,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Hardening tests verifying widget broadcast contracts, actions,
- * single canonical provider integrity, theming contrast, memory bounds,
+ * provider registration integrity, theming contrast, memory bounds,
  * and waveform mathematical models.
  */
 public class WidgetHardeningTest {
 
-    // 1-3. Provider registration and manifest single-provider verification
+    // 1-3. Provider registration and manifest verification
     @Test
     public void testCanonicalProviderClassName() {
         assertEquals("com.psthetech.swara.widget.SwaraWidgetProvider", SwaraWidgetProvider.class.getName());
     }
 
     @Test
-    public void testExactlyOneWidgetProviderRegisteredInManifest() throws Exception {
+    public void testOnlyTheTwoIntendedWidgetProvidersAreRegistered() throws Exception {
         // Inspect AndroidManifest.xml directly to ensure no duplicate APPWIDGET_UPDATE receivers exist
         File manifestFile = new File("src/main/AndroidManifest.xml");
         if (!manifestFile.exists()) {
@@ -52,7 +52,10 @@ public class WidgetHardeningTest {
             count++;
             idx += actionTag.length();
         }
-        assertEquals("There must be exactly ONE AppWidgetProvider registered in AndroidManifest.xml", 1, count);
+        // Two different widgets: the size-adaptive card and the Deck. No duplicates of either.
+        assertEquals("Exactly two AppWidgetProviders must be registered", 2, count);
+        assertTrue("SwaraDeckWidgetProvider must be declared in AndroidManifest.xml",
+                manifestContent.contains(".widget.SwaraDeckWidgetProvider"));
 
         // Ensure SwaraWidgetProvider is present and SwaraVerticalWidgetProvider is NOT registered
         assertTrue("SwaraWidgetProvider must be declared in AndroidManifest.xml",
