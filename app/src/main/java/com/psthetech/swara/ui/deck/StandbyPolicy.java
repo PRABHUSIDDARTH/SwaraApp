@@ -23,18 +23,18 @@ public final class StandbyPolicy {
 
     /** Horizontal shift for a given minute, in -max..max. */
     public static int shiftX(long minute, int max) {
-        return wave(minute, 7, max);
+        return wave(minute, 6, max);
     }
 
     /** Vertical shift; a different period from x, so the pattern covers an area. */
     public static int shiftY(long minute, int max) {
-        return wave(minute, 11, max);
+        return wave(minute, 10, max);
     }
 
-    /** A triangle wave from -max to max and back, in {@code steps} steps each way. */
+    /** A triangle wave between -max and max that starts at 0; {@code steps} (even) each way. */
     private static int wave(long minute, int steps, int max) {
         long period = 2L * steps;
-        long at = ((minute % period) + period) % period;
+        long at = (((minute + steps / 2) % period) + period) % period;
         long up = at <= steps ? at : period - at;
         return Math.round(max * (2f * up / steps - 1f));
     }

@@ -36,6 +36,20 @@ public class StandbyPolicyTest {
     }
 
     @Test
+    public void opensCentredAndStillReachesBothSides() {
+        assertEquals(0, StandbyPolicy.shiftX(0, 12));
+        assertEquals(0, StandbyPolicy.shiftY(0, 12));
+        int low = 0;
+        int high = 0;
+        for (long minute = 0; minute < 60; minute++) {
+            low = Math.min(low, StandbyPolicy.shiftX(minute, 12));
+            high = Math.max(high, StandbyPolicy.shiftX(minute, 12));
+        }
+        assertEquals(-12, low);
+        assertEquals(12, high);
+    }
+
+    @Test
     public void burnInShiftStaysSmallAndMovesEveryMinute() {
         int max = 12;
         for (long minute = 0; minute < 500; minute++) {
