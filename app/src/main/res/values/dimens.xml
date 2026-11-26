@@ -75,6 +75,7 @@
     <dimen name="page_pad_h">24dp</dimen>
     <dimen name="page_header_height">56dp</dimen>
     <dimen name="header_icon_size">40dp</dimen>
+    <dimen name="eq_slider_height">200dp</dimen>
     <dimen name="bottom_content_padding">184dp</dimen>
     <dimen name="radius_artwork">10dp</dimen>
     <dimen name="playlist_top_bar_height">64dp</dimen>

@@ -331,9 +331,9 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
 
         if (btnEqualizer != null) {
             btnEqualizer.setOnClickListener(v -> {
-                if (getActivity() != null) {
-                    EqualizerManager.openSystemEqualizer(
-                            getActivity(), playbackViewModel.getAudioSessionId());
+                androidx.fragment.app.FragmentManager fm = getParentFragmentManager();
+                if (fm.findFragmentByTag(EqualizerBottomSheet.TAG) == null) {
+                    EqualizerBottomSheet.newInstance().show(fm, EqualizerBottomSheet.TAG);
                 }
             });
         }
@@ -394,6 +394,10 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
                 boolean animateTexts = isSongChange && lastSongId != -1 && song.getId() != lastSongId;
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
+                if (circularArtworkView != null && isAdded()) {
+                    circularArtworkView.setContentDescription(
+                            getString(R.string.cd_album_art, song.getTitle()));
+                }
                 if (animateTexts) animateTrackChange();
 
                 if (tvAlbum != null) {
