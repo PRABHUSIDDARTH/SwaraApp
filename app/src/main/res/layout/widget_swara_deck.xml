@@ -101,7 +101,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_vertical"
-        android:paddingHorizontal="14dp"
+        android:paddingHorizontal="10dp"
         android:paddingVertical="9dp">
 
         <LinearLayout
@@ -302,7 +302,7 @@
             android:id="@+id/deck_play"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1.3"
+            android:layout_weight="1.2"
             android:contentDescription="@string/play_pause"
             android:focusable="true">
 

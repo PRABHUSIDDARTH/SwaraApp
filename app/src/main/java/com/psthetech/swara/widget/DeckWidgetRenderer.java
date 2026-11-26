@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Build;
 import android.os.SystemClock;
+import android.text.format.DateUtils;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -26,7 +27,6 @@ import com.psthetech.swara.ui.deck.DeckReelView;
 import com.psthetech.swara.ui.deck.DeckStandbyActivity;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
-import com.psthetech.swara.util.TimeFormatter;
 
 import java.util.Arrays;
 
@@ -138,8 +138,9 @@ final class DeckWidgetRenderer {
         tint(views, R.id.deck_window, p.well);
         views.setTextColor(R.id.deck_elapsed, p.accentText);
         views.setTextColor(R.id.deck_total, p.textSecondary);
-        views.setTextViewText(R.id.deck_total,
-                "/ " + TimeFormatter.formatMs(hasSong ? state.durationMs : 0));
+        // Formatted as the Chronometer beside it formats the elapsed time.
+        views.setTextViewText(R.id.deck_total, "/ " + DateUtils.formatElapsedTime(
+                (hasSong ? state.durationMs : 0) / 1000));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             views.setColorStateList(R.id.deck_progress, "setProgressTintList",
                     ColorStateList.valueOf(p.accent));
