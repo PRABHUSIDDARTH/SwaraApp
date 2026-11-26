@@ -168,7 +168,12 @@ public class SwaraPlaybackService extends MediaSessionService {
         korokaeModelProvider.setListener((available, error) ->
                 mainHandler.post(this::publishKorokaeState));
 
-        // Real-time vocal removal runs inside the audio sink's processor chain.
+        // Real-time vocal removal runs inside the audio sink's processor chain. The Deck spectrum
+        // tap comes after it, so Korokae's input is untouched and the bars show what is heard.
+        final com.psthetech.swara.audio.spectrum.SpectrumTap spectrumTap =
+                com.psthetech.swara.audio.spectrum.SpectrumTap.shared();
+        final com.psthetech.swara.audio.spectrum.SpectrumTapProcessor spectrumProcessor =
+                new com.psthetech.swara.audio.spectrum.SpectrumTapProcessor(spectrumTap);
         DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(this) {
             @Override
             protected AudioSink buildAudioSink(@NonNull android.content.Context context,
@@ -177,7 +182,8 @@ public class SwaraPlaybackService extends MediaSessionService {
                 return new DefaultAudioSink.Builder(context)
                         .setEnableFloatOutput(false)
                         .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                        .setAudioProcessors(new androidx.media3.common.audio.AudioProcessor[]{korokaeProcessor})
+                        .setAudioProcessors(new androidx.media3.common.audio.AudioProcessor[]{
+                                korokaeProcessor, spectrumProcessor})
                         .build();
             }
         };
@@ -186,6 +192,18 @@ public class SwaraPlaybackService extends MediaSessionService {
                 .setAudioAttributes(audioAttributes, /* handleAudioFocus */ true)
                 .setHandleAudioBecomingNoisy(true)
                 .build();
+
+        // The spectrum reads one AudioTrack buffer behind the tap, to match what is heard.
+        player.addAnalyticsListener(new androidx.media3.exoplayer.analytics.AnalyticsListener() {
+            @Override
+            public void onAudioTrackInitialized(@NonNull EventTime eventTime,
+                    @NonNull AudioSink.AudioTrackConfig config) {
+                if (config.encoding == C.ENCODING_PCM_16BIT) {
+                    spectrumTap.setOutputBuffer(config.sampleRate,
+                            Integer.bitCount(config.channelConfig), config.bufferSize);
+                }
+            }
+        });
 
         listenTracker = com.psthetech.swara.wrapped.RoomListenSink.newTracker(this);
         vibeController = new VibeController(this, player, mainHandler, () -> {
