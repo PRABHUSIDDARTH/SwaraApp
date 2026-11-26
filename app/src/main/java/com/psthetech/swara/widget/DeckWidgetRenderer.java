@@ -23,6 +23,7 @@ import com.psthetech.swara.domain.model.Song;
 import com.psthetech.swara.ui.MainActivity;
 import com.psthetech.swara.ui.deck.DeckPalette;
 import com.psthetech.swara.ui.deck.DeckReelView;
+import com.psthetech.swara.ui.deck.DeckStandbyActivity;
 import com.psthetech.swara.ui.theme.DesignTokens;
 import com.psthetech.swara.ui.theme.MorphismThemeManager;
 import com.psthetech.swara.util.TimeFormatter;
@@ -164,6 +165,12 @@ final class DeckWidgetRenderer {
         click(views, context, R.id.deck_play, SwaraWidgetUpdater.ACTION_PLAY_PAUSE, 1);
         click(views, context, R.id.deck_next, SwaraWidgetUpdater.ACTION_NEXT, 3);
         click(views, context, R.id.deck_korokae, SwaraWidgetUpdater.ACTION_TOGGLE_KOROKAE, 6);
+
+        // From the home screen the standby screen gets its own task.
+        Intent standby = DeckStandbyActivity.intent(context)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        views.setOnClickPendingIntent(R.id.deck_standby, PendingIntent.getActivity(context, 200,
+                standby, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         Intent open = new Intent(context, MainActivity.class)
                 .putExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING, true)

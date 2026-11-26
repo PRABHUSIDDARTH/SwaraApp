@@ -248,9 +248,12 @@ public class DeckReelView extends View {
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
-                AccessibilityNodeInfo.ACTION_CLICK,
-                getResources().getString(R.string.cd_deck_change_artwork)));
+        // Only where a tap does something: the standby screen has no artwork editing.
+        if (hasOnClickListeners()) {
+            info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
+                    AccessibilityNodeInfo.ACTION_CLICK,
+                    getResources().getString(R.string.cd_deck_change_artwork)));
+        }
         info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
                 AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,
                 getResources().getString(R.string.cd_deck_seek_forward)));

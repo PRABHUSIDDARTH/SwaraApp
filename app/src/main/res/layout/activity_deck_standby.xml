@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deck standby, portrait. The content moves a little each minute, so its padding is wider than that shift. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/standbyRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/standbyContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <com.psthetech.swara.ui.deck.DeckKeyView
+            android:id="@+id/btnStandbyClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end"
+            android:src="@drawable/ic_close_deck"
+            android:contentDescription="@string/close" />
+
+        <com.psthetech.swara.ui.deck.DeckReelView
+            android:id="@+id/deckReel"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:contentDescription="@string/cd_deck_reel"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvArtist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:id="@+id/deckWindow"
+            android:layout_width="match_parent"
+            android:layout_height="76dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:baselineAligned="false">
+
+            <com.psthetech.swara.ui.deck.DeckTimeView
+                android:id="@+id/deckTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="true" />
+
+            <com.psthetech.swara.ui.deck.DeckSpectrumView
+                android:id="@+id/deckSpectrum"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <com.psthetech.swara.ui.deck.DeckFaderView
+            android:id="@+id/scrubber"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:contentDescription="@string/cd_seek_bar" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <com.psthetech.swara.ui.deck.DeckKeyView
+                android:id="@+id/btnPrevious"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_skip_prev"
+                android:contentDescription="@string/previous" />
+            <com.psthetech.swara.ui.deck.DeckKeyView
+                android:id="@+id/btnPlayPause"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_weight="1.35"
+                android:src="@drawable/ic_play"
+                android:contentDescription="@string/play_pause" />
+            <com.psthetech.swara.ui.deck.DeckKeyView
+                android:id="@+id/btnNext"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_skip_next"
+                android:contentDescription="@string/next" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

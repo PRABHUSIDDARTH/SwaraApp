@@ -40,6 +40,18 @@ public final class DeckStyler {
             handle.getBackground().mutate().setTint(p.textTertiary);
         }
 
+        paint(root, p);
+        DeckKeyView play = root.findViewById(R.id.btnPlayPause);
+        if (play != null) {
+            play.setPrimary(true);
+            play.setColorFilter(p.onAccent);
+        }
+        return p;
+    }
+
+    /** The readout window and every Deck view under {@code root}. */
+    static void paint(@NonNull View root, @NonNull DeckPalette p) {
+        float density = root.getResources().getDisplayMetrics().density;
         View window = root.findViewById(R.id.deckWindow);
         if (window != null) {
             GradientDrawable glass = new GradientDrawable();
@@ -48,14 +60,7 @@ public final class DeckStyler {
             glass.setStroke(Math.round(1.5f * density), p.bodyEdge);
             window.setBackground(glass);
         }
-
         styleTree(root, p);
-        DeckKeyView play = root.findViewById(R.id.btnPlayPause);
-        if (play != null) {
-            play.setPrimary(true);
-            play.setColorFilter(p.onAccent);
-        }
-        return p;
     }
 
     private static void styleTree(View view, DeckPalette p) {

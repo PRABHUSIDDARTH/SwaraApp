@@ -32,15 +32,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <com.psthetech.swara.ui.deck.DeckReelView
-                android:id="@+id/deckReel"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:layout_marginTop="@dimen/np_gap_tight"
-                android:minHeight="200dp"
-                android:contentDescription="@string/cd_deck_reel"
-                android:focusable="true" />
+                android:layout_marginTop="@dimen/np_gap_tight">
+
+                <com.psthetech.swara.ui.deck.DeckReelView
+                    android:id="@+id/deckReel"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:minHeight="200dp"
+                    android:contentDescription="@string/cd_deck_reel"
+                    android:focusable="true" />
+
+                <com.psthetech.swara.ui.deck.DeckKeyView
+                    android:id="@+id/btnStandby"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="bottom|end"
+                    android:src="@drawable/ic_standby"
+                    android:contentDescription="@string/deck_standby" />
+            </FrameLayout>
 
             <include
                 layout="@layout/view_np_info"

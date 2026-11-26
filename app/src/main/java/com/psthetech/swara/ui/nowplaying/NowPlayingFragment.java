@@ -168,6 +168,11 @@ public class NowPlayingFragment extends BottomSheetDialogFragment {
         view.setClipToOutline(true);
 
         deck = DeckBinder.from(view);
+        View standby = view.findViewById(R.id.btnStandby);
+        if (standby != null) {
+            standby.setOnClickListener(v -> startActivity(
+                    com.psthetech.swara.ui.deck.DeckStandbyActivity.intent(requireContext())));
+        }
 
         circularArtworkView = view.findViewById(R.id.circularArtworkView);
         ivBackdrop = view.findViewById(R.id.ivBackdrop);

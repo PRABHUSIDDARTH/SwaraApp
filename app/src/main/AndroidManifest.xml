@@ -74,6 +74,18 @@
             android:theme="@style/Theme.Swara" />
 
         <!--
+            Deck standby: a dim player that may show over the lock screen. Not exported, its own
+            task, and kept out of recents. Only this activity shows when locked.
+        -->
+        <activity
+            android:name=".ui.deck.DeckStandbyActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Swara.Standby" />
+
+        <!--
             SwaraPlaybackService — Media3 MediaSessionService
             - foregroundServiceType = mediaPlayback is REQUIRED on Android 14+ for media playback
             - exported = true is required for MediaSession to be reachable from the notification
