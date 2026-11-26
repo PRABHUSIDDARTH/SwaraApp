@@ -9,6 +9,9 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.psthetech.swara.R;
+import com.psthetech.swara.util.TimeFormatter;
+
 /** Dot-matrix time: large elapsed time over a smaller total. */
 public class DeckTimeView extends View {
 
@@ -43,6 +46,10 @@ public class DeckTimeView extends View {
         elapsedLength = DeckTimeText.write(elapsedMs, elapsed, 0);
         total[0] = '/';
         totalLength = 1 + DeckTimeText.write(totalMs, total, 1);
+        // Spoken form of the dots; built here, never in onDraw.
+        setContentDescription(getResources().getString(R.string.cd_deck_time,
+                TimeFormatter.formatAccessible(elapsedMs),
+                TimeFormatter.formatAccessible(totalMs)));
         invalidate();
     }
 
