@@ -15,7 +15,7 @@
 
 ## Overview
 
-Swara plays the music already on your device. It needs no account and no network connection, and it never sends your library anywhere. The repository contains the Android app and its vocal-removal model:
+Swara plays the music already on your device. It needs no account and is designed to work without a network connection. The repository contains the Android app and its vocal-removal model:
 
 | Component | Path | Stack |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Workflow | Runner | Steps |
 | --- | --- | --- |
-| [`gradle.yml`](.github/workflows/gradle.yml) | Ubuntu, JDK 17 | Unit tests, debug APK, Android lint |
+| [`gradle.yml`](.github/workflows/gradle.yml) | Ubuntu, JDK 17 | Merged manifest privacy check, unit tests, debug APK, Android lint |
 
 The tests cover queue and shuffle logic, search, playlists and artwork resolution, theme contrast, widgets, seek math, and Korokae engine parity.
 
@@ -129,7 +129,7 @@ SwaraApp/
 | `POST_NOTIFICATIONS` | Show the media notification, and one notice when a new Wrapped recap is ready, on Android 13 and later |
 | `WAKE_LOCK` | Keep playback going while the screen is off |
 
-Swara does not request network access for playback.
+Swara does not request the internet permission, and the build fails if a library adds it. See [Offline privacy](docs/offline-privacy.md), including the Android 10 note: restart your phone after updating. Changes are listed in the [release notes](docs/release-notes.md).
 
 ## Contributing
 

@@ -20,8 +20,14 @@
     <!-- Wake lock — Media3 handles this internally when playing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- WorkManager merges this in for network constraints; Swara never uses the network -->
+    <!--
+        Swara is offline. Libraries merge these in (ACCESS_NETWORK_STATE: WorkManager, Media3,
+        ONNX Runtime; INTERNET: ONNX Runtime, for telemetry). The build fails if any
+        unapproved permission reaches the merged manifest: see verifyMergedManifests.
+    -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.INTERNET"
         tools:node="remove" />
 
     <!-- Package visibility (Android 11+): find share targets for song files and share cards -->
@@ -53,6 +59,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Swara">
+
+        <!--
+            ONNX Runtime uses this provider to set up its Microsoft telemetry at app launch.
+            Removed; SwaraApplication also opts out through the environment.
+        -->
+        <provider
+            android:name="ai.onnxruntime.TelemetryInitializer"
+            android:authorities="${applicationId}.onnxruntime_telemetry_initializer"
+            tools:node="remove" />
 
         <!-- V2 Single Activity — Navigation Component handles all screen transitions -->
         <activity

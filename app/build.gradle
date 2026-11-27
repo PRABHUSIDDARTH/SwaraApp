@@ -1,3 +1,6 @@
+import com.android.build.api.artifact.SingleArtifact
+import javax.xml.parsers.DocumentBuilderFactory
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -76,6 +79,93 @@ android {
         noCompress 'onnx'
     }
 }
+
+// ===== Manifest privacy check =====
+// Libraries can merge permissions and startup components into the app without any change to our
+// own manifest (ONNX Runtime added INTERNET and a telemetry provider this way). This checks the
+// final merged manifest of every variant. A new permission fails the build until it is reviewed
+// and added here.
+def allowedPermissions = [
+        'android.permission.READ_MEDIA_AUDIO',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.WAKE_LOCK',
+        'android.permission.RECEIVE_BOOT_COMPLETED', // WorkManager
+]
+// Class-name prefixes that must never be registered as app components.
+def bannedComponentPrefixes = ['ai.onnxruntime.']
+
+abstract class VerifyManifestPrivacyTask extends DefaultTask {
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    abstract RegularFileProperty getMergedManifest()
+
+    @Input
+    abstract SetProperty<String> getAllowedPermissions()
+
+    @Input
+    abstract SetProperty<String> getBannedComponentPrefixes()
+
+    @OutputFile
+    abstract RegularFileProperty getReport()
+
+    @TaskAction
+    void verify() {
+        def android = 'http://schemas.android.com/apk/res/android'
+        def factory = DocumentBuilderFactory.newInstance()
+        factory.namespaceAware = true
+        def root = factory.newDocumentBuilder().parse(mergedManifest.get().asFile).documentElement
+        // androidx.core declares and uses one permission named after the application ID
+        def ownPermission = root.getAttribute('package') + '.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+        def problems = []
+        def all = root.getElementsByTagName('*')
+        for (int i = 0; i < all.length; i++) {
+            def element = all.item(i)
+            def name = element.getAttributeNS(android, 'name')
+            if (element.tagName.startsWith('uses-permission')) {
+                if (name != ownPermission && !allowedPermissions.get().contains(name)) {
+                    problems << "unapproved permission: ${name}".toString()
+                }
+            } else if (element.tagName in ['provider', 'service', 'receiver', 'activity', 'meta-data']) {
+                if (bannedComponentPrefixes.get().any { name.startsWith(it) }) {
+                    problems << "banned component: <${element.tagName}> ${name}".toString()
+                }
+            }
+        }
+        if (!problems.isEmpty()) {
+            throw new GradleException("Merged manifest privacy check failed for " +
+                    "${mergedManifest.get().asFile}:\n  - " + problems.join('\n  - '))
+        }
+        report.get().asFile.text = 'ok\n'
+    }
+}
+
+def verifyAllManifests = tasks.register('verifyMergedManifests') {
+    group = 'verification'
+    description = 'Checks the merged manifest of every variant for unapproved permissions and components.'
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def suffix = variant.name.capitalize()
+        def verify = tasks.register("verify${suffix}MergedManifest", VerifyManifestPrivacyTask) {
+            mergedManifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST.INSTANCE))
+            getAllowedPermissions().set(allowedPermissions)
+            getBannedComponentPrefixes().set(bannedComponentPrefixes)
+            report.set(layout.buildDirectory.file("reports/manifest-privacy/${variant.name}.txt"))
+        }
+        verifyAllManifests.configure { dependsOn(verify) }
+        // No APK or app bundle can be produced without passing
+        def packaging = ["assemble${suffix}", "package${suffix}", "bundle${suffix}",
+                         "package${suffix}Bundle"].collect { it.toString() }
+        tasks.matching { packaging.contains(it.name) }.configureEach { dependsOn(verify) }
+    }
+}
+
+tasks.matching { it.name == 'check' }.configureEach { dependsOn(verifyAllManifests) }
 
 dependencies {
     // Core UI
