@@ -1,6 +1,10 @@
 package com.psthetech.swara;
 
 import android.app.Application;
+import android.content.Context;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.util.Log;
 
 import com.psthetech.swara.data.db.AppDatabase;
 
@@ -24,6 +28,25 @@ public class SwaraApplication extends Application {
     private ExecutorService ioExecutor;
 
     private static SwaraApplication instance;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        disableOnnxRuntimeTelemetry();
+    }
+
+    /**
+     * ONNX Runtime reads this when it first starts, and then creates no telemetry uploader,
+     * events or device ID. It backs up the manifest removal of its telemetry provider, so it
+     * must be set before any ONNX Runtime code runs.
+     */
+    private static void disableOnnxRuntimeTelemetry() {
+        try {
+            Os.setenv("ORT_DISABLE_TELEMETRY", "1", true);
+        } catch (ErrnoException e) {
+            Log.w("SwaraApplication", "Could not set ORT_DISABLE_TELEMETRY", e);
+        }
+    }
 
     @Override
     public void onCreate() {

@@ -23,6 +23,9 @@ jobs:
       - name: Set up Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Check merged manifests (permissions and telemetry)
+        run: ./gradlew verifyMergedManifests --continue
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
