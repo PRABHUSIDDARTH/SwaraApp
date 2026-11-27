@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swara: an offline music player for Android</title>
+<meta name="description" content="Swara plays the music already on your Android phone, with on-device karaoke and no internet permission.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Swara: an offline music player for Android">
+<meta property="og:description" content="On-device karaoke, voice commands and no internet permission.">
+<meta name="theme-color" content="#161619">
+<link rel="icon" href="data:,">
+<link rel="preload" href="assets/forest.webp" as="image"><style>@font-face{font-family:'RH';font-weight:700;font-display:swap;src:url(assets/red-hat-display-latin-700.woff2) format('woff2')}@font-face{font-family:'RH';font-weight:400;font-display:swap;src:url(assets/red-hat-text-latin-400.woff2) format('woff2')}@font-face{font-family:'RHM';font-weight:400;font-display:swap;src:url(assets/red-hat-mono-latin-400.woff2) format('woff2')}
+:root{--bg:#161619;--ink:#F4F4F6;--mute:#9A9AA2;--rule:#303036;--lit:#8A6610;--gap:clamp(80px,12vw,180px)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:400 17px/1.65 RH,sans-serif;overflow-x:clip;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:clamp(12px,2vw,24px);padding-inline:5vw}
+.mute,figcaption{color:var(--mute)}
+section+section{margin-top:var(--gap)}
+h1,h2,h3,.metric strong,blockquote,.price,.btn{font-family:RH;font-weight:700}
+
+.hero{position:relative;height:100vh;height:100svh;min-height:660px;max-height:1200px}
+.hero-title{position:absolute;left:4vw;width:92vw;top:42%;transform:translateY(-50%);z-index:1;line-height:0}
+.hero-title svg,.wordmark svg{width:100%;height:auto;overflow:visible;fill:var(--ink);font:700 100px RH,sans-serif}
+.stage{position:absolute;left:50%;top:44.5%;transform:translate(-50%,-50%);z-index:2;height:min(72svh,860px,170vw);aspect-ratio:1050/2240}
+.hero-cutout{position:relative;z-index:2;animation:float 8s ease-in-out infinite}
+.device{position:relative;border-radius:5.7%/2.7%;box-shadow:-1px -1px 0 rgba(255,255,255,.55),3px 4px 0 #8d8d93,34px 50px 60px -24px rgba(0,0,0,.85)}
+.device img{width:100%;border-radius:inherit}
+.device::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ background:linear-gradient(128deg,rgba(255,255,255,.16),rgba(255,255,255,0) 34%,rgba(0,0,0,0) 62%,rgba(0,0,0,.22))}
+.sweep{position:absolute;inset:0;overflow:hidden;border-radius:inherit;z-index:1;pointer-events:none}
+.sweep::before{content:"";position:absolute;top:-10%;bottom:-10%;left:0;width:45%;
+ background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-200%) skewX(-14deg);animation:sweep 2.2s cubic-bezier(.4,0,.2,1) .8s 1 forwards}
+.contact{position:absolute;left:2%;right:-16%;bottom:-30px;height:24px;border-radius:50%;background:radial-gradient(50% 50% at 50% 50%,#000,rgba(0,0,0,.7) 40%,rgba(0,0,0,0))}
+@keyframes float{50%{transform:translateY(-10px)}}
+@keyframes sweep{to{transform:translateX(340%) skewX(-14deg)}}
+@media (prefers-reduced-motion:reduce){.hero-cutout,.sweep::before{animation:none}}
+.pin{position:absolute;font:400 13px/1.7 RHM,monospace;z-index:3}
+.pin span{display:block;color:var(--mute)}
+.p1{top:32px;left:5vw}.p2{top:32px;right:5vw;text-align:right}.p3{bottom:32px;left:5vw}.p4{bottom:32px;right:5vw;text-align:right}
+.dock{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:22px;padding:8px 8px 8px 18px;border-radius:16px;white-space:nowrap;
+ background:rgba(40,40,46,.62);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.1)}
+.swatches{display:flex;gap:11px}
+.sw{width:22px;height:22px;border-radius:50%;border:0;cursor:pointer;background:var(--c);box-shadow:inset 0 1px 1px rgba(255,255,255,.35)}
+.sw[aria-pressed=true]{outline:1px solid var(--ink);outline-offset:3px}
+.btn{display:inline-block;background:var(--ink);color:var(--bg);text-decoration:none;font-size:15px;padding:11px 18px;border-radius:9px}
+.price{font-size:15px}
+
+.thesis{min-height:56vh;align-content:center}
+.thesis h2{grid-column:3/11;font-size:clamp(34px,4vw,56px);line-height:1.14;letter-spacing:-.018em}
+
+.dissect{align-items:start}
+.pinned{grid-column:1/8;position:sticky;top:7svh;height:86svh;display:flex;justify-content:center;align-items:center}
+.pinned .device{height:100%;aspect-ratio:1050/2240;max-width:100%}
+.chapters{grid-column:8/13}
+.chapter{min-height:80svh;display:flex;flex-direction:column;justify-content:center}
+h3{font-size:clamp(24px,2.4vw,34px);line-height:1.2;letter-spacing:-.01em;margin-bottom:14px}
+.chapter p{max-width:36ch}
+.lit{position:absolute;border:1px solid var(--lit);border-radius:8px;opacity:0;z-index:3;pointer-events:none}
+.lit.on{opacity:1}
+.l0{left:7.5%;right:7.5%;top:10.6%;height:40.5%}
+.l1{left:3%;right:3%;top:63%;height:17.4%}
+.l2{left:4%;right:4%;top:81.4%;height:16.4%}
+
+.macro img{width:100%}
+.macro figcaption{text-align:right;padding:12px 5vw 0;font:400 12px RHM,monospace}
+
+.split{align-items:center}
+.split figure img{width:100%;border-radius:18px}
+.split+.split{margin-top:var(--gap)}
+.metric strong{display:block;font-size:clamp(60px,8vw,128px);line-height:1;letter-spacing:-.03em;margin-bottom:18px}
+.metric p{max-width:32ch}
+.a figure{grid-column:1/8}.a .metric{grid-column:9/13}
+.c figure{grid-column:6/12;grid-row:1}.c .metric{grid-column:1/5;grid-row:1}
+figcaption{font-size:14px;margin-top:12px}
+
+.specs>div{grid-column:3/11}
+.specs h2{font-size:32px;margin-bottom:30px}
+table{width:100%;border-collapse:collapse;text-align:left}
+tr{border-top:1px solid var(--rule)}tr:last-child{border-bottom:1px solid var(--rule)}
+th{font:400 13px/2 RHM,monospace;width:32%;vertical-align:top;padding:17px 16px 17px 0}
+td{padding:17px 0;vertical-align:top}
+sup{line-height:0;font-size:.68em;margin-left:2px}sup a{text-decoration:none}
+.notes{margin-top:26px;padding-left:1.4em;font-size:13px;color:var(--mute)}
+.notes li{margin-bottom:7px}
+
+blockquote{grid-column:2/12;font-size:clamp(32px,3.6vw,52px);line-height:1.2;letter-spacing:-.018em;text-indent:-.45em}
+.who{grid-column:2/12;margin-top:30px;color:var(--mute);font-size:15px}
+.buy{align-items:center;row-gap:20px}
+.buy .price{grid-column:1/5;font-size:24px}
+.buy .swatches{grid-column:5/9;justify-content:center}
+.buy .act{grid-column:9/13;text-align:right}
+.back{padding:40px 5vw 0;font-size:15px;color:var(--mute)}
+.wordmark{margin-top:40px;line-height:0;padding:0 .5vw 1.5vw}
+
+@media (max-width:760px){
+ .hero{min-height:640px}
+ .hero-title{top:22%}
+ .stage{height:min(56svh,130vw);top:52%}
+ .pin{font-size:11px;max-width:44vw}.p1,.p2{top:16px}.p3,.p4{bottom:14px}
+ .dock{bottom:70px;gap:12px;padding-left:12px}.sw{width:18px;height:18px}.swatches{gap:9px}.dock .price{font-size:13px}.dock .btn{padding:9px 11px;font-size:13px}
+ .thesis h2,blockquote,.who,.specs>div{grid-column:1/13}blockquote{text-indent:0}
+ .pinned{grid-column:1/13;top:0;height:56svh;padding-block:10px;background:var(--bg);box-shadow:0 0 0 24px var(--bg);z-index:5}
+ .chapters{grid-column:1/13}.chapter{min-height:44svh;justify-content:flex-start;padding-top:28px}
+ .split>figure,.split>.metric{grid-column:1/13!important;grid-row:auto!important}.metric{margin-top:28px}
+ th{width:36%;font-size:12px}
+ .buy>*{grid-column:1/13!important;text-align:left!important;justify-content:flex-start!important}
+ .macro img{height:150px;object-fit:cover;object-position:right}
+}
+</style></head><body>
+<main>
+<section class="hero">
+ <h1 class="hero-title" aria-label="Swara"><svg viewBox="0 -76 270 98" aria-hidden="true"><text x="0" y="0" textLength="270" lengthAdjust="spacingAndGlyphs">Swara</text></svg></h1>
+ <div class="stage"><div class="hero-cutout"><div class="device"><img class="product" src="assets/forest.webp" width="1050" height="2240" alt="Swara Deck player with a tape reel, dot-matrix time, spectrum bars and large keys"><div class="sweep"></div></div></div><div class="contact"></div></div>
+ <p class="pin p1">About 23 ms<span>karaoke latency added</span></p>
+ <p class="pin p2">No internet<span>permission requested</span></p>
+ <p class="pin p3">8 themes<span>in light and dark</span></p>
+ <p class="pin p4">Android 7.0<span>and later</span></p>
+ <div class="dock"><div class="swatches" role="group" aria-label="Colour theme"><button class="sw" data-t="forest" style="--c:#1E7F3A" aria-label="Forest theme" aria-pressed="true"></button><button class="sw" data-t="swara" style="--c:#8A6610" aria-label="Swara theme" aria-pressed="false"></button><button class="sw" data-t="midnight" style="--c:#0066D6" aria-label="Midnight theme" aria-pressed="false"></button><button class="sw" data-t="rose" style="--c:#D30F45" aria-label="Rose theme" aria-pressed="false"></button><button class="sw" data-t="ocean" style="--c:#0A7C8C" aria-label="Ocean theme" aria-pressed="false"></button></div><span class="price">Free</span><a class="btn" href="https://github.com/PRABHUSIDDARTH/SwaraApp" target="_blank" rel="noopener">Get the code</a></div>
+</section>
+
+<section class="grid thesis"><h2>Swara plays the music already on your phone, and it does not ask for internet access.</h2></section>
+
+<section class="grid dissect">
+ <div class="pinned"><div class="device"><img class="product" src="assets/forest.webp" width="1050" height="2240" alt="Swara Deck player with a tape reel, dot-matrix time, spectrum bars and large keys"><i class="lit l0 on"></i><i class="lit l1"></i><i class="lit l2"></i></div></div>
+ <div class="chapters">
+  <article class="chapter"><h3>A reel you can turn</h3><p class="mute">Drag around the reel to move through a song. The cover sits at its centre, and a tap on it lets you change the artwork. Deck is an optional skin that you switch on in Settings.</p></article>
+  <article class="chapter"><h3>A display that follows the sound</h3><p class="mute">The time is set in dot matrix, and the bars are computed from the audio as it plays, after karaoke processing. The fader below seeks.</p></article>
+  <article class="chapter"><h3>Keys with travel</h3><p class="mute">Large transport keys press down when you touch them. The row below holds karaoke on the microphone key, then Vibe Mode, sleep timer, volume and equalizer.</p></article>
+ </div>
+</section>
+
+<section class="macro"><figure><img loading="lazy" src="assets/macro.webp" width="2880" height="618" alt="Close view of the dot-matrix time and spectrum bars"><figcaption>The Deck display, enlarged from a screen recording</figcaption></figure></section>
+
+<section>
+ <div class="grid split a">
+  <figure><img loading="lazy" src="assets/keys.webp" width="1400" height="522" alt="Transport keys with a row of five action keys below"><figcaption>The microphone key turns karaoke on.</figcaption></figure>
+  <div class="metric"><strong>23 ms</strong><p class="mute">added when a small neural network strips the vocals while the song plays. It renders no files.<sup><a href="#n2">2</a></sup></p></div>
+ </div>
+ <div class="grid split c">
+  <figure><img loading="lazy" src="assets/reel.webp" width="1100" height="1100" alt="The tape reel with a marker dot"><figcaption>The marker dot turns with the reel.</figcaption></figure>
+  <div class="metric"><strong>4.2 MB</strong><p class="mute">is the whole karaoke model. It ships inside the app, so there is nothing to download later.</p></div>
+ </div>
+ <div class="grid split a">
+  <figure><img loading="lazy" src="assets/transport.webp" width="1400" height="459" alt="Seek fader above the transport keys"><figcaption>The seek fader in the Forest theme.</figcaption></figure>
+  <div class="metric"><strong>8</strong><p class="mute">colour themes, from Swara gold to Ocean. The Deck follows the one you pick.</p></div>
+ </div>
+</section>
+
+<section class="grid specs"><div><h2>Specifications</h2><table><tbody><tr><th scope="row">Plays</th><td>Music already on your phone. No account.</td></tr><tr><th scope="row">Network</th><td>Requests no internet permission<sup><a href="#n1">1</a></sup></td></tr><tr><th scope="row">Karaoke</th><td>Vocal removal on the phone, about 23 ms added latency<sup><a href="#n2">2</a></sup></td></tr><tr><th scope="row">Karaoke model</th><td>Two-layer GRU, 4.2 MB file<sup><a href="#n3">3</a></sup></td></tr><tr><th scope="row">Voice</th><td>Tap Hey Swara to play, pause or skip. Speech is transcribed on the phone.<sup><a href="#n4">4</a></sup></td></tr><tr><th scope="row">Listening</th><td>Vibe Mode, mixes and Wrapped recaps, computed on the phone</td></tr><tr><th scope="row">Themes</th><td>8 colour themes, each with light and dark<sup><a href="#n5">5</a></sup></td></tr><tr><th scope="row">Requires</th><td>Android 7.0 (API 24) or later<sup><a href="#n6">6</a></sup></td></tr><tr><th scope="row">Version</th><td>2.1</td></tr><tr><th scope="row">Built with</th><td>Java, Media3, Room, ONNX Runtime</td></tr><tr><th scope="row">Tests</th><td>734 unit test methods in the repository<sup><a href="#n7">7</a></sup></td></tr><tr><th scope="row">Licence</th><td>Apache 2.0 for the app. Karaoke model weights are non-commercial.<sup><a href="#n3">3</a></sup></td></tr></tbody></table><ol class="notes"><li id="n1">The permission is removed from the app manifest and the build fails if a library adds it back. On Android 10, restart the phone after updating from an older version, or the app can still open connections until you do. The project checked this on emulators, not on physical phones.</li><li id="n2">Calculated from the design, not measured on a phone: 1,023 samples at 44.1 kHz is 23.2 ms. Device audio buffering is extra.</li><li id="n3">The weights were trained on MUSDB18, which does not allow commercial use without permission.</li><li id="n4">Voice starts only when you tap. The app asks for microphone access for this.</li><li id="n5">The colour swatches on this page are previews: a Forest theme screen capture recoloured with the app’s light-mode accent values. The album art and song details in it were replaced with placeholders.</li><li id="n6">The minimum version set in the build file. Not every version was tested.</li><li id="n7">Test annotations counted in the source at commit a44260a. They were not run for this page.</li></ol></div></section>
+
+<section class="grid"><blockquote>“I skipped Kotlin and Compose because I wanted to learn what the Android framework does underneath.”</blockquote>
+<p class="who">Prabhu Siddarth A V, who built Swara, on prabhusiddarth.dev</p></section>
+</main>
+<footer style="margin-top:var(--gap)">
+ <div class="grid buy"><span class="price">Free</span><div class="swatches" role="group" aria-label="Colour theme"><button class="sw" data-t="forest" style="--c:#1E7F3A" aria-label="Forest theme" aria-pressed="true"></button><button class="sw" data-t="swara" style="--c:#8A6610" aria-label="Swara theme" aria-pressed="false"></button><button class="sw" data-t="midnight" style="--c:#0066D6" aria-label="Midnight theme" aria-pressed="false"></button><button class="sw" data-t="rose" style="--c:#D30F45" aria-label="Rose theme" aria-pressed="false"></button><button class="sw" data-t="ocean" style="--c:#0A7C8C" aria-label="Ocean theme" aria-pressed="false"></button></div><div class="act"><a class="btn" href="https://github.com/PRABHUSIDDARTH/SwaraApp" target="_blank" rel="noopener">Get the code</a></div></div>
+ <p class="back"><a href="https://prabhusiddarth.dev">Back to Prabhu’s portfolio</a></p>
+ <div class="wordmark" role="img" aria-label="Swara"><svg viewBox="0 -76 270 98" aria-hidden="true"><text x="0" y="0" textLength="270" lengthAdjust="spacingAndGlyphs">Swara</text></svg></div>
+</footer>
+<script>
+const SRC={swara:"assets/swara.webp",midnight:"assets/midnight.webp",rose:"assets/rose.webp",ocean:"assets/ocean.webp"};
+SRC.forest=document.querySelector('.product').src;
+document.querySelectorAll('.sw').forEach(x=>x.addEventListener('click',()=>{
+ const t=x.dataset.t;
+ document.querySelectorAll('.product').forEach(i=>i.src=SRC[t]);
+ document.querySelectorAll('.sw').forEach(s=>s.setAttribute('aria-pressed',s.dataset.t===t));
+}));
+const ch=[...document.querySelectorAll('.chapter')],lit=[...document.querySelectorAll('.lit')];
+function mark(){const y=innerHeight*(innerWidth<761?.85:.6);let a=0;ch.forEach((c,i)=>{if(c.getBoundingClientRect().top<y)a=i});lit.forEach((l,i)=>l.classList.toggle('on',i===a))}
+addEventListener('scroll',mark,{passive:true});mark();
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body></html>
